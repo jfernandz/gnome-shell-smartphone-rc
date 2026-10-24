@@ -33,8 +33,13 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
         }
         addEventListener(type, callback) { this.handlers[type] = callback; }
         emit(type, event) { this.handlers[type](event); }
-        close() { this.emit('close'); }
-        send(value) { this.sent.push(JSON.parse(value)); }
+        close(code) { this.emit('close', {code}); }
+        send(value) {
+            const message = JSON.parse(value);
+            this.sent.push(message);
+            if (message.type === 'disconnect')
+                cookieJar.authenticated = Boolean(cookieJar.trusted);
+        }
     }
     const location = {hash, host: '192.168.1.147:8844', protocol: 'https:'};
     const frames = new Map();
@@ -460,4 +465,30 @@ test('desktop sensitivity settings clamp the mobile value and apply live range c
     assert.equal(browser.preferences.get('pointerSensitivity'), '5');
     browser.sockets[0].emit('message', {data: JSON.stringify({type: 'settings', sensitivity: {min: 12, max: 5}})});
     assert.equal(browser.element('sensitivity').value, '5');
+});
+
+
+test('Disconnect enables manual reconnect for remembered browsers without reconnecting on foreground', async () => {
+    const browser = connectedPage({cookieJar: {authenticated: true, trusted: true}});
+    await browser.settle();
+    browser.element('disconnect').handlers.click();
+    await browser.settle();
+    assert.equal(browser.element('connect').disabled, false);
+    assert.equal(browser.sockets.length, 1);
+    assert.match(browser.element('status').textContent, /Tap Connect/);
+    browser.document.hidden = false;
+    for (const handler of browser.documentEvents.get('visibilitychange')) handler();
+    assert.equal(browser.sockets.length, 1);
+    browser.element('connect').handlers.click();
+    assert.equal(browser.sockets.length, 2);
+    assert.equal(browser.sockets[1].url, 'wss://192.168.1.147:8844/control');
+});
+
+test('Disconnect keeps Connect disabled when temporary approval has been revoked', async () => {
+    const browser = connectedPage({cookieJar: {authenticated: true}});
+    await browser.settle();
+    browser.element('disconnect').handlers.click();
+    await browser.settle();
+    assert.equal(browser.element('connect').disabled, true);
+    assert.equal(browser.sockets.length, 1);
 });

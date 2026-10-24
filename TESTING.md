@@ -201,3 +201,12 @@ Rapid connection/stop checks exposed GNOME 51's QR generator completing after it
 The ZIP includes preferences, stylesheet, trust/settings modules, and schema XML. A disposable install with `gnome-extensions install` compiled the schema successfully. An initial attempt using a temporary data directory on tmpfs failed with the installer's directory-copy error; installing into an isolated directory on the home filesystem succeeded. No certificates, credentials, configuration, tests, or development scripts are shipped. The v0.1.0 artifact remains built from its original tag.
 
 The user confirmed on the physical phone that a remembered browser recovers control without another approval after stopping and restarting the service, and that Settings works. Notification actions were verified in the isolated native checks above; their complete mobile-to-desktop flow was not separately confirmed by the user. Desktop reboot, iOS, complete theme/accessibility coverage, network exhaustion, and public extension review are not established by these tests. See PUBLICATION.md for outstanding publication work.
+
+
+## Manual reconnect and integrated device rows — 2026-10-25
+
+The mobile client now checks server authorization after an intentional socket close. A remembered browser gets an enabled Connect button without a page refresh, while revoked temporary approval keeps it disabled. Returning to the foreground does not undo an explicit disconnect. All 45 automated tests pass, including client regressions for both authorization cases. Real Chromium confirms Disconnect → Connect on the same page without a new approval, as well as subsequent Forget revocation.
+
+Trusted-browser preferences now use the browser name as the title of a single row containing its dates and rename/Forget actions. A native GTK/Adwaita check verifies that integrated row, opens the rename dialog, activates Save, and then revokes the entry. It uses an in-memory settings backend and an isolated compositor.
+
+The v0.2.1 patch also increases the default Settings window to 760 × 820. The user confirmed the larger window is satisfactory.

@@ -67,14 +67,20 @@ async function rememberSession(exchangeToken = null) {
         // An interrupted refresh can be retried on return to the page.
     }
 }
-async function restoreSession() {
+async function restoreSession(automatic = true) {
+    const connection = socket;
     try {
         const response = await fetch('/session', {credentials: 'same-origin', cache: 'no-store'});
         if (!response.ok)
             return;
-        cookieSession = Boolean((await response.json()).authenticated);
-        if (cookieSession && !socket && !userDisconnected && !document.hidden)
+        const authenticated = Boolean((await response.json()).authenticated);
+        if (socket !== connection)
+            return;
+        cookieSession = authenticated;
+        if (automatic && cookieSession && !socket && !userDisconnected && !document.hidden)
             connect(true);
+        else if (!socket && cookieSession)
+            update('Disconnected. Tap Connect to reconnect.');
     } catch {
         // Leave pairing available when the desktop is not reachable.
     }
@@ -217,12 +223,17 @@ function connect(resuming = false) {
         socket = null;
         typingPaused = false;
         forgetToken();
-        if (event?.code === 1000 || event?.code === 1008)
+        const ended = event?.code === 1000 || event?.code === 1008;
+        if (ended) {
+            userDisconnected = true;
             cookieSession = false;
+        }
         if (cookieSession)
             reconnectLater();
         else
             update('Disconnected. Start a new session on the PC and scan its QR code.');
+        if (ended)
+            restoreSession(false);
     });
     connection.addEventListener('error', () => {
         if (socket === connection)
@@ -249,7 +260,7 @@ document.addEventListener('visibilitychange', () => {
             socket.send(JSON.stringify({type: 'suspend'}));
             update('Paused. Return to Chrome to resume.');
         }
-    } else if (cookieSession) {
+    } else if (cookieSession && !userDisconnected) {
         if (socket?.readyState === WebSocket.OPEN) {
             const connection = socket;
             connection.send(JSON.stringify({type: 'resume'}));

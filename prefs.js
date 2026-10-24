@@ -6,6 +6,7 @@ import {TrustedBrowsers} from './trusted.js';
 
 export default class RemotePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
+        window.set_default_size(760, 820);
         const settings = this.getSettings();
         const trusted = new TrustedBrowsers(settings);
         const page = new Adw.PreferencesPage({title: 'Remote control', icon_name: 'input-touchpad-symbolic'});
@@ -78,12 +79,28 @@ export default class RemotePreferences extends ExtensionPreferences {
                 add(new Adw.ActionRow({title: 'No trusted devices',
                     subtitle: 'Choose Remember this browser when approving a new connection on the PC.'}));
             for (const record of records) {
-                const entry = new Adw.EntryRow({title: 'Device name', text: record.name, show_apply_button: true});
-                entry.connect('apply', () => { trusted.rename(record.id, entry.text); settings.apply(); });
-                add(entry);
                 const date = value => new Date(value * 1000).toLocaleString();
-                const row = new Adw.ActionRow({title: record.expires * 1000 <= Date.now() ? 'Expired' : 'Remembered browser',
-                    subtitle: `Approved: ${date(record.created)}\nLast used: ${date(record.lastUsed)}\nExpires: ${date(record.expires)}`});
+                const expired = record.expires * 1000 <= Date.now() ? 'Expired · ' : '';
+                const row = new Adw.ActionRow({title: record.name, use_markup: false,
+                    subtitle: `${expired}Approved: ${date(record.created)}\nLast used: ${date(record.lastUsed)}\nExpires: ${date(record.expires)}`});
+                const rename = new Gtk.Button({icon_name: 'document-edit-symbolic', tooltip_text: 'Rename device',
+                    valign: Gtk.Align.CENTER});
+                rename.connect('clicked', () => {
+                    const name = new Gtk.Entry({text: record.name, max_length: 80, activates_default: true});
+                    const dialog = new Adw.AlertDialog({heading: 'Rename device', body: 'Choose a name for this browser profile.',
+                        extra_child: name, close_response: 'cancel', default_response: 'save'});
+                    dialog.add_response('cancel', 'Cancel');
+                    dialog.add_response('save', 'Save');
+                    dialog.set_response_appearance('save', Adw.ResponseAppearance.SUGGESTED);
+                    dialog.connect('response', (_dialog, response) => {
+                        if (response === 'save') {
+                            trusted.rename(record.id, name.text);
+                            settings.apply();
+                        }
+                    });
+                    dialog.present(window);
+                });
+                row.add_suffix(rename);
                 const forget = new Gtk.Button({label: 'Forget', valign: Gtk.Align.CENTER, css_classes: ['destructive-action']});
                 forget.connect('clicked', () => { trusted.forget(record.id); settings.apply(); });
                 row.add_suffix(forget);

@@ -38,15 +38,19 @@ app.connect('activate', () => {
             print('PASS: native preferences render, enforce range order, save and restore defaults');
             settings.set_string('trusted-browsers', JSON.stringify([{id:'ab'.repeat(32), name:'Test phone', created:1000000000,lastUsed:1000000000,expires:2000000000}]));
             const refreshed = widgets(window);
-            const name = refreshed.find(w => w instanceof Adw.EntryRow);
-            if (!name || name.text !== 'Test phone') throw Error('Trusted browser row missing');
-            name.text = 'Renamed phone'; name.emit('apply');
+            const device = refreshed.find(w => w instanceof Adw.ActionRow && w.title === 'Test phone');
+            if (!device || !device.subtitle.includes('Last used:')) throw Error('Integrated browser row missing');
+            refreshed.find(w => w instanceof Gtk.Button && w.tooltip_text === 'Rename device').emit('clicked');
+            const dialog = window.get_visible_dialog();
+            if (!(dialog instanceof Adw.AlertDialog)) throw Error('Rename dialog missing');
+            dialog.extra_child.text = 'Renamed phone';
+            widgets(dialog).find(w => w instanceof Gtk.Button && w.label === 'Save').emit('clicked');
             if (!settings.get_string('trusted-browsers').includes('Renamed phone')) throw Error('Rename failed');
             widgets(window).find(w => w instanceof Gtk.Button && w.label === 'Forget').emit('clicked');
             if (settings.get_string('trusted-browsers') !== '[]') throw Error('Forget failed');
             print('PASS: native trusted-device preferences update, rename and revoke records');
         } catch (error) {
-            printerr(error.stack);
+            printerr(`${error.message}\n${error.stack}`);
             failed = true;
         }
         window.close(); app.quit();

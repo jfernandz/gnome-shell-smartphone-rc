@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-25
+
+- Re-enable Connect after disconnecting a remembered browser, allowing manual reconnection without refreshing or reconnecting automatically on foreground.
+- Integrate each trusted browser name, dates, rename action, and Forget action into one preferences row.
+- Increase the default Settings window size to 760 × 820 while keeping it resizable.
+
 ## 0.2.0 — 2026-10-25
 
 - Add Accept, Accept and remember, and Reject actions to pairing notifications, with cleanup when requests are resolved or the service stops.

@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.2.0 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.2.1 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -59,7 +59,7 @@ Opening the bare IP address in a browser without a valid approval cookie asks yo
 
 When Chrome goes into the background, input pauses. Returning to the tab resumes the connection, or automatically reconnects if the transport was closed. Temporary approval can recover for up to 30 minutes after the last input or foreground resume; remembered browsers may establish a new session during their trust lifetime while the service is running. Reconnection resets unfinished mobile editing state rather than replaying it into a potentially changed PC field.
 
-Choose **Disconnect / reject** to end a connection or reject a request. This clears temporary approval but preserves remembered trust. **Stop service** prevents all access until you manually start it again; use **Settings → Trusted devices → Forget** to revoke a remembered browser permanently. If scanning opens a Lens window, choose **Open in Chrome** from its menu before tapping Connect. The pending invitation remains in the URL until approval so it can be transferred to that browser tab. An embedded browser window may not appear among your normal Chrome tabs. Recovery uses a cookie shared by that browser rather than tab-only storage. Different browser engines may have separate cookie stores; use **New pairing QR** on the PC if the new browser does not have the cookie. The extension cannot recover a tab that the browser has closed.
+Choose **Disconnect / reject** to end a connection or reject a request. A remembered browser can tap **Connect** again without refreshing the page. This clears temporary approval but preserves remembered trust. **Stop service** prevents all access until you manually start it again; use **Settings → Trusted devices → Forget** to revoke a remembered browser permanently. If scanning opens a Lens window, choose **Open in Chrome** from its menu before tapping Connect. The pending invitation remains in the URL until approval so it can be transferred to that browser tab. An embedded browser window may not appear among your normal Chrome tabs. Recovery uses a cookie shared by that browser rather than tab-only storage. Different browser engines may have separate cookie stores; use **New pairing QR** on the PC if the new browser does not have the cookie. The extension cannot recover a tab that the browser has closed.
 
 ## Settings and trusted devices
 

@@ -168,10 +168,12 @@ try {
         console.log('PASS: remembered browser survives a complete service process restart without pairing');
         await recovered.evaluate('document.querySelector("#disconnect").click()');
         await waitFor(() => recovered.evaluate('document.querySelector("#status").textContent.startsWith("Disconnected")'));
-        await control('Target.closeTarget', {targetId: recovered.targetId});
-        const connectedAgain = await tab(`${origin}/`);
+        await waitFor(() => recovered.evaluate('!document.querySelector("#connect").disabled'));
+        assert.equal(await recovered.evaluate('document.querySelector("#status").textContent'), 'Disconnected. Tap Connect to reconnect.');
+        await recovered.evaluate('document.querySelector("#connect").click()');
+        const connectedAgain = recovered;
         await waitFor(() => connectedAgain.evaluate('document.querySelector("#status").textContent === "Connected"'));
-        console.log('PASS: Disconnect preserves remembered-browser trust');
+        console.log('PASS: Disconnect enables Connect and reconnects the same page without refreshing');
         server.kill('SIGUSR2');
         await waitFor(() => connectedAgain.evaluate('document.querySelector("#status").textContent.startsWith("Disconnected")'));
         await control('Target.closeTarget', {targetId: connectedAgain.targetId});
