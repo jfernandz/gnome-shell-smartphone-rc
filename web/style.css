@@ -1,0 +1,16 @@
+:root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #141414; color: #eee; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; height: 100dvh; display: flex; flex-direction: column; gap: 12px; }
+header h1 { font-size: 1.1rem; margin: 0; }
+header p { font-size: .85rem; color: #bdbdbd; margin: 6px 0 0; }
+nav, footer, #keys, form { display: flex; gap: 8px; }
+button { border: 1px solid #555; background: #292929; color: inherit; border-radius: 10px; min-height: 44px; padding: 8px 12px; font: inherit; }
+button:disabled { opacity: .4; }
+button:active { background: #454545; }
+nav button, footer button, #keys button { flex: 1; }
+#touchpad { flex: 1; min-height: 100px; background: #000; border: 1px solid #333; border-radius: 16px; touch-action: none; user-select: none; display: grid; place-items: center; }
+#touchpad span { color: #888; text-align: center; pointer-events: none; font-size: .85rem; line-height: 1.8; }
+#touchpad.active { border-color: #6bba83; }
+#typing label { display: block; margin-bottom: 6px; font-size: .85rem; }
+input { width: 100%; min-width: 0; border: 1px solid #666; border-radius: 8px; background: #222; color: inherit; padding: 10px; font: inherit; }
+#keys { margin-top: 8px; }

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+  <title>Smartphone Remote Control</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header><h1>Remote Control</h1><p id="status" role="status">Ready to connect</p></header>
+  <nav aria-label="Connection controls">
+    <button id="connect">Connect</button>
+    <button id="keyboard" disabled>Keyboard</button>
+    <button id="disconnect" disabled>Disconnect</button>
+  </nav>
+  <main id="touchpad" aria-label="Touchpad"><span>Slide to move · Tap to click<br>Two fingers to scroll</span></main>
+  <section id="typing" hidden>
+    <label for="text">Text to send</label>
+    <form id="text-form"><input id="text" type="text" autocomplete="off" placeholder="Type here, then send" maxlength="128"><button>Send</button></form>
+    <div id="keys"><button data-key="Enter">Enter</button><button data-key="Backspace">⌫</button><button data-key="Tab">Tab</button><button data-key="Escape">Esc</button></div>
+  </section>
+  <footer><button id="left" disabled>Left click</button><button id="right" disabled>Right click</button></footer>
+</body>
+</html>

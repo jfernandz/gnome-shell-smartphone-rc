@@ -1,0 +1,6 @@
+{
+  "uuid": "smartphone-rc@jfaparicio.github.io",
+  "name": "Smartphone Remote Control",
+  "description": "Use a smartphone browser as a desktop touchpad and keyboard. Initial prototype for GNOME Shell 51. Wi-Fi connectivity and QR pairing are planned.",
+  "shell-version": ["51"]
+}
