@@ -6,11 +6,15 @@ import {QrCode} from 'resource:///org/gnome/shell/ui/qrCode.js';
 export class RemoteDialogs {
     constructor() {
         this._pairing = null;
+        this._pairingQr = null;
         this._certificate = null;
     }
 
     closePairing() {
         if (this._pairing) {
+            // GNOME 51 does not cancel QR generation when its actor is destroyed.
+            this._pairingQr?._cancellable?.cancel();
+            this._pairingQr = null;
             this._pairing.destroy();
             this._pairing = null;
         }
@@ -22,10 +26,11 @@ export class RemoteDialogs {
         this.closePairing();
         this._pairing = new ModalDialog.ModalDialog();
         this._pairing.contentLayout.add_child(new St.Label({text: 'Scan to connect'}));
-        this._pairing.contentLayout.add_child(new QrCode({
+        this._pairingQr = new QrCode({
             text: url, width: 280, height: 280, x_align: Clutter.ActorAlign.CENTER,
             style: 'background-color: white; color: black; padding: 24px;',
-        }));
+        });
+        this._pairing.contentLayout.add_child(this._pairingQr);
         this._pairing.contentLayout.add_child(new St.Label({text: url.split('/#')[0]}));
         this._pairing.contentLayout.add_child(new St.Label({text: 'Scan with your phone and tap Connect.\nIn Lens, choose Open in Chrome.\nApprove the request in the PC menu.\nThis code expires after two minutes.'}));
         this._pairing.setButtons([{label: 'Close', action: () => this.closePairing()}]);

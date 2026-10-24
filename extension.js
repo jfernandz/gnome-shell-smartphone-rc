@@ -4,6 +4,9 @@ import GLib from 'gi://GLib';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+import {TrustedBrowsers} from './trusted.js';
+import {sensitivityRange} from './settings.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {RemoteDialogs} from './dialogs.js';
 
@@ -14,6 +17,9 @@ import {isPrivateIPv4} from './network.js';
 
 export default class SmartphoneRemoteControl extends Extension {
     enable() {
+        this._settings = this.getSettings();
+        this._trusted = new TrustedBrowsers(this._settings);
+        this._notification = null;
         this._server = null;
         this._input = null;
         this._focus = null;
@@ -22,7 +28,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._indicator.add_child(new St.Icon({icon_name: 'input-touchpad-symbolic', style_class: 'system-status-icon'}));
         this._status = new PopupMenu.PopupMenuItem('Remote control is off', {reactive: false});
         this._indicator.menu.addMenuItem(this._status);
-        this._indicator.menu.addAction('Start Wi-Fi session', () => this._start());
+        this._indicator.menu.addAction('Start Wi-Fi service', () => this._start()).add_style_class_name('smartphone-rc-connect');
         this._address = new PopupMenu.PopupMenuItem('', {reactive: false});
         this._address.visible = false;
         this._indicator.menu.addMenuItem(this._address);
@@ -35,9 +41,22 @@ export default class SmartphoneRemoteControl extends Extension {
         this._copy.visible = false;
         this._showCertificate = this._indicator.menu.addAction('Show certificate fingerprint', () => this._dialogs.showFingerprint(this._fingerprint));
         this._showCertificate.visible = false;
-        this._approve = this._indicator.menu.addAction('Approve phone', () => this._server.approve());
+        this._remember = new PopupMenu.PopupSwitchMenuItem('Remember this browser for 90 days', false);
+        this._remember.visible = false;
+        this._indicator.menu.addMenuItem(this._remember);
+        this._approve = this._indicator.menu.addAction('Approve phone', () => this._server?.approve(this._remember.state));
+        this._approve.add_style_class_name('smartphone-rc-approve');
         this._approve.visible = false;
-        this._indicator.menu.addAction('Stop / reject connection', () => this._stop());
+        this._indicator.menu.addAction('Disconnect / reject', () => this._server?.disconnect()).add_style_class_name('smartphone-rc-stop');
+        this._indicator.menu.addAction('Stop service', () => this._stop()).add_style_class_name('smartphone-rc-stop');
+        this._indicator.menu.addAction('Settings', () => this.openPreferences());
+        this._settingsId = this._settings.connect('changed', (_settings, key) => {
+            if (key === 'trusted-browsers')
+                this._server?.checkTrust();
+            else
+                this._server?.setSensitivity(sensitivityRange(this._settings));
+        });
+        this._pairing.add_style_class_name('smartphone-rc-connect');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
             if (Main.sessionMode.isLocked)
@@ -59,7 +78,7 @@ export default class SmartphoneRemoteControl extends Extension {
             });
             this._server = new RemoteServer(this.path,
                 state => this._onSessionState(state),
-                input => this._handleInput(input), options);
+                input => this._handleInput(input), {...options, trusted: this._trusted, sensitivity: sensitivityRange(this._settings)});
             this._url = this._server.start();
             this._address.label.text = this._url.split('/#')[0];
             this._address.visible = true;
@@ -79,8 +98,8 @@ export default class SmartphoneRemoteControl extends Extension {
             console.info('Smartphone Remote Control: phone transport interrupted; waiting for reconnection.');
         this._status.label.text = {
             listening: 'Waiting for phone', pending: `Control requested from ${this._server.peer}`,
-            connected: `Connected: ${this._server.peer}`, disconnected: 'Disconnected — start a new session',
-            expired: 'Pairing expired — start a new session',
+            connected: `Connected: ${this._server.browserName ?? this._server.peer}`, disconnected: 'Disconnected',
+            expired: 'Invitation or session expired',
             suspended: 'Phone paused in background', reconnecting: 'Waiting for phone to reconnect',
         }[state];
         if (this._focus) {
@@ -94,7 +113,11 @@ export default class SmartphoneRemoteControl extends Extension {
                 this._server.send(message);
             });
         }
+        this._clearNotification();
         this._approve.visible = state === 'pending';
+        this._remember.visible = state === 'pending';
+        if (state === 'pending')
+            this._remember.setToggleState(false);
         if (state !== 'listening') {
             this._dialogs.closePairing();
         }
@@ -106,7 +129,43 @@ export default class SmartphoneRemoteControl extends Extension {
             this._removeSessionFile();
         }
         if (state === 'pending')
-            Main.notify('Smartphone Remote Control', `A browser at ${this._server.peer} requests control. Open the top-bar menu to approve or reject it.`);
+            this._notifyRequest();
+    }
+
+    _clearNotification() {
+        if (this._notification) {
+            const notification = this._notification;
+            this._notification = null;
+            notification.clearActions();
+            notification.destroy();
+        }
+    }
+
+    _notifyRequest() {
+        const server = this._server;
+        const notification = new MessageTray.Notification({
+            source: MessageTray.getSystemSource(), title: 'Remote control requested',
+            body: `A browser at ${server.peer} requests control. Remembering it allows access for 90 days while the service is running.`,
+            iconName: 'input-touchpad-symbolic', resident: true,
+        });
+        this._notification = notification;
+        notification.connect('destroy', () => {
+            if (this._notification === notification)
+                this._notification = null;
+        });
+        notification.addAction('Accept', () => {
+            if (this._server === server)
+                server.approve(false);
+        });
+        notification.addAction('Accept and remember', () => {
+            if (this._server === server)
+                server.approve(true);
+        });
+        notification.addAction('Reject', () => {
+            if (this._server === server)
+                server.disconnect();
+        });
+        notification.source.addNotification(notification);
     }
 
     _showPairing() {
@@ -146,6 +205,7 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _stop() {
+        this._clearNotification();
         if (this._focus) {
             this._focus.destroy();
             this._focus = null;
@@ -167,6 +227,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._showCertificate.visible = false;
         this._fingerprint = null;
         this._approve.visible = false;
+        this._remember.visible = false;
         this._status.label.text = 'Remote control is off';
     }
 
@@ -181,12 +242,16 @@ export default class SmartphoneRemoteControl extends Extension {
 
     disable() {
         this._stop();
+        this._settings.disconnect(this._settingsId);
+        this._settings = null;
+        this._trusted = null;
         Main.sessionMode.disconnect(this._lockId);
         this._indicator.destroy();
         this._indicator = null;
         this._dialogs = null;
         this._status = null;
         this._approve = null;
+        this._remember = null;
         this._address = null;
         this._copy = null;
         this._pairing = null;

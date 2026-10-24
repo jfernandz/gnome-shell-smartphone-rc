@@ -447,3 +447,17 @@ test('a new tab restores an approved cookie session without storing a JS-readabl
     assert.equal(reopened.sockets.length, 1);
     assert.equal(reopened.sockets[0].url, 'wss://192.168.1.147:8844/control');
 });
+
+test('desktop sensitivity settings clamp the mobile value and apply live range changes', () => {
+    const browser = page({hash: '#pairing', preferences: new Map([['pointerSensitivity', '8']])});
+    browser.element('connect').handlers.click();
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'approved', sensitivity: {min: 1.5, max: 4}})});
+    assert.equal(browser.element('sensitivity').min, '1.5');
+    assert.equal(browser.element('sensitivity').max, '4');
+    assert.equal(browser.element('sensitivity').value, '4');
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'settings', sensitivity: {min: 5, max: 12}})});
+    assert.equal(browser.element('sensitivity').value, '5');
+    assert.equal(browser.preferences.get('pointerSensitivity'), '5');
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'settings', sensitivity: {min: 12, max: 5}})});
+    assert.equal(browser.element('sensitivity').value, '5');
+});

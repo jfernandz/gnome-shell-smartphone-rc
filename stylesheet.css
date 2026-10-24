@@ -1,0 +1,9 @@
+.smartphone-rc-connect:selected, .smartphone-rc-connect:focus {
+    background-color: rgba(53, 132, 228, 0.18);
+}
+.smartphone-rc-approve:selected, .smartphone-rc-approve:focus {
+    background-color: rgba(46, 194, 126, 0.18);
+}
+.smartphone-rc-stop:selected, .smartphone-rc-stop:focus {
+    background-color: rgba(224, 27, 36, 0.18);
+}

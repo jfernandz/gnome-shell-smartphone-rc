@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "test:browser": "node tests/cookie-browser.mjs"
+    "test:browser": "node tests/cookie-browser.mjs",
+    "test:trusted-browser": "node tests/cookie-browser.mjs --trusted"
   },
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

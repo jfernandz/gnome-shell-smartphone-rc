@@ -1,9 +1,10 @@
 export function createTouchpad(send, isApproved) {
     const $ = id => document.getElementById(id);
     let sensitivity = 1;
+    let range = {min: 0.5, max: 10};
     try {
         const saved = Number(localStorage.getItem('pointerSensitivity'));
-        if (Number.isFinite(saved) && saved >= 0.5 && saved <= 10)
+        if (Number.isFinite(saved) && saved >= 0.5 && saved <= 20)
             sensitivity = Math.round(saved * 2) / 2;
     } catch {
         // Pointer control still works when the browser blocks storage.
@@ -15,7 +16,7 @@ export function createTouchpad(send, isApproved) {
     showSensitivity();
     $('sensitivity').addEventListener('input', () => {
         const value = Number($('sensitivity').value);
-        if (!Number.isFinite(value) || value < 0.5 || value > 10)
+        if (!Number.isFinite(value) || value < range.min || value > range.max)
             return;
         sensitivity = Math.round(value * 2) / 2;
         showSensitivity();
@@ -104,5 +105,21 @@ export function createTouchpad(send, isApproved) {
         multi = false;
         dx = dy = 0;
     }
-    return {reset};
+    function setRange(next) {
+        if (!next || !Number.isFinite(next.min) || !Number.isFinite(next.max) ||
+            next.min < 0.5 || next.max > 20 || next.min >= next.max ||
+            !Number.isInteger(next.min * 2) || !Number.isInteger(next.max * 2))
+            return;
+        range = next;
+        $('sensitivity').min = String(range.min);
+        $('sensitivity').max = String(range.max);
+        sensitivity = Math.max(range.min, Math.min(range.max, sensitivity));
+        showSensitivity();
+        try {
+            localStorage.setItem('pointerSensitivity', String(sensitivity));
+        } catch {
+            // The live range still applies when storage is unavailable.
+        }
+    }
+    return {reset, setRange};
 }

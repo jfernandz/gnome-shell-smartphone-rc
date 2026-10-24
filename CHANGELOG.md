@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-10-25
+
+- Add Accept, Accept and remember, and Reject actions to pairing notifications, with cleanup when requests are resolved or the service stops.
+- Add native Settings for pointer sensitivity limits, live mobile-slider updates, and default restoration.
+- Add opt-in remembered browser credentials with a fixed 90-day lifetime and verifier-only storage in GNOME settings.
+- Add editable trusted-browser names, approval/last-used/expiry dates, individual revocation, and Forget all.
+- Separate Disconnect from Stop service and Forget; retain manual startup after login or desktop lock.
+- Add subtle menu action colors for selection and keyboard focus.
+- Extend browser tests to cover service process restart, persistent trust, revocation, and isolation between trusted browsers.
+- Record a preliminary publication review; extensions.gnome.org submission remains pending.
+
 ## 0.1.0 — 2026-10-25
 
 Initial release for GNOME Shell 51, tested on 51.1 with Wayland.

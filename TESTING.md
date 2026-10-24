@@ -184,3 +184,20 @@ This supersedes the tab-only reconnection credential described above. Approval n
 All forty automated tests pass. Real GJS/libsoup HTTP and TLS checks cover cookie issuance, exchange replay rejection, recovery, activity extending the idle deadline, expiry despite cookie refresh, and explicit disconnect/restart revocation. The separate Chromium test verifies cookie flags and JavaScript isolation, fresh-tab recovery without another approval, recovery after restarting the whole browser with its saved profile, and denied recovery after disconnect. It uses an isolated profile and pins only its generated test certificate.
 
 The v0.1.0 archive builds successfully and contains only runtime sources, metadata, web assets, and the license. The user confirmed on the physical phone that closing the tab and reopening the plain PC address restores control without another approval. Chrome/Lens cookie sharing and every mobile process lifecycle remain outside this confirmation.
+
+
+## v0.2.0 — 2026-10-25
+
+The automated suite passes all 43 cases. New checks cover sensitivity-range validation and live clamping on the phone, plus trusted-browser verifier storage, expiry, naming, last-use updates, persistence, and individual/global revocation.
+
+Real Chromium checks pass for both temporary and remembered sessions. The remembered flow verifies Secure/HttpOnly/Strict flags, browser restart, a complete GJS service process restart using an isolated persistent settings profile, and reconnecting without a new approval. Disconnect preserves trust; Forget revokes active control, rejects the saved credential, and clears the stale cookie. A second trusted browser cannot take over an active connection or obtain that browser's temporary session cookie. Temporary sessions retain their original disconnect/restart revocation behavior.
+
+A separate GNOME Shell 51.1 compositor verified the native notification actions and removal after accept, reject, stop, and the real 30-second pending-request timeout. Entering its unlock-dialog mode stopped the extension service and notification; leaving that mode did not restart the service. The user's real desktop was not locked or restarted.
+
+The real GTK/Adwaita preferences rendered and passed range ordering, persistence, Restore defaults, live trusted-list updates, rename, and Forget checks. This used an in-memory settings backend and the isolated compositor. The optional reproduction harness is `tests/preferences-native.mjs`: run it with `GSETTINGS_BACKEND=memory`, an isolated display/session, and the path to an installed extension directory containing compiled schemas. Accessibility activation in the isolated preferences service failed, so widget verification used the standalone harness with `GTK_A11Y=none`; this does not validate accessibility.
+
+Rapid connection/stop checks exposed GNOME 51's QR generator completing after its actor was destroyed. The dialog now cancels its pending generator before destruction. Immediate open/close stress checks completed without new disposed-actor errors.
+
+The ZIP includes preferences, stylesheet, trust/settings modules, and schema XML. A disposable install with `gnome-extensions install` compiled the schema successfully. An initial attempt using a temporary data directory on tmpfs failed with the installer's directory-copy error; installing into an isolated directory on the home filesystem succeeded. No certificates, credentials, configuration, tests, or development scripts are shipped. The v0.1.0 artifact remains built from its original tag.
+
+The user confirmed on the physical phone that a remembered browser recovers control without another approval after stopping and restarting the service, and that Settings works. Notification actions were verified in the isolated native checks above; their complete mobile-to-desktop flow was not separately confirmed by the user. Desktop reboot, iOS, complete theme/accessibility coverage, network exhaustion, and public extension review are not established by these tests. See PUBLICATION.md for outstanding publication work.

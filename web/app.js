@@ -168,6 +168,8 @@ function connect(resuming = false) {
                 update('Connected', true);
             }
         }
+        if (message.type === 'trust-error')
+            $('status').textContent = `Connected for this session only. ${message.message}`;
         if (message.type === 'typing-paused' && approved) {
             typingPaused = true;
             $('keyboard').disabled = true;
@@ -175,6 +177,8 @@ function connect(resuming = false) {
             keyboard.reset();
             $('status').textContent = 'Typing paused. Tap the PC text field again to resume.';
         }
+        if (message.type === 'settings' || message.type === 'approved')
+            touchpad.setRange(message.sensitivity);
         if (message.type === 'pending')
             update('Approve this connection in the PC top-bar menu.');
         if (message.type === 'approved') {

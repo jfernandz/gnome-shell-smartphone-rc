@@ -92,8 +92,21 @@ Exit condition: a reproducible, documented release is ready for review and publi
 
 ## Working agreement
 
+### v0.2.0 scope
+
+- [x] Actionable pairing notifications with request-lifecycle cleanup.
+- [x] Native preferences and live, configurable sensitivity limits.
+- [x] Opt-in trusted browsers, fixed expiry, editable labels, and immediate revocation.
+- [x] Separate disconnect, service stop, and forgetting a browser.
+- [x] Subtle menu selection/focus colors.
+- [x] Preliminary publication review in PUBLICATION.md.
+- [x] Physical mobile acceptance of remembered trust and preferences updates; notification actions verified in isolated native checks.
+- [x] Finalize the local v0.2.0 release after acceptance.
+
+Automatic startup and automatic post-unlock reconnection remain later-version ideas.
+
 ### Current implementation status
 
-v0.1.0 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. The Wi-Fi flow includes HTTPS/WSS, expiring QR invitations, desktop approval, touchpad sensitivity, live mobile keyboard input, and temporary browser recovery using a Secure/HttpOnly/SameSite=Strict cookie. The user confirmed recovery on the phone after reopening the plain PC address without another approval. Forty automated tests and separate Chromium fresh-tab/browser-restart checks pass. The runtime ZIP is built and inspected. Certificate setup remains manual; iOS, broader display/application compatibility, and extensions.gnome.org review remain pending. See TESTING.md and CHANGELOG.md for evidence and limitations. Unchecked publication tasks are follow-up work, not claims made by this local release.
+v0.2.0 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. It adds actionable pairing notifications, native Settings with live sensitivity limits, opt-in remembered browsers with individual/global revocation, and menu action colors. The user confirmed remembered-browser recovery after service restart and working Settings on the physical phone. All 43 automated tests, temporary/trusted Chromium recovery checks, and isolated native preferences/notification/lock checks pass. The runtime ZIP is built and inspected. Automatic startup remains deferred; certificate setup, broader compatibility, and publication requirements remain follow-up work. See TESTING.md, CHANGELOG.md, and PUBLICATION.md for evidence and limitations.
 
 Work through phases in order, updating this checklist and recording decisions as they are made. Start with the smallest technical proof; defer visual polish until pairing and input work reliably. A phase is complete only when its exit condition has been checked.
