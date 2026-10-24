@@ -46,7 +46,7 @@ export class TextFocus {
         this._active = active;
         this._sensitive = sensitive;
         this.context++;
-        // Only focus metadata leaves the PC; existing field contents are not read.
+        // Only focus metadata leaves this monitor; field contents are not included.
         this._onChange({type: 'focus', context: this.context, active, sensitive});
     }
 

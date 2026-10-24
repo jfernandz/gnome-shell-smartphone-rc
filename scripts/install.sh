@@ -6,7 +6,7 @@ mkdir -p "$extension_dir/web"
 for file in metadata.json extension.js input.js server.js protocol.js network.js focus.js dialogs.js; do
     install -m 644 "$project_dir/$file" "$extension_dir/$file"
 done
-for file in index.html app.js editing.js keyboard.js touchpad.js style.css; do
+for file in index.html app.js editing.js keyboard.js touchpad.js viewport.js style.css; do
     install -m 644 "$project_dir/web/$file" "$extension_dir/web/$file"
 done
 echo "Installed to $extension_dir"

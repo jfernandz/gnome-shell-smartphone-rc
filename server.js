@@ -6,6 +6,7 @@ import {RateLimit, validateInput} from './protocol.js';
 import {isPrivateIPv4} from './network.js';
 
 export const PORT = 8844;
+const SESSION_COOKIE = '__Host-smartphone_rc';
 
 export class RemoteServer {
     constructor(directory, onState, onInput, options = {}) {
@@ -22,18 +23,26 @@ export class RemoteServer {
         this._client = null;
         this._expiry = 0;
         this._pairingExpiry = 0;
+        this._sessionSecret = null;
+        this._sessionExpiry = 0;
+        this._sessionSeconds = options.sessionSeconds ?? 1800;
+        this._exchangeToken = null;
     }
 
-    start() {
+    _newSecret() {
         const random = Gio.File.new_for_path('/dev/urandom').read(null);
         try {
             const bytes = random.read_bytes(32, null).get_data();
             if (bytes.length !== 32)
                 throw new Error('Could not generate a pairing secret.');
-            this._token = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+            return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
         } finally {
             random.close(null);
         }
+    }
+
+    start() {
+        this._token = this._newSecret();
         this._deadline = GLib.get_monotonic_time() + 120 * 1000000;
         this._server = new Soup.Server();
         try {
@@ -50,6 +59,7 @@ export class RemoteServer {
             throw error;
         }
         this._server.add_handler('/', (_server, message, path) => this._serve(message, path));
+        this._server.add_handler('/session', (_server, message) => this._sessionRequest(message));
         this._server.add_handler('/control', (_server, message) => {
             const headers = message.get_request_headers();
             if (!this._isOwnHost(message) || message.get_uri().get_path() !== '/control' || headers.get_one('Origin') !== this._origin)
@@ -57,16 +67,28 @@ export class RemoteServer {
         });
         this._server.add_websocket_handler('/control', this._origin, null, (_server, message, _path, connection) => {
             const query = message.get_uri().get_query();
-            if (this._client || !this._token || GLib.get_monotonic_time() > this._deadline || query !== `token=${this._token}`) {
+            const now = GLib.get_monotonic_time();
+            const resuming = this._hasSession(message);
+            if (!resuming && (this._client || !this._token || now > this._deadline || query !== `token=${this._token}`)) {
                 connection.close(1008, 'Pairing unavailable');
                 return;
+            }
+            if (resuming && this._client) {
+                const previous = this._client;
+                this._clearClient(true);
+                previous.close(1000, 'Connection replaced');
             }
             this._peer = message.get_remote_address().get_address().to_string();
             connection.set_max_incoming_payload_size(2048);
             this._client = connection;
             this._approved = false;
+            this._suspended = false;
             this._rate = new RateLimit();
             this._messageId = connection.connect('message', (_connection, type, bytes) => {
+                if (this._approved && GLib.get_monotonic_time() >= this._sessionDeadline) {
+                    this.disconnect();
+                    return;
+                }
                 if (type !== Soup.WebsocketDataType.TEXT || !this._rate.accept(GLib.get_monotonic_time() / 1000)) {
                     this.disconnect();
                     return;
@@ -84,9 +106,27 @@ export class RemoteServer {
                     this.disconnect();
                     return;
                 }
-                this._onInput(input);
+                if (!['suspend', 'disconnect'].includes(input.type))
+                    this._touchSession();
+                if (input.type === 'disconnect') {
+                    this.disconnect();
+                } else if (input.type === 'suspend') {
+                    this._suspended = true;
+                    this.send({type: 'suspended'});
+                    this._onState('suspended');
+                } else if (input.type === 'resume') {
+                    this._suspended = false;
+                    this.send({type: 'resumed', exchangeToken: this._issueExchange()});
+                    this._onState('connected');
+                } else if (!this._suspended) {
+                    this._onInput(input);
+                }
             });
-            this._closedId = connection.connect('closed', () => this._clearClient());
+            this._closedId = connection.connect('closed', () => this._clearClient(true));
+            if (resuming) {
+                this._authorize();
+                return;
+            }
             this._expiry = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 30, () => {
                 this._expiry = 0;
                 this.disconnect();
@@ -122,6 +162,7 @@ export class RemoteServer {
             '/editing.js': ['editing.js', 'text/javascript'],
             '/keyboard.js': ['keyboard.js', 'text/javascript'],
             '/touchpad.js': ['touchpad.js', 'text/javascript'],
+            '/viewport.js': ['viewport.js', 'text/javascript'],
         };
         if (!this._isOwnHost(message) || message.get_method() !== 'GET') {
             message.set_status(Soup.Status.FORBIDDEN, null);
@@ -137,7 +178,7 @@ export class RemoteServer {
         headers.replace('Cache-Control', 'no-store');
         headers.replace('Referrer-Policy', 'no-referrer');
         headers.replace('X-Content-Type-Options', 'nosniff');
-        headers.replace('Content-Security-Policy', `default-src 'none'; script-src 'self'; style-src 'self'; connect-src ${this._origin.replace(/^http/, 'ws')}; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`);
+        headers.replace('Content-Security-Policy', `default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' ${this._origin.replace(/^http/, 'ws')}; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`);
         message.set_status(Soup.Status.OK, null);
         message.set_response(`${file[1]}; charset=utf-8`, Soup.MemoryUse.COPY, contents);
     }
@@ -152,15 +193,107 @@ export class RemoteServer {
             return;
         GLib.Source.remove(this._expiry);
         this._expiry = 0;
-        this._approved = true;
         this._token = null;
         GLib.Source.remove(this._pairingExpiry);
         this._pairingExpiry = 0;
-        this._client.send_text(JSON.stringify({type: 'approved'}));
+        this._authorize();
+    }
+
+    _authorize() {
+        this._approved = true;
+        this._suspended = false;
+        this._touchSession();
+        this._client.send_text(JSON.stringify({type: 'approved', exchangeToken: this._issueExchange()}));
         this._onState('connected');
     }
 
-    _clearClient() {
+    _issueExchange() {
+        this._exchangeToken = this._newSecret();
+        this._exchangeDeadline = GLib.get_monotonic_time() + 30 * 1000000;
+        return this._exchangeToken;
+    }
+
+    _cookie(message) {
+        const header = message.get_request_headers().get_one('Cookie') ?? '';
+        return header.split(';').map(part => part.trim()).find(part => part.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
+    }
+
+    _hasSession(message) {
+        return Boolean(this._sessionSecret && this._cookie(message) === this._sessionSecret &&
+            GLib.get_monotonic_time() < this._sessionDeadline);
+    }
+
+    _touchSession() {
+        this._sessionDeadline = GLib.get_monotonic_time() + this._sessionSeconds * 1000000;
+        if ((this._sessionSecret || this._approved) && !this._sessionExpiry)
+            this._armSessionExpiry();
+    }
+
+    _armSessionExpiry() {
+        const remaining = Math.max(1, Math.ceil((this._sessionDeadline - GLib.get_monotonic_time()) / 1000));
+        this._sessionExpiry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, remaining, () => {
+            this._sessionExpiry = 0;
+            if (GLib.get_monotonic_time() >= this._sessionDeadline) {
+                this.disconnect();
+                this._onState('expired');
+            } else {
+                this._armSessionExpiry();
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _clearSession() {
+        if (this._sessionExpiry) {
+            GLib.Source.remove(this._sessionExpiry);
+            this._sessionExpiry = 0;
+        }
+        this._sessionSecret = null;
+        this._exchangeToken = null;
+    }
+
+    _sessionRequest(message) {
+        const headers = message.get_request_headers();
+        const method = message.get_method();
+        const origin = headers.get_one('Origin');
+        if (!this._isOwnHost(message) || message.get_uri().get_path() !== '/session' ||
+            (origin && origin !== this._origin) || (method !== 'GET' && method !== 'POST') ||
+            (method === 'POST' && origin !== this._origin)) {
+            message.set_status(Soup.Status.FORBIDDEN, null);
+            return;
+        }
+        let authenticated = this._hasSession(message);
+        if (method === 'POST') {
+            const exchange = headers.get_one('Authorization');
+            const validExchange = this._client && this._approved && this._exchangeToken &&
+                GLib.get_monotonic_time() < this._sessionDeadline &&
+                GLib.get_monotonic_time() < this._exchangeDeadline && exchange === `Bearer ${this._exchangeToken}`;
+            if (!authenticated && !validExchange) {
+                message.set_status(Soup.Status.FORBIDDEN, null);
+                return;
+            }
+            if (validExchange) {
+                this._exchangeToken = null;
+                if (!this._sessionSecret) {
+                    this._sessionSecret = this._newSecret();
+                    this._touchSession();
+                }
+            }
+            authenticated = true;
+            const age = Math.max(1, Math.ceil((this._sessionDeadline - GLib.get_monotonic_time()) / 1000000));
+            message.get_response_headers().replace('Set-Cookie',
+                `${SESSION_COOKIE}=${this._sessionSecret}; Path=/; Max-Age=${age}; Secure; HttpOnly; SameSite=Strict`);
+        } else if (!authenticated && this._cookie(message)) {
+            message.get_response_headers().replace('Set-Cookie',
+                `${SESSION_COOKIE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict`);
+        }
+        message.get_response_headers().replace('Cache-Control', 'no-store');
+        message.set_status(Soup.Status.OK, null);
+        message.set_response('application/json', Soup.MemoryUse.COPY, JSON.stringify({authenticated}));
+    }
+
+    _clearClient(allowResume = false) {
+        const resumable = allowResume && this._approved && this._sessionSecret && GLib.get_monotonic_time() < this._sessionDeadline;
         if (this._expiry) {
             GLib.Source.remove(this._expiry);
             this._expiry = 0;
@@ -175,10 +308,17 @@ export class RemoteServer {
             this._pairingExpiry = 0;
         }
         this._peer = null;
-        this._onState('disconnected');
+        this._exchangeToken = null;
+        if (resumable) {
+            this._onState('reconnecting');
+        } else {
+            this._clearSession();
+            this._onState('disconnected');
+        }
     }
 
     disconnect() {
+        this._clearSession();
         if (!this._client)
             return;
         const client = this._client;

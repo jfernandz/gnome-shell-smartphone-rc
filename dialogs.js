@@ -1,4 +1,5 @@
 import St from 'gi://St';
+import Clutter from 'gi://Clutter';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 import {QrCode} from 'resource:///org/gnome/shell/ui/qrCode.js';
 
@@ -22,11 +23,11 @@ export class RemoteDialogs {
         this._pairing = new ModalDialog.ModalDialog();
         this._pairing.contentLayout.add_child(new St.Label({text: 'Scan to connect'}));
         this._pairing.contentLayout.add_child(new QrCode({
-            text: url, width: 280, height: 280,
+            text: url, width: 280, height: 280, x_align: Clutter.ActorAlign.CENTER,
             style: 'background-color: white; color: black; padding: 24px;',
         }));
         this._pairing.contentLayout.add_child(new St.Label({text: url.split('/#')[0]}));
-        this._pairing.contentLayout.add_child(new St.Label({text: 'Scan with your phone and tap Connect.\nApprove the request in the PC menu.\nThis code expires after two minutes.'}));
+        this._pairing.contentLayout.add_child(new St.Label({text: 'Scan with your phone and tap Connect.\nIn Lens, choose Open in Chrome.\nApprove the request in the PC menu.\nThis code expires after two minutes.'}));
         this._pairing.setButtons([{label: 'Close', action: () => this.closePairing()}]);
         this._pairing.open();
     }

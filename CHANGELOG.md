@@ -1,0 +1,24 @@
+# Changelog
+
+## 0.1.0 — 2026-10-25
+
+Initial release for GNOME Shell 51, tested on 51.1 with Wayland.
+
+- Local Wi-Fi touchpad and live keyboard control from a smartphone browser.
+- HTTPS/WSS, temporary QR invitations, and explicit desktop approval.
+- Browser session recovery using a Secure, HttpOnly, SameSite=Strict cookie with a 30-minute inactivity limit.
+- Immediate authorization revocation on disconnect, service restart, desktop lock, and extension disable.
+- Background pause, automatic recovery, and an always-available new pairing QR while the service is active.
+- Pointer sensitivity from 0.5× to 10× in half-step increments.
+- Native mobile keyboard requests, live editing, IME composition, and a layout that follows the visible keyboard area.
+- Bounded text edits with native Backspace handling and acknowledgement-based ordering.
+- English documentation, focused regression tests, and a development reload command that does not require logging out.
+
+### Known limitations
+
+- Initial network/certificate setup is manual; local self-signed certificates require browser verification.
+- One approved browser connection at a time; changing the PC address requires setup and pairing again.
+- Input-method support depends on the application. Typing pauses when the target does not acknowledge edits; full PC/mobile cursor and selection synchronization is not implemented.
+- Browser windows opened through Lens may have different lifecycle or cookie storage from normal Chrome tabs. Opening directly in Chrome is recommended.
+- GNOME versions other than 51 and iOS Safari are not validated.
+- This release is a local preview, not an extensions.gnome.org approval or a published GitHub release.

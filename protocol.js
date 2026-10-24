@@ -2,6 +2,10 @@ export function validateInput(message) {
     if (!message || typeof message !== 'object' || Array.isArray(message))
         return null;
     switch (message.type) {
+    case 'suspend':
+    case 'resume':
+    case 'disconnect':
+        return {type: message.type};
     case 'move':
     case 'scroll':
         if ([message.dx, message.dy].every(value => Number.isFinite(value) && Math.abs(value) <= 500))

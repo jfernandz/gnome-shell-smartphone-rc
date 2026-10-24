@@ -11,7 +11,7 @@ Build a GNOME Shell extension that lets a smartphone browser control the desktop
 - Connect over the local network, with one active phone at a time.
 - Provide a top-bar menu, a locally generated QR code, explicit desktop approval, and a disconnect action.
 - Provide a dark touchpad, tap to click, secondary click, two-finger scrolling, and a keyboard toggle.
-- Support text entry and explicit Enter, Backspace, Tab, and Escape controls.
+- Support live text entry with the native mobile keyboard, including Enter and Backspace.
 - Exclude screen streaming, internet relay servers, mobile apps, file transfer, and unattended access from the MVP.
 
 ## Phase 1 — Validate the technical foundation
@@ -42,7 +42,7 @@ Exit condition: the extension can be installed, enabled, disabled, and re-enable
 - [x] Bind authorization to the approved session; reject unauthorized messages and unexpected browser origins.
 - [x] Validate message types, sizes, and rates.
 - [x] Show pending and connected devices, using device names only as user-facing labels rather than proof of identity.
-- [ ] Support rejection, disconnection, expiration, and fresh pairing after service restart.
+- [x] Support rejection, disconnection, expiration, and fresh pairing after service restart.
 
 Exit condition: an unapproved browser cannot control the desktop, and disconnecting immediately revokes control.
 
@@ -50,8 +50,8 @@ Exit condition: an unapproved browser cannot control the desktop, and disconnect
 
 - [x] Build a responsive dark interface with connection status and explicit controls.
 - [ ] Implement relative pointer movement, tap to click, secondary click, and two-finger scrolling.
-- [ ] Tune sensitivity and message batching for responsive movement.
-- [ ] Prevent page scrolling and unwanted browser gestures in the touchpad area.
+- [x] Tune sensitivity and message batching for responsive movement.
+- [x] Prevent page scrolling and unwanted browser gestures in the touchpad area.
 - [ ] Handle touch cancellation, orientation changes, and lost connections without stuck buttons.
 
 Exit condition: the phone works comfortably as a touchpad during normal desktop use.
@@ -62,7 +62,7 @@ Exit condition: the phone works comfortably as a touchpad during normal desktop 
 - [x] Handle composition, autocorrection, insertions, and deletions instead of relying only on keydown events.
 - [x] Use native mobile Enter and Backspace; remove the separate Send and auxiliary-key toolbar.
 - [ ] Test accented text, repeated characters, selection/replacement, and unsupported Unicode cases.
-- [ ] Keep the touchpad usable when the keyboard is open.
+- [x] Keep the touchpad usable when the keyboard is open.
 
 Exit condition: typical searches and short text can be entered reliably, with documented character limitations.
 
@@ -74,7 +74,7 @@ Exit condition: typical searches and short text can be entered reliably, with do
 - [ ] Stop remote control when the desktop locks and require a deliberate reconnection policy after unlock.
 - [ ] Verify cleanup during extension disable and helper termination, including released keys and buttons.
 - [x] Add focused automated tests for pairing/session authorization and input-message validation.
-- [ ] Document network setup, security properties, troubleshooting, and known limitations.
+- [x] Document network setup, security properties, troubleshooting, and known limitations.
 
 Exit condition: the documented end-to-end flow works on the tested devices, with no unresolved authorization or lifecycle failures.
 
@@ -82,7 +82,7 @@ Exit condition: the documented end-to-end flow works on the tested devices, with
 
 - [ ] Write the English README with setup, usage, screenshots, supported GNOME versions, and limitations.
 - [ ] Add licensing, attribution, and contribution guidance.
-- [ ] Produce and inspect the extension ZIP, excluding development-only files.
+- [x] Produce and inspect the extension ZIP, excluding development-only files.
 - [ ] Check the final implementation against current extensions.gnome.org review guidelines.
 - [ ] Ensure the maintainer can explain, debug, and maintain the submitted code.
 - [ ] Prepare the GitHub repository and release materials.
@@ -94,6 +94,6 @@ Exit condition: a reproducible, documented release is ready for review and publi
 
 ### Current implementation status
 
-The initial commit established the extension skeleton, browser controls, desktop input, and session approval. Wi-Fi now binds an HTTPS/WSS server to a configured private LAN address, uses an expiring OS-generated secret, displays the requesting IP, and requires desktop approval. Setup creates a local self-signed certificate; first-use fingerprint verification is documented. A development hot-load command avoids logging out. A native GNOME QR dialog carries the complete pairing link and closes when a phone requests access. Certificate identity bootstrapping beyond manual fingerprint verification remains pending. The extension UI exposes only the Wi-Fi flow. Live editing now streams committed text, deletion, and corrections with focus contexts. Desktop focus requests the phone keyboard automatically where supported, with a manual fallback. The mobile editor shows only recent phone-entered text, not existing PC field contents. See TESTING.md for hardware results and remaining scroll/application compatibility checks. Phase 1 remains open until all its exit conditions are met.
+v0.1.0 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. The Wi-Fi flow includes HTTPS/WSS, expiring QR invitations, desktop approval, touchpad sensitivity, live mobile keyboard input, and temporary browser recovery using a Secure/HttpOnly/SameSite=Strict cookie. The user confirmed recovery on the phone after reopening the plain PC address without another approval. Forty automated tests and separate Chromium fresh-tab/browser-restart checks pass. The runtime ZIP is built and inspected. Certificate setup remains manual; iOS, broader display/application compatibility, and extensions.gnome.org review remain pending. See TESTING.md and CHANGELOG.md for evidence and limitations. Unchecked publication tasks are follow-up work, not claims made by this local release.
 
 Work through phases in order, updating this checklist and recording decisions as they are made. Start with the smallest technical proof; defer visual polish until pairing and input work reliably. A phase is complete only when its exit condition has been checked.

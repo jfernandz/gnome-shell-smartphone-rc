@@ -1,7 +1,9 @@
 import {createKeyboard} from './keyboard.js';
 import {createTouchpad} from './touchpad.js';
+import {trackViewport} from './viewport.js';
 
 const $ = id => document.getElementById(id);
+trackViewport();
 const suppliedToken = location.hash.slice(1);
 let token = suppliedToken || null;
 try {
@@ -14,20 +16,103 @@ try {
 }
 function forgetToken() {
     token = null;
+    history.replaceState(null, '', '/');
     try {
         sessionStorage.removeItem('pairingToken');
     } catch {
         // Storage may be unavailable in this browser context.
     }
 }
-history.replaceState(null, '', '/');
 let socket = null;
 let approved = false;
+let typingPaused = false;
+let cookieSession = false;
+let cookieTimer = 0;
+let userDisconnected = false;
+let retryTimer = 0;
+let resumeTimer = 0;
+let retryCount = 0;
+let retryDeadline = 0;
+// Migrate away from the previous JS-readable reconnection credential.
+try {
+    sessionStorage.removeItem('resumeToken');
+} catch {
+    // Cookie sessions do not depend on JavaScript storage.
+}
+function clearCookieTimer() {
+    if (cookieTimer) {
+        clearTimeout(cookieTimer);
+        cookieTimer = 0;
+    }
+}
+async function rememberSession(exchangeToken = null) {
+    const connection = socket;
+    try {
+        const response = await fetch('/session', {
+            method: 'POST', credentials: 'same-origin', cache: 'no-store',
+            headers: exchangeToken ? {Authorization: `Bearer ${exchangeToken}`} : {},
+        });
+        if (!response.ok || userDisconnected)
+            return;
+        if (connection !== socket) {
+            if (!socket)
+                restoreSession();
+            return;
+        }
+        cookieSession = Boolean((await response.json()).authenticated);
+        clearCookieTimer();
+        if (cookieSession && approved && !document.hidden)
+            cookieTimer = setTimeout(() => rememberSession(), 5 * 60 * 1000);
+    } catch {
+        // An interrupted refresh can be retried on return to the page.
+    }
+}
+async function restoreSession() {
+    try {
+        const response = await fetch('/session', {credentials: 'same-origin', cache: 'no-store'});
+        if (!response.ok)
+            return;
+        cookieSession = Boolean((await response.json()).authenticated);
+        if (cookieSession && !socket && !userDisconnected && !document.hidden)
+            connect(true);
+    } catch {
+        // Leave pairing available when the desktop is not reachable.
+    }
+}
+function clearRetry() {
+    if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        resumeTimer = 0;
+    }
+    if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = 0;
+    }
+}
+function reconnectLater() {
+    clearRetry();
+    if (!cookieSession)
+        return;
+    if (!retryDeadline)
+        retryDeadline = Date.now() + 30 * 60 * 1000;
+    if (Date.now() >= retryDeadline) {
+        cookieSession = false;
+        update('Session expired. Start a new session on the PC and scan its QR code.');
+        return;
+    }
+    update(document.hidden ? 'Paused. Return to Chrome to reconnect.' : 'Connection interrupted. Reconnecting…');
+    if (!document.hidden) {
+        retryTimer = setTimeout(() => {
+            retryTimer = 0;
+            connect(true);
+        }, Math.min(250 * 2 ** retryCount++, 5000));
+    }
+}
 const keyboard = createKeyboard(send, () => approved);
 const touchpad = createTouchpad(send, () => approved);
 
 function send(message) {
-    if (approved && socket?.readyState === WebSocket.OPEN)
+    if (approved && !document.hidden && socket?.readyState === WebSocket.OPEN)
         socket.send(JSON.stringify(message));
 }
 
@@ -36,7 +121,7 @@ function update(status, connected = false) {
     $('status').textContent = status;
     for (const id of ['keyboard', 'disconnect', 'left', 'right'])
         $(id).disabled = !connected;
-    $('connect').disabled = socket !== null || !token;
+    $('connect').disabled = socket !== null || (!token && !cookieSession);
     $('touchpad').classList.toggle('active', connected);
     if (!connected) {
         keyboard.hide();
@@ -45,33 +130,142 @@ function update(status, connected = false) {
     }
 }
 
-$('connect').addEventListener('click', () => {
-    if (!token) {
-        update('Scan the pairing QR code in the PC menu to connect.');
+function connect(resuming = false) {
+    if (socket || (!token && !cookieSession)) {
+        if (!socket)
+            update('Scan the pairing QR code in the PC menu to connect.');
         return;
     }
-    socket = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/control?token=${encodeURIComponent(token)}`);
-    update('Connecting…');
-    socket.addEventListener('message', event => {
+    clearRetry();
+    userDisconnected = false;
+    const credential = cookieSession ? '' : `?token=${encodeURIComponent(token)}`;
+    const connection = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/control${credential}`);
+    socket = connection;
+    retryTimer = setTimeout(() => {
+        retryTimer = 0;
+        if (socket === connection && connection.readyState === WebSocket.CONNECTING) {
+            socket = null;
+            connection.close();
+            if (cookieSession)
+                reconnectLater();
+            else
+                update('Could not reach the PC. Check the network and tap Connect again.');
+        }
+    }, 10000);
+    connection.addEventListener('open', () => {
+        if (socket === connection)
+            clearRetry();
+    });
+    update(resuming ? 'Reconnecting…' : 'Connecting…');
+    connection.addEventListener('message', event => {
+        if (socket !== connection)
+            return;
         const message = JSON.parse(event.data);
-        if (message.type === 'focus' && approved) {
+        if (message.type === 'focus' && approved && !document.hidden) {
             keyboard.focus(message);
+            if (typingPaused) {
+                typingPaused = false;
+                update('Connected', true);
+            }
+        }
+        if (message.type === 'typing-paused' && approved) {
+            typingPaused = true;
+            $('keyboard').disabled = true;
+            keyboard.hide();
+            keyboard.reset();
+            $('status').textContent = 'Typing paused. Tap the PC text field again to resume.';
         }
         if (message.type === 'pending')
             update('Approve this connection in the PC top-bar menu.');
         if (message.type === 'approved') {
+            clearRetry();
             forgetToken();
-            update('Connected', true);
+            if (message.exchangeToken)
+                rememberSession(message.exchangeToken);
+            retryCount = 0;
+            retryDeadline = 0;
+            if (document.hidden) {
+                connection.send(JSON.stringify({type: 'suspend'}));
+                update('Paused. Return to Chrome to resume.');
+            } else {
+                update('Connected', true);
+            }
         }
+        if (message.type === 'resumed') {
+            if (message.exchangeToken)
+                rememberSession(message.exchangeToken);
+            clearRetry();
+            if (document.hidden) {
+                connection.send(JSON.stringify({type: 'suspend'}));
+                update('Paused. Return to Chrome to resume.');
+            } else {
+                update('Connected', true);
+            }
+        }
+        if (message.type === 'suspended')
+            update('Paused. Return to Chrome to resume.');
     });
-    socket.addEventListener('close', () => {
+    connection.addEventListener('close', event => {
+        if (socket !== connection)
+            return;
+        clearRetry();
+        clearCookieTimer();
         socket = null;
+        typingPaused = false;
         forgetToken();
-        update('Disconnected. Start a new session on the PC and scan its QR code.');
+        if (event?.code === 1000 || event?.code === 1008)
+            cookieSession = false;
+        if (cookieSession)
+            reconnectLater();
+        else
+            update('Disconnected. Start a new session on the PC and scan its QR code.');
     });
-    socket.addEventListener('error', () => update('Connection failed. Check the network and restart the session on the PC.'));
+    connection.addEventListener('error', () => {
+        if (socket === connection)
+            $('status').textContent = 'Connection interrupted. Waiting to reconnect…';
+    });
+}
+
+$('connect').addEventListener('click', () => connect(Boolean(cookieSession)));
+$('disconnect').addEventListener('click', () => {
+    userDisconnected = true;
+    clearCookieTimer();
+    clearRetry();
+    cookieSession = false;
+    if (socket?.readyState === WebSocket.OPEN)
+        socket.send(JSON.stringify({type: 'disconnect'}));
+    socket?.close(1000, 'Disconnected by phone');
 });
 
-$('disconnect').addEventListener('click', () => socket.close());
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        clearCookieTimer();
+        clearRetry();
+        if ((approved || cookieSession) && socket?.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({type: 'suspend'}));
+            update('Paused. Return to Chrome to resume.');
+        }
+    } else if (cookieSession) {
+        if (socket?.readyState === WebSocket.OPEN) {
+            const connection = socket;
+            connection.send(JSON.stringify({type: 'resume'}));
+            resumeTimer = setTimeout(() => {
+                resumeTimer = 0;
+                if (socket === connection) {
+                    socket = null;
+                    connection.close();
+                    connect(true);
+                }
+            }, 3000);
+        } else {
+            const previous = socket;
+            socket = null;
+            previous?.close();
+            connect(true);
+        }
+    }
+});
 
 update(token ? 'Ready to connect' : 'Scan the pairing QR code in the PC menu to connect.');
+if (!token)
+    restoreSession();

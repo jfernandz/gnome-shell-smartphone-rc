@@ -14,11 +14,15 @@
     <button id="keyboard" disabled>Keyboard</button>
     <button id="disconnect" disabled>Disconnect</button>
   </nav>
+  <section class="pointer-settings" aria-label="Touchpad settings">
+    <div><label for="sensitivity">Sensitivity</label><output id="sensitivity-value" for="sensitivity">1.0×</output></div>
+    <input id="sensitivity" type="range" min="0.5" max="10" step="0.5" value="1">
+  </section>
   <main id="touchpad" aria-label="Touchpad"><span>Slide to move · Tap to click<br>Two fingers to scroll</span></main>
   <section id="typing" hidden>
     <label for="text">Typing on your PC</label>
-    <form id="text-form"><input id="text" type="text" autocomplete="off" spellcheck="false" enterkeyhint="enter" placeholder="Type here — changes appear on your PC" maxlength="512"></form>
-    <p class="hint">Shows recent text typed from this phone. Tap here if the keyboard stays closed.</p>
+    <form id="text-form"><input id="text" type="text" autocomplete="off" spellcheck="false" enterkeyhint="enter" placeholder="Type here — changes appear on your PC" maxlength="65536"></form>
+    <p class="hint">Shows text typed from this phone. Tap here if the keyboard stays closed.</p>
   </section>
   <footer><button id="left" disabled>Left click</button><button id="right" disabled>Right click</button></footer>
 </body>

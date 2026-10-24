@@ -62,7 +62,7 @@ for (const tls of [false, true]) {
     assert.equal(page.status, 200);
     assert.match(page.body, /Touchpad/);
     assert.match(page.headers['content-security-policy'], new RegExp(tls ? 'wss:' : 'ws:'));
-    for (const module of ['keyboard', 'touchpad', 'editing']) {
+    for (const module of ['keyboard', 'touchpad', 'editing', 'viewport']) {
         const asset = await request(`/${module}.js`);
         assert.equal(asset.status, 200);
         assert.match(asset.headers['content-type'], /^text\/javascript/);
@@ -79,10 +79,11 @@ for (const tls of [false, true]) {
 
     // Node's browser-compatible WebSocket cannot set Origin; use its HTTP upgrade transport below.
     const {randomBytes} = await import('node:crypto');
-    async function connect(origin, token) {
-        const request = transport.request(`${url.origin}/control?token=${token}`, {...requestOptions, headers: {
+    async function connect(origin, token = null, cookie = null, requestOrigin = origin) {
+        const request = transport.request(`${origin}/control${token ? `?token=${token}` : ''}`, {...requestOptions, headers: {
             Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
-            'Sec-WebSocket-Key': randomBytes(16).toString('base64'), Origin: origin,
+            'Sec-WebSocket-Key': randomBytes(16).toString('base64'), Origin: requestOrigin,
+            ...(cookie ? {Cookie: cookie} : {}),
         }});
         const result = new Promise((resolve, reject) => {
             request.on('upgrade', (_response, socket, head) => resolve({socket, head}));
@@ -99,29 +100,125 @@ for (const tls of [false, true]) {
         const masked = Buffer.from(payload.map((byte, i) => byte ^ mask[i % 4]));
         socket.write(Buffer.concat([Buffer.from([0x81, 0x80 | payload.length]), mask, masked]));
     }
-    assert.equal((await connect('https://example.org', url.hash.slice(1))).status, 403);
+    assert.equal((await connect(url.origin, url.hash.slice(1), null, 'https://example.org')).status, 403);
     const bad = await connect(url.origin, 'wrong');
     const badFrame = bad.head.length ? bad.head : (await once(bad.socket, 'data'))[0];
     assert.equal(badFrame[0] & 0x0f, 8);
     bad.socket.destroy();
     assert.equal(events.some(event => event.state === 'pending'), false);
 
-    const {socket} = await connect(url.origin, url.hash.slice(1));
-    socket.on('data', () => {});
+    function observe(socket, head) {
+        const messages = [];
+        let buffer = Buffer.alloc(0);
+        function receive(data) {
+            buffer = Buffer.concat([buffer, data]);
+            while (buffer.length >= 2) {
+                let length = buffer[1] & 127;
+                let offset = 2;
+                if (length === 126) {
+                    if (buffer.length < 4) return;
+                    length = buffer.readUInt16BE(2);
+                    offset = 4;
+                }
+                if (buffer.length < offset + length) return;
+                if ((buffer[0] & 15) === 1)
+                    messages.push(JSON.parse(buffer.subarray(offset, offset + length).toString()));
+                buffer = buffer.subarray(offset + length);
+            }
+        }
+        socket.on('data', receive);
+        receive(head);
+        return messages;
+    }
+    async function deniedCookie(cookie) {
+        const result = await connect(url.origin, null, cookie);
+        const frame = result.head.length ? result.head : (await once(result.socket, 'data'))[0];
+        assert.equal(frame[0] & 15, 8);
+        result.socket.destroy();
+    }
+    async function remember(packets) {
+        await waitFor(() => packets.some(packet => packet.type === 'approved'));
+        const approved = packets.find(packet => packet.type === 'approved');
+        assert.equal(approved.exchangeToken.length, 64);
+        assert.equal(approved.resumeToken, undefined);
+        const headers = {Origin: url.origin, Authorization: `Bearer ${approved.exchangeToken}`};
+        const response = await request('/session', {method: 'POST', headers});
+        assert.equal(response.status, 200);
+        assert.equal(JSON.parse(response.body).authenticated, true);
+        const cookie = response.headers['set-cookie'][0];
+        for (const flag of ['Secure', 'HttpOnly', 'SameSite=Strict', 'Path=/'])
+            assert.ok(cookie.includes(flag), cookie);
+        assert.match(cookie, /^__Host-smartphone_rc=[a-f0-9]{64};/);
+        assert.doesNotMatch(cookie, /Domain=/i);
+        assert.equal((await request('/session', {method: 'POST', headers})).status, 403, 'exchange is one-use');
+        return cookie.split(';')[0];
+    }
+    assert.equal(JSON.parse((await request('/session')).body).authenticated, false);
+    assert.equal((await request('/session', {method: 'POST', headers: {Origin: url.origin}})).status, 403);
+    let {socket, head} = await connect(url.origin, url.hash.slice(1));
+    let packets = observe(socket, head);
     t.after(() => socket.destroy());
     send(socket, {type: 'click', button: 1});
-    await waitFor(() => events.some(event => event.state === 'connected'));
+    const cookie = await remember(packets);
     assert.equal(events.some(event => event.input), false);
+    assert.equal(JSON.parse((await request('/session', {headers: {Cookie: cookie}})).body).authenticated, true);
+    assert.equal((await request('/session', {method: 'POST', headers: {Cookie: cookie, Origin: 'https://example.org'}})).status, 403);
     send(socket, {type: 'move', dx: 10, dy: -5});
     await waitFor(() => events.some(event => event.input));
     assert.deepEqual(events.find(event => event.input).input, {type: 'move', dx: 10, dy: -5});
-    send(socket, {type: 'key', key: 'Super'});
+    send(socket, {type: 'suspend'});
+    await waitFor(() => events.some(event => event.state === 'suspended'));
+    send(socket, {type: 'move', dx: 333, dy: 0});
+    send(socket, {type: 'resume'});
+    await waitFor(() => events.filter(event => event.state === 'connected').length >= 2);
+    assert.equal(events.filter(event => event.input).length, 1);
+    socket.destroy();
+    await waitFor(() => events.some(event => event.state === 'reconnecting'));
+    ({socket, head} = await connect(url.origin, null, cookie));
+    packets = observe(socket, head);
+    await waitFor(() => packets.some(packet => packet.type === 'approved'));
+    assert.equal(events.filter(event => event.state === 'pending').length, 1, 'cookie recovery needs no new approval');
+    send(socket, {type: 'disconnect'});
     await waitFor(() => events.some(event => event.state === 'disconnected'));
     socket.destroy();
-    const replay = await connect(url.origin, url.hash.slice(1));
-    const replayFrame = replay.head.length ? replay.head : (await once(replay.socket, 'data'))[0];
-    assert.equal(replayFrame[0] & 0x0f, 8);
-    replay.socket.destroy();
-    assert.equal(events.filter(event => event.state === 'pending').length, 1);
+    await deniedCookie(cookie);
+    const revoked = await request('/session', {headers: {Cookie: cookie}});
+    assert.equal(JSON.parse(revoked.body).authenticated, false);
+    assert.match(revoked.headers['set-cookie'][0], /Max-Age=0/);
+
+    async function freshSession() {
+        const count = events.filter(event => event.url).length;
+        child.kill('SIGUSR1');
+        await waitFor(() => events.filter(event => event.url).length > count);
+        const fresh = new URL(events.filter(event => event.url).at(-1).url);
+        const connection = await connect(fresh.origin, fresh.hash.slice(1));
+        const messages = observe(connection.socket, connection.head);
+        return {socket: connection.socket, cookie: await remember(messages)};
+    }
+    const invalid = await freshSession();
+    send(invalid.socket, {type: 'key', key: 'Super'});
+    await waitFor(() => events.filter(event => event.state === 'disconnected').length >= 2);
+    invalid.socket.destroy();
+    await deniedCookie(invalid.cookie);
+    const stopped = await freshSession();
+    const replacement = await freshSession();
+    stopped.socket.destroy();
+    await deniedCookie(stopped.cookie);
+    const expiryCount = events.filter(event => event.state === 'expired').length;
+    // Actual input extends the server-side idle deadline.
+    for (let i = 0; i < 7; i++) {
+        send(replacement.socket, {type: 'move', dx: 1, dy: 0});
+        await new Promise(resolve => setTimeout(resolve, 350));
+        assert.equal(JSON.parse((await request('/session', {headers: {Cookie: replacement.cookie}})).body).authenticated, true);
+    }
+    // Cookie refreshes must not count as user activity or defeat the idle limit.
+    for (let i = 0; i < 3; i++) {
+        const refreshed = await request('/session', {method: 'POST', headers: {Cookie: replacement.cookie, Origin: url.origin}});
+        assert.equal(refreshed.status, 200);
+        await new Promise(resolve => setTimeout(resolve, 350));
+    }
+    await waitFor(() => events.filter(event => event.state === 'expired').length > expiryCount);
+    replacement.socket.destroy();
+    await deniedCookie(replacement.cookie);
  });
 }

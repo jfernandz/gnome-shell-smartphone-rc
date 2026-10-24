@@ -1,5 +1,30 @@
 export function createTouchpad(send, isApproved) {
     const $ = id => document.getElementById(id);
+    let sensitivity = 1;
+    try {
+        const saved = Number(localStorage.getItem('pointerSensitivity'));
+        if (Number.isFinite(saved) && saved >= 0.5 && saved <= 10)
+            sensitivity = Math.round(saved * 2) / 2;
+    } catch {
+        // Pointer control still works when the browser blocks storage.
+    }
+    function showSensitivity() {
+        $('sensitivity').value = String(sensitivity);
+        $('sensitivity-value').textContent = `${sensitivity.toFixed(1)}×`;
+    }
+    showSensitivity();
+    $('sensitivity').addEventListener('input', () => {
+        const value = Number($('sensitivity').value);
+        if (!Number.isFinite(value) || value < 0.5 || value > 10)
+            return;
+        sensitivity = Math.round(value * 2) / 2;
+        showSensitivity();
+        try {
+            localStorage.setItem('pointerSensitivity', String(sensitivity));
+        } catch {
+            // Keep the chosen value for this page even if it cannot be saved.
+        }
+    });
     $('left').addEventListener('click', () => send({type: 'click', button: 1}));
     $('right').addEventListener('click', () => send({type: 'click', button: 3}));
 
@@ -42,8 +67,9 @@ export function createTouchpad(send, isApproved) {
         if (motionType !== nextType)
             flush();
         motionType = nextType;
-        dx += (event.clientX - previous.x) / (nextType === 'scroll' ? points.size : 1);
-        dy += (event.clientY - previous.y) / (nextType === 'scroll' ? points.size : 1);
+        const scale = nextType === 'scroll' ? 1 / points.size : sensitivity;
+        dx += (event.clientX - previous.x) * scale;
+        dy += (event.clientY - previous.y) * scale;
         points.set(event.pointerId, {x: event.clientX, y: event.clientY});
         if (tap && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 8)
             tap.moved = true;

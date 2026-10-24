@@ -1,4 +1,4 @@
-import {textChange, recentText} from './editing.js';
+import {editMessages} from './editing.js';
 
 export function createKeyboard(send, isApproved) {
     const $ = id => document.getElementById(id);
@@ -16,6 +16,7 @@ export function createKeyboard(send, isApproved) {
         if (!isApproved())
             return;
         $('typing').hidden = false;
+        document.body.classList.add('typing');
         $('text').focus({preventScroll: true});
         try {
             navigator.virtualKeyboard?.show();
@@ -27,25 +28,17 @@ export function createKeyboard(send, isApproved) {
     function hide() {
         $('text').blur();
         $('typing').hidden = true;
+        document.body.classList.remove('typing');
     }
 
     function editText() {
         if (!isApproved() || composing)
             return;
         const value = $('text').value;
-        const change = textChange(lastText, value);
-        if (change.remove || change.text)
-            send({type: 'edit', context: editContext, ...change});
-        // Keep a small correction buffer; older text is already on the PC.
-        const recent = recentText(value);
-        if (recent !== value) {
-            const trimmed = value.length - recent.length;
-            const start = Math.max(0, $('text').selectionStart - trimmed);
-            const end = Math.max(0, $('text').selectionEnd - trimmed);
-            $('text').value = recent;
-            $('text').setSelectionRange(start, end);
-        }
-        lastText = recent;
+        for (const message of editMessages(lastText, value, editContext))
+            send(message);
+        // Leave the DOM value and selection alone: the mobile IME owns them.
+        lastText = value;
     }
 
     function enter() {

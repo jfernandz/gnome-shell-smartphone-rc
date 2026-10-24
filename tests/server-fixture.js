@@ -3,7 +3,7 @@ import GLibUnix from 'gi://GLibUnix';
 import Gio from 'gi://Gio';
 import {RemoteServer} from '../server.js';
 
-const options = {port: 0};
+const options = {port: 0, sessionSeconds: Number(GLib.getenv('SMARTPHONE_RC_TEST_SESSION_SECONDS') ?? 2)};
 if (ARGV.length) {
     options.address = ARGV[0];
     options.certificate = Gio.TlsCertificate.new_from_files(ARGV[1], ARGV[2]);
@@ -23,5 +23,10 @@ GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 15, () => {
     server.stop();
     loop.quit();
     return GLib.SOURCE_REMOVE;
+});
+GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 10, () => {
+    server.stop();
+    print(JSON.stringify({url: server.start()}));
+    return GLib.SOURCE_CONTINUE;
 });
 loop.run();
