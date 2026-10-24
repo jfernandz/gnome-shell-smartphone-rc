@@ -10,15 +10,15 @@
 <body>
   <header><h1>Remote Control</h1><p id="status" role="status">Ready to connect</p></header>
   <nav aria-label="Connection controls">
-    <button id="connect">Connect</button>
+    <button id="connect" disabled>Connect</button>
     <button id="keyboard" disabled>Keyboard</button>
     <button id="disconnect" disabled>Disconnect</button>
   </nav>
   <main id="touchpad" aria-label="Touchpad"><span>Slide to move · Tap to click<br>Two fingers to scroll</span></main>
   <section id="typing" hidden>
-    <label for="text">Text to send</label>
-    <form id="text-form"><input id="text" type="text" autocomplete="off" placeholder="Type here, then send" maxlength="128"><button>Send</button></form>
-    <div id="keys"><button data-key="Enter">Enter</button><button data-key="Backspace">⌫</button><button data-key="Tab">Tab</button><button data-key="Escape">Esc</button></div>
+    <label for="text">Typing on your PC</label>
+    <form id="text-form"><input id="text" type="text" autocomplete="off" spellcheck="false" enterkeyhint="enter" placeholder="Type here — changes appear on your PC" maxlength="512"></form>
+    <p class="hint">Shows recent text typed from this phone. Tap here if the keyboard stays closed.</p>
   </section>
   <footer><button id="left" disabled>Left click</button><button id="right" disabled>Right click</button></footer>
 </body>

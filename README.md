@@ -1,62 +1,97 @@
 # Smartphone Remote Control
 
-A GNOME Shell extension for controlling your desktop from a smartphone browser. The intended workflow is to scan a QR code, connect over Wi-Fi, approve the phone on your desktop, and use it as a touchpad and keyboard. No mobile app is required.
+Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: initial prototype for GNOME Shell 51 (development host: 51.1, Wayland).** Desktop input, browser controls, and session approval are implemented. Wi-Fi access, QR pairing, and continuous mobile text input are still in development. See [PLAN.md](PLAN.md).
+**Status: development prototype for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
-## Current features
+## Features
 
 - A top-bar menu to start, approve, reject, and stop sessions.
-- A mobile web touchpad with relative motion, tap to click, explicit left/right click buttons, and experimental two-finger scrolling.
-- A native mobile keyboard with a text field and Send button, plus Enter, Backspace, Tab, and Escape.
-- One browser connection at a time, temporary pairing links, and explicit desktop approval.
-- The service stops when the extension is disabled or the desktop locks.
+- An encrypted connection bound to one selected private LAN IPv4 address.
+- A temporary pairing QR code, one phone at a time, and the requesting peer's IP shown on the PC.
+- A dark mobile touchpad, tap to click, left/right click buttons, and experimental two-finger scrolling.
+- Live mobile typing, corrections, and deletion, with a small recent-text editor and the native keyboard's Enter key.
+- Desktop text-focus detection that requests the phone keyboard automatically, with a manual Keyboard fallback.
+- Session shutdown when the extension is disabled or the desktop locks.
 
-## Security and limitations
+## Set up Wi-Fi
 
-The prototype currently listens only on IPv4 loopback (`127.0.0.1:8844`) and is accessible through the development harness described below. LAN access and its transport security design are pending; the intended Wi-Fi workflow is not available yet.
+Requirements: GNOME Shell 51, GJS, libsoup 3, OpenSSL, and `iproute2`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
 
-Pairing links expire after two minutes. Pending approval expires after 30 seconds. The token is invalidated on approval, and every connection needs desktop approval. Browser origins are checked and control messages are bounded, validated, and rate limited. The temporary pairing URL is stored in a user-private runtime file and removed on stop. Browser labels do not establish a hardware identity.
-
-The text field sends committed text in batches. Text uses GNOME's input method where available, with a virtual-keyboard fallback that depends on the active layout; arbitrary Unicode and emoji support are not promised. Dragging, modifier shortcuts, and live synchronization with autocorrection are not implemented. Actual device and Shell integration results are recorded in [TESTING.md](TESTING.md).
-
-The small libsoup server currently runs in the Shell process. Re-evaluate process isolation before adding LAN exposure or substantial server work. This is not yet a release ready for extensions.gnome.org.
-
-## Development
-
-### Run the development prototype
-
-The current development harness uses ADB forwarding to a loopback-only server while Wi-Fi support is being built. Requirements: GNOME Shell 51, GJS, libsoup 3, and Android platform tools (`adb`). Enable USB debugging on your Android phone and authorize your PC. Chrome is the initial mobile browser target.
+Run the one-time network setup from the project directory:
 
 ```sh
+bash scripts/setup-network.sh
+# Or choose a specific LAN address:
+# bash scripts/setup-network.sh 192.168.1.147
 bash scripts/install.sh
-# Log out and back in after first installation on Wayland.
+```
+
+Setup selects the PC's default-route address, creates a private TLS key and a self-signed certificate valid for 90 days, and saves configuration under `~/.config/smartphone-rc/`. It prints the certificate's SHA-256 fingerprint. If the address changes or the certificate expires, run setup again and start a fresh session. Setup does not modify the firewall or install a certificate authority.
+
+To load the extension or update it **without logging out**, run:
+
+```sh
+bash scripts/prepare-reload.sh
+```
+
+Open Looking Glass with **Alt+F2**, `lg`, Enter. Paste the command printed by the script and press Enter, then close the console with Esc. For future updates, recall that same command with the Up arrow and press Enter; it builds the current project source automatically. The loader creates a fresh development build path to avoid GNOME's module cache and replaces only this extension. Existing remote sessions are stopped. Regular installation remains available for the next login:
+
+```sh
 gnome-extensions enable smartphone-rc@jfaparicio.github.io
 ```
 
-1. Open the touchpad icon in the top bar and choose **Start session**.
-2. Connect the phone over USB, then run `bash scripts/open-phone.sh`.
-3. Tap **Connect** on the phone.
-4. Open the PC top-bar menu and choose **Approve phone**.
-5. Move a finger over the black touchpad. Use **Keyboard** to type text and **Send** to transmit it to the focused desktop field.
+## Connect the phone
 
-To reconnect, start a new session and run the phone script again. Refreshing the page clears the pairing link deliberately; generate a fresh session. Disconnecting does not retain authorization.
+1. Open the touchpad icon in the PC top bar and choose **Start Wi-Fi session**.
+2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display it again, or **Copy pairing link** as an alternative.
+3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or the setup output) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
+4. Tap **Connect**, then choose **Approve phone** on the PC. Check that the requesting IP matches the phone.
+5. Move a finger over the black touchpad. Focus a desktop text field: the phone shows its editor and requests the native keyboard. Type normally; changes appear on the PC immediately. Use the native Enter key to confirm a search. If the browser does not open the keyboard, tap **Keyboard** or the mobile editor.
 
-Remove USB forwarding when finished:
+Opening the bare IP address does not authorize a connection: the page asks you to scan the QR and keeps Connect disabled until it has a pairing secret. The link expires after two minutes. Approval must happen within 30 seconds of connecting. Refreshing before pressing Connect preserves the link in that browser tab; approval consumes it. After disconnecting, refreshing an approved session, or an expired link, start a new session and open its new link.
 
-```sh
-adb reverse --remove tcp:8844
-```
+Choose **Stop / reject connection** to revoke access. The phone needs no cable during a Wi-Fi session.
 
-No npm packages or build step are required. Node.js 22+ runs the test harness; GJS and libsoup 3 run the actual server integration test:
+If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. TCP port 8844 must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
+
+## Security and limitations
+
+LAN sessions require TLS; there is no unencrypted LAN fallback. HTTPS protects the page and WSS protects control events. A self-signed certificate still needs a deliberate first-use identity check: blindly accepting an unexpected certificate does not authenticate the PC. A browser trust exception is a prototype setup cost; QR-based certificate identity bootstrapping remains a design item.
+
+Pairing uses 32 bytes from the OS random source. The secret travels in the URL fragment when opening the page, is removed from the address bar, and is sent to the same-origin WebSocket over TLS. It is retained only in that tab's session storage until approval. Approval consumes the secret; disconnection revokes the session. The PC stores the pending link in a mode-0600 runtime file and removes it on approval, expiration, or stop. Never post a pairing link publicly. IP addresses are useful labels, not proof of hardware identity.
+
+Requests must use the configured host and WebSocket origin. Control messages are validated, size limited, and rate limited, including pending connections. Only one pending or approved connection is accepted. The extension exposes only the encrypted Wi-Fi flow. Automated server tests use loopback bindings internally.
+
+The mobile editor shows the latest text entered from this phone, not the existing contents of the PC field. It streams committed input, deletion, and autocorrection; IME composition is committed once it finishes. A rolling correction buffer keeps long typing sessions bounded. Changing detected fields resets the buffer; edits carry a focus context so stale edits can be discarded. Avoid moving the PC caret or editing from both devices during a mobile correction sequence: full bidirectional cursor/selection synchronization is not implemented.
+
+Focus detection uses GNOME's input method, IBus notifications, and editable Shell text actors; support depends on the application. Browser rules may prevent automatic keyboard opening, especially on iOS, so **Keyboard** remains a fallback. The editor masks input when GNOME reports a sensitive field. No existing desktop field contents are read or mirrored.
+
+Text uses GNOME's input method where available, with a layout-dependent virtual-keyboard fallback. Arbitrary Unicode in fallback applications, dragging, and modifier shortcuts are not promised. The user has confirmed scroll and basic typing work on their desktop. See [TESTING.md](TESTING.md) for detailed validation and remaining checks.
+
+The small libsoup server currently runs in the Shell process. Process isolation and adversarial resource-exhaustion testing remain work before a public release. This is not yet ready for extensions.gnome.org.
+
+## Development
+
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and the transport in `server.js`. The browser separates connection handling (`web/app.js`), keyboard editing (`web/keyboard.js`), and gestures (`web/touchpad.js`).
+
+No npm dependencies or build step are required. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3, and OpenSSL:
 
 ```sh
 node --test tests/*.test.js
 ```
 
-The GJS server fixture automatically approves test connections and never injects desktop input. It is exclusively a test harness and is not installed with the extension.
+Server tests choose ephemeral loopback ports, exercise HTTP and TLS, and never import the desktop input module. The server fixture's automatic approval callback is test-only.
 
-After changing installed extension code, log out and back in on Wayland, or test in an isolated development Shell. Logs are available with `journalctl --user -f -o cat`.
+With `adb` and `curl` installed and an authorized Android device attached, this helper opens the current pairing link:
+
+```sh
+bash scripts/open-phone.sh
+```
+
+For HTTPS links, ADB only launches Chrome; the page and control events travel over the LAN. You can unplug the cable after opening the link. The helper verifies the local server against the configured certificate before opening the page.
+
+Logs are available with `journalctl --user -f -o cat`.
 
 ## License
 

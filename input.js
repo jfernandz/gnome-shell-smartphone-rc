@@ -24,18 +24,28 @@ export class RemoteInput {
             this._pointer.notify_button(time, input.button, Clutter.ButtonState.RELEASED);
             break;
         case 'key':
-            this._key({Enter: Clutter.KEY_Return, Backspace: Clutter.KEY_BackSpace, Tab: Clutter.KEY_Tab, Escape: Clutter.KEY_Escape}[input.key]);
+            this._key(Clutter.KEY_Return);
             break;
-        case 'text':
+        case 'edit':
             if (Main.inputMethod.currentFocus) {
-                Main.inputMethod.commit(input.text);
-                break;
-            }
-            for (const character of input.text) {
-                const codepoint = character.codePointAt(0);
-                this._key(codepoint <= 0xff ? codepoint : 0x01000000 | codepoint);
+                if (input.remove)
+                    Main.inputMethod.delete_surrounding(-input.remove, input.remove);
+                if (input.text)
+                    Main.inputMethod.commit(input.text);
+            } else {
+                // Keep deletion and insertion ordered on the same virtual device.
+                for (let i = 0; i < input.remove; i++)
+                    this._key(Clutter.KEY_BackSpace);
+                this._typeKeys(input.text);
             }
             break;
+        }
+    }
+
+    _typeKeys(text) {
+        for (const character of text) {
+            const codepoint = character.codePointAt(0);
+            this._key(codepoint <= 0xff ? codepoint : 0x01000000 | codepoint);
         }
     }
 

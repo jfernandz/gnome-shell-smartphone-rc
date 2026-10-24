@@ -1,5 +1,3 @@
-const KEYS = new Set(['Enter', 'Backspace', 'Tab', 'Escape']);
-
 export function validateInput(message) {
     if (!message || typeof message !== 'object' || Array.isArray(message))
         return null;
@@ -13,14 +11,16 @@ export function validateInput(message) {
         if (message.button === 1 || message.button === 3)
             return {type: 'click', button: message.button};
         break;
-    case 'key':
-        if (KEYS.has(message.key))
-            return {type: 'key', key: message.key};
-        break;
-    case 'text':
-        if (typeof message.text === 'string' && message.text.length > 0 && message.text.length <= 128 &&
+    case 'edit':
+        if (Number.isSafeInteger(message.context) && message.context >= 0 &&
+            Number.isInteger(message.remove) && message.remove >= 0 && message.remove <= 512 &&
+            typeof message.text === 'string' && message.text.length <= 512 &&
             !/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(message.text))
-            return {type: 'text', text: message.text};
+            return {type: 'edit', context: message.context, remove: message.remove, text: message.text};
+        break;
+    case 'key':
+        if (message.key === 'Enter' && Number.isSafeInteger(message.context) && message.context >= 0)
+            return {type: 'key', key: 'Enter', context: message.context};
         break;
     }
     return null;

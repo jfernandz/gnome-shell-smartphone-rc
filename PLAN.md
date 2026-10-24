@@ -20,7 +20,7 @@ Build a GNOME Shell extension that lets a smartphone browser control the desktop
 - [x] Verify text entry, including accented characters, and document Unicode limitations.
 - [ ] Validate HTTP/WebSocket serving with GJS and the lifecycle of a separate GJS helper if needed.
 - [ ] Confirm how the phone reaches the PC, including interface selection and firewall behavior.
-- [ ] Choose transport security and pairing together: desktop approval alone does not encrypt traffic. Document browser certificate constraints and any accepted MVP limitation.
+- [x] Choose transport security and pairing together: desktop approval alone does not encrypt traffic. Document browser certificate constraints and any accepted MVP limitation.
 - [ ] Review extension packaging constraints for the chosen architecture and bundled web assets.
 
 Exit condition: a phone can trigger a controlled input event on the PC, and the architecture, security model, and packaging approach are documented. Resolve blockers before building the complete UI.
@@ -37,11 +37,11 @@ Exit condition: the extension can be installed, enabled, disabled, and re-enable
 ## Phase 3 — Implement pairing and session control
 
 - [x] Serve the mobile page and establish a WebSocket connection.
-- [ ] Generate the QR locally with an expiring pairing secret.
+- [x] Generate the QR locally with an expiring pairing secret.
 - [x] Require desktop approval before accepting control events.
 - [x] Bind authorization to the approved session; reject unauthorized messages and unexpected browser origins.
 - [x] Validate message types, sizes, and rates.
-- [ ] Show pending and connected devices, using device names only as user-facing labels rather than proof of identity.
+- [x] Show pending and connected devices, using device names only as user-facing labels rather than proof of identity.
 - [ ] Support rejection, disconnection, expiration, and fresh pairing after service restart.
 
 Exit condition: an unapproved browser cannot control the desktop, and disconnecting immediately revokes control.
@@ -58,9 +58,9 @@ Exit condition: the phone works comfortably as a touchpad during normal desktop 
 
 ## Phase 5 — Implement mobile text input
 
-- [ ] Toggle the native mobile keyboard by focusing a real text input.
-- [ ] Handle composition, autocorrection, insertions, and deletions instead of relying only on keydown events.
-- [ ] Implement Enter, Backspace, Tab, and Escape controls.
+- [x] Toggle the native mobile keyboard by focusing a real text input.
+- [x] Handle composition, autocorrection, insertions, and deletions instead of relying only on keydown events.
+- [x] Use native mobile Enter and Backspace; remove the separate Send and auxiliary-key toolbar.
 - [ ] Test accented text, repeated characters, selection/replacement, and unsupported Unicode cases.
 - [ ] Keep the touchpad usable when the keyboard is open.
 
@@ -92,8 +92,8 @@ Exit condition: a reproducible, documented release is ready for review and publi
 
 ## Working agreement
 
-### Initial implementation status
+### Current implementation status
 
-The first commit establishes the extension skeleton, browser controls, desktop input, and session approval. The development harness uses ADB reverse forwarding to a loopback-only GJS/libsoup server. QR generation, LAN access, and Wi-Fi encryption remain pending. Text uses an explicit Send action; continuous editing remains pending. See TESTING.md for confirmed hardware results and remaining scroll/application compatibility checks. Phase 1 remains open until all its exit conditions are met; Phase 2's skeleton is implemented.
+The initial commit established the extension skeleton, browser controls, desktop input, and session approval. Wi-Fi now binds an HTTPS/WSS server to a configured private LAN address, uses an expiring OS-generated secret, displays the requesting IP, and requires desktop approval. Setup creates a local self-signed certificate; first-use fingerprint verification is documented. A development hot-load command avoids logging out. A native GNOME QR dialog carries the complete pairing link and closes when a phone requests access. Certificate identity bootstrapping beyond manual fingerprint verification remains pending. The extension UI exposes only the Wi-Fi flow. Live editing now streams committed text, deletion, and corrections with focus contexts. Desktop focus requests the phone keyboard automatically where supported, with a manual fallback. The mobile editor shows only recent phone-entered text, not existing PC field contents. See TESTING.md for hardware results and remaining scroll/application compatibility checks. Phase 1 remains open until all its exit conditions are met.
 
 Work through phases in order, updating this checklist and recording decisions as they are made. Start with the smallest technical proof; defer visual polish until pairing and input work reliably. A phase is complete only when its exit condition has been checked.

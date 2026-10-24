@@ -1,11 +1,28 @@
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn, execFileSync} from 'node:child_process';
+import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import https from 'node:https';
+import {checkServerIdentity} from 'node:tls';
 import {createInterface} from 'node:readline';
 import {once} from 'node:events';
 import test from 'node:test';
 
-test('real GJS server enforces origin, pairing, approval, validation and token revocation', {timeout: 10000}, async t => {
-    const child = spawn('gjs', ['-m', 'tests/server-fixture.js']);
+for (const tls of [false, true]) {
+ test(`real GJS server (${tls ? 'TLS' : 'local HTTP'}) enforces host, origin, pairing, approval and revocation`, {timeout: 10000}, async t => {
+    let certificate;
+    const args = ['-m', 'tests/server-fixture.js'];
+    if (tls) {
+        const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-tls-'));
+        t.after(() => rmSync(directory, {recursive: true, force: true}));
+        execFileSync('openssl', ['req', '-new', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256',
+            '-nodes', '-days', '1', '-subj', '/CN=Smartphone RC Test', '-addext', 'subjectAltName=IP:127.0.0.1',
+            '-keyout', `${directory}/key.pem`, '-out', `${directory}/cert.pem`], {stdio: 'ignore'});
+        certificate = readFileSync(`${directory}/cert.pem`);
+        args.push('127.0.0.1', `${directory}/cert.pem`, `${directory}/key.pem`);
+    }
+    const child = spawn('gjs', args);
     const events = [];
     let errors = '';
     child.stderr.on('data', data => errors += data);
@@ -27,17 +44,43 @@ test('real GJS server enforces origin, pairing, approval, validation and token r
     };
     await waitFor(() => events.some(event => event.url));
     const url = new URL(events.find(event => event.url).url);
-    const page = await fetch(url.origin);
+    const {default: http} = await import('node:http');
+    const transport = tls ? https : http;
+    const requestOptions = tls ? {ca: certificate, checkServerIdentity: (_host, cert) => checkServerIdentity('127.0.0.1', cert)} : {};
+    async function request(path = '/', options = {}) {
+        return await new Promise((resolve, reject) => {
+            const request = transport.request(`${url.origin}${path}`, {...requestOptions, ...options}, response => {
+                let body = '';
+                response.on('data', data => body += data);
+                response.on('end', () => resolve({status: response.statusCode, headers: response.headers, body}));
+            });
+            request.on('error', reject);
+            request.end();
+        });
+    }
+    const page = await request();
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /Touchpad/);
-    assert.equal((await fetch(`${url.origin}/missing`)).status, 404);
-    assert.equal((await fetch(url.origin, {method: 'POST'})).status, 403);
+    assert.match(page.body, /Touchpad/);
+    assert.match(page.headers['content-security-policy'], new RegExp(tls ? 'wss:' : 'ws:'));
+    for (const module of ['keyboard', 'touchpad', 'editing']) {
+        const asset = await request(`/${module}.js`);
+        assert.equal(asset.status, 200);
+        assert.match(asset.headers['content-type'], /^text\/javascript/);
+        assert.match(asset.body, /export function/);
+    }
+    assert.equal((await request('/missing')).status, 404);
+    assert.equal((await request('/', {method: 'POST'})).status, 403);
+    assert.equal((await request('/', {headers: {Host: 'attacker.example'}})).status, 403);
+    if (tls) {
+        await assert.rejects(new Promise((resolve, reject) => {
+            https.get(url.origin, resolve).on('error', reject);
+        }), /self-signed/);
+    }
 
     // Node's browser-compatible WebSocket cannot set Origin; use its HTTP upgrade transport below.
-    const {default: http} = await import('node:http');
     const {randomBytes} = await import('node:crypto');
     async function connect(origin, token) {
-        const request = http.request(`${url.origin}/control?token=${token}`, {headers: {
+        const request = transport.request(`${url.origin}/control?token=${token}`, {...requestOptions, headers: {
             Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
             'Sec-WebSocket-Key': randomBytes(16).toString('base64'), Origin: origin,
         }});
@@ -80,4 +123,5 @@ test('real GJS server enforces origin, pairing, approval, validation and token r
     assert.equal(replayFrame[0] & 0x0f, 8);
     replay.socket.destroy();
     assert.equal(events.filter(event => event.state === 'pending').length, 1);
-});
+ });
+}
