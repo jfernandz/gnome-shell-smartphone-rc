@@ -47,7 +47,10 @@ export class RemoteDialogs {
         const lines = [];
         for (let i = 0; i < bytes.length; i += 8)
             lines.push(bytes.slice(i, i + 8).join(':'));
-        this._certificate.contentLayout.add_child(new St.Label({text: lines.join('\n')}));
+        this._certificate.contentLayout.add_child(new St.Label({
+            text: lines.join('\n'),
+            x_align: Clutter.ActorAlign.CENTER,
+        }));
         this._certificate.setButtons([{label: 'Close', action: () => this.closeCertificate()}]);
         this._certificate.open();
     }
