@@ -1,9 +1,10 @@
-export function trackViewport() {
-    const viewport = globalThis.visualViewport;
+export function trackViewport(environment = globalThis) {
+    const {document, navigator} = environment;
+    const viewport = environment.visualViewport;
     const keyboard = navigator.virtualKeyboard;
     function update() {
         const top = viewport?.offsetTop ?? 0;
-        const height = viewport?.height ?? globalThis.innerHeight;
+        const height = viewport?.height ?? environment.innerHeight;
         const bounds = keyboard?.boundingRect;
         let bottom = top + height;
         if (bounds?.height > 0 && bounds.width > 0 && bounds.y >= top)
@@ -15,6 +16,6 @@ export function trackViewport() {
     viewport?.addEventListener('resize', update);
     viewport?.addEventListener('scroll', update);
     keyboard?.addEventListener('geometrychange', update);
-    globalThis.addEventListener('resize', update);
+    environment.addEventListener('resize', update);
     update();
 }

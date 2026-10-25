@@ -10,6 +10,7 @@ if (GLib.getenv('GSETTINGS_BACKEND') !== 'memory' || !ARGV[0])
 const path = ARGV[0];
 let failed = false;
 const {default: Preferences} = await import(`file://${path}/prefs.js`);
+const {TrustedBrowsers} = await import(`file://${path}/trusted.js`);
 const [,data] = GLib.file_get_contents(`${path}/metadata.json`);
 const metadata = {...JSON.parse(new TextDecoder().decode(data)), path, dir: Gio.File.new_for_path(path)};
 const prefs = new Preferences(metadata);
@@ -40,14 +41,18 @@ app.connect('activate', () => {
             const refreshed = widgets(window);
             const device = refreshed.find(w => w instanceof Adw.ActionRow && w.title === 'Test phone');
             if (!device || !device.subtitle.includes('Last used:')) throw Error('Integrated browser row missing');
+            const trusted = new TrustedBrowsers(prefs.getSettings());
+            trusted.touch('ab'.repeat(32));
+            if (widgets(window).find(w => w instanceof Adw.ActionRow && w.title === 'Test phone') !== device)
+                throw Error('Metadata update replaced the browser row');
             refreshed.find(w => w instanceof Gtk.Button && w.tooltip_text === 'Rename device').emit('clicked');
             const dialog = window.get_visible_dialog();
             if (!(dialog instanceof Adw.AlertDialog)) throw Error('Rename dialog missing');
             dialog.extra_child.text = 'Renamed phone';
             widgets(dialog).find(w => w instanceof Gtk.Button && w.label === 'Save').emit('clicked');
-            if (!settings.get_string('trusted-browsers').includes('Renamed phone')) throw Error('Rename failed');
+            if (trusted.list()[0].name !== 'Renamed phone' || device.title !== 'Renamed phone') throw Error('Rename failed');
             widgets(window).find(w => w instanceof Gtk.Button && w.label === 'Forget').emit('clicked');
-            if (settings.get_string('trusted-browsers') !== '[]') throw Error('Forget failed');
+            if (trusted.list().length !== 0) throw Error('Forget failed');
             print('PASS: native trusted-device preferences update, rename and revoke records');
         } catch (error) {
             printerr(`${error.message}\n${error.stack}`);

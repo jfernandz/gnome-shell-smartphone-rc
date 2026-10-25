@@ -52,8 +52,8 @@ try {
     const pin = createHash('sha256').update(spki).digest('base64');
     if (trustedMode) {
         mkdirSync(`${directory}/schemas`);
-        copyFileSync(`${root}/schemas/org.gnome.shell.extensions.smartphone-rc.gschema.xml`,
-            `${directory}/schemas/org.gnome.shell.extensions.smartphone-rc.gschema.xml`);
+        for (const name of ['org.gnome.shell.extensions.smartphone-rc', 'org.gnome.shell.extensions.smartphone-rc.browser'])
+            copyFileSync(`${root}/schemas/${name}.gschema.xml`, `${directory}/schemas/${name}.gschema.xml`);
         execFileSync('glib-compile-schemas', ['--strict', `${directory}/schemas`]);
     }
     function startServer(port = 0) {
@@ -183,6 +183,21 @@ try {
         assert.equal((await forgotten.call('Network.getCookies', {urls: [origin]})).cookies
             .some(cookie => cookie.name === '__Host-smartphone_rc_trust'), false);
         console.log('PASS: Forget revokes active control and rejects the saved trust cookie');
+        await control('Target.closeTarget', {targetId: forgotten.targetId});
+        const oldInvitations = events.filter(event => event.url).length;
+        server.kill('SIGUSR1');
+        await waitFor(() => events.filter(event => event.url).length > oldInvitations);
+        const newInvitation = events.filter(event => event.url).at(-1).url;
+        const pairedAgain = await tab(newInvitation);
+        await pairedAgain.evaluate('document.querySelector("#connect").click()');
+        await waitFor(() => pairedAgain.evaluate('document.querySelector("#status").textContent === "Connected"'));
+        await waitFor(async () => (await pairedAgain.call('Network.getCookies', {urls: [origin]})).cookies
+            .some(cookie => cookie.name === '__Host-smartphone_rc_trust'));
+        server.kill('SIGHUP');
+        await waitFor(() => pairedAgain.evaluate('document.querySelector("#status").textContent.startsWith("Disconnected")'));
+        await waitFor(() => pairedAgain.evaluate('fetch("/session").then(r=>r.json()).then(s=>!s.authenticated)'));
+        assert.equal(await pairedAgain.evaluate('document.querySelector("#connect").disabled'), true);
+        console.log('PASS: individual revocation is observed through per-browser settings and disconnects active control');
     } else {
     await restarted.evaluate('document.querySelector("#disconnect").click()');
     await waitFor(() => restarted.evaluate('document.querySelector("#status").textContent.startsWith("Disconnected")'));
@@ -200,5 +215,5 @@ try {
             await once(child, 'exit');
         }
     }
-    rmSync(directory, {recursive: true, force: true});
+    rmSync(directory, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
 }

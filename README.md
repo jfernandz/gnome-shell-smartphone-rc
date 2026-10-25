@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.2.1 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.2.2 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -91,7 +91,11 @@ The small libsoup server currently runs in the Shell process. Process isolation 
 
 ## Development
 
-The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and the transport in `server.js`. The browser separates connection handling (`web/app.js`), keyboard editing (`web/keyboard.js`), and gestures (`web/touchpad.js`).
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and transport/session HTTP handling in `server.js`. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups live in `preferences/`.
+
+`limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
+
+Trusted-browser enrollment snapshots remain compatible with v0.2.1. Names and last-use updates use separate per-browser settings; individual revocation is permanent for that credential, and Forget all changes the valid trust generation. Metadata updates and stale enrollment snapshots cannot undo either revocation. Settings never writes the enrollment list; only the running service enrolls browsers after explicit approval.
 
 No npm dependencies are required. Local installation compiles the GSettings schema; the GNOME extension installer compiles it when installing a ZIP. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3, and OpenSSL:
 

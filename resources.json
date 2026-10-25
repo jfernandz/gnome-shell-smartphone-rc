@@ -1,0 +1,60 @@
+{
+  "runtime": [
+    "metadata.json",
+    "extension.js",
+    "dialogs.js",
+    "focus.js",
+    "input.js",
+    "network.js",
+    "protocol.js",
+    "server.js",
+    "settings.js",
+    "trusted.js",
+    "prefs.js",
+    "stylesheet.css",
+    "resources.json",
+    "LICENSE",
+    "schemas/org.gnome.shell.extensions.smartphone-rc.gschema.xml",
+    "schemas/org.gnome.shell.extensions.smartphone-rc.browser.gschema.xml",
+    "preferences/sensitivity.js",
+    "preferences/devices.js"
+  ],
+  "web": {
+    "/": {
+      "file": "web/index.html",
+      "type": "text/html"
+    },
+    "/app.js": {
+      "file": "web/app.js",
+      "type": "text/javascript"
+    },
+    "/client.js": {
+      "file": "web/client.js",
+      "type": "text/javascript"
+    },
+    "/style.css": {
+      "file": "web/style.css",
+      "type": "text/css"
+    },
+    "/editing.js": {
+      "file": "web/editing.js",
+      "type": "text/javascript"
+    },
+    "/keyboard.js": {
+      "file": "web/keyboard.js",
+      "type": "text/javascript"
+    },
+    "/touchpad.js": {
+      "file": "web/touchpad.js",
+      "type": "text/javascript"
+    },
+    "/viewport.js": {
+      "file": "web/viewport.js",
+      "type": "text/javascript"
+    },
+    "/limits.js": {
+      "file": "limits.js",
+      "type": "text/javascript"
+    }
+  }
+}

@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import vm from 'node:vm';
 import test from 'node:test';
-import {editMessages} from '../web/editing.js';
-
-const source = readFileSync(new URL('../web/app.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
+import {createClient} from '../web/client.js';
 
 function page({hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
     const elements = new Map();
@@ -52,8 +48,7 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
     const keyboardBounds = {y: 0, height: 0, width: 360};
     const viewportStyle = new Map();
     const bodyClasses = new Set();
-    const context = vm.createContext({
-        editMessages,
+    const context = {
         visualViewport: viewport, innerHeight: 709, addEventListener() {},
         navigator: {virtualKeyboard: {show() {}, boundingRect: keyboardBounds, addEventListener(type, callback) { keyboardEvents[type] = callback; }}},
         document: {
@@ -85,13 +80,8 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
         WebSocket: Socket,
         requestAnimationFrame(callback) { const id = ++nextFrame; frames.set(id, callback); return id; },
         cancelAnimationFrame(id) { frames.delete(id); }, performance: {now: () => 0},
-    });
-    for (const [file, name] of [['viewport.js', 'trackViewport'], ['keyboard.js', 'createKeyboard'], ['touchpad.js', 'createTouchpad']]) {
-        const moduleSource = readFileSync(new URL(`../web/${file}`, import.meta.url), 'utf8')
-            .replace(/^import .*;\n/gm, '').replace('export function', 'function');
-        context[name] = vm.runInContext(`(() => {${moduleSource}; return ${name};})()`, context);
-    }
-    vm.runInContext(source, context);
+    };
+    createClient(context);
     function flushFrames() {
         for (const [id, callback] of [...frames]) {
             frames.delete(id);

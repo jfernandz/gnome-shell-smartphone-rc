@@ -26,8 +26,11 @@ const server = new RemoteServer(GLib.get_current_dir(), state => {
         });
     }
 }, input => print(JSON.stringify({input})), options);
-if (settings)
-    settings.connect('changed::trusted-browsers', () => server.checkTrust());
+const unwatch = options.trusted?.watch(() => server.checkTrust());
+GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 1, () => {
+    options.trusted?.forget(server._trustedId);
+    return GLib.SOURCE_CONTINUE;
+});
 GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 12, () => {
     options.trusted?.forgetAll();
     return GLib.SOURCE_CONTINUE;
@@ -36,6 +39,7 @@ print(JSON.stringify({url: server.start()}));
 const loop = new GLib.MainLoop(null, false);
 GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 15, () => {
     server.stop();
+    unwatch?.();
     loop.quit();
     return GLib.SOURCE_REMOVE;
 });

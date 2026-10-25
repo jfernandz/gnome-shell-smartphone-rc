@@ -105,8 +105,18 @@ Exit condition: a reproducible, documented release is ready for review and publi
 
 Automatic startup and automatic post-unlock reconnection remain later-version ideas.
 
+### v0.2.2 quality refactor
+
+- [x] Separate trust revocation from mutable metadata, with stale-write regressions across processes.
+- [x] Separate server connection, message, authorization, and cookie responsibilities.
+- [x] Centralize browser state transitions and test actual modules through an explicit environment.
+- [x] Split preferences groups and retain device rows during metadata updates.
+- [x] Share limits and runtime file declarations, with schema and ZIP consistency checks.
+
+Released locally as v0.2.2; earlier tags and artifacts remain unchanged.
+
 ### Current implementation status
 
-v0.2.1 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. It adds actionable pairing notifications, native Settings with live sensitivity limits, opt-in remembered browsers with individual/global revocation, and menu action colors. The user confirmed remembered-browser recovery after service restart and working Settings on the physical phone. The patch release adds manual mobile reconnection without refresh, integrated device rows, and a larger default Settings window. All 45 automated tests, temporary/trusted Chromium recovery checks, and isolated native preferences/notification/lock checks pass. The runtime ZIP is built and inspected. Automatic startup remains deferred; certificate setup, broader compatibility, and publication requirements remain follow-up work. See TESTING.md, CHANGELOG.md, and PUBLICATION.md for evidence and limitations.
+v0.2.2 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. It adds actionable pairing notifications, native Settings with live sensitivity limits, opt-in remembered browsers with individual/global revocation, and menu action colors. The user confirmed remembered-browser recovery after service restart and working Settings on the physical phone. The patch release adds manual mobile reconnection without refresh, integrated device rows, and a larger default Settings window. The latest patch protects revocations from stale writes and refactors session handling, preferences, and shared resources. All 48 automated tests, temporary/trusted Chromium recovery checks, and isolated native preferences/notification/lock checks pass. The runtime ZIP is built and inspected. Automatic startup remains deferred; certificate setup, broader compatibility, and publication requirements remain follow-up work. See TESTING.md, CHANGELOG.md, and PUBLICATION.md for evidence and limitations.
 
 Work through phases in order, updating this checklist and recording decisions as they are made. Start with the smallest technical proof; defer visual polish until pairing and input work reliably. A phase is complete only when its exit condition has been checked.

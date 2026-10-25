@@ -210,3 +210,22 @@ The mobile client now checks server authorization after an intentional socket cl
 Trusted-browser preferences now use the browser name as the title of a single row containing its dates and rename/Forget actions. A native GTK/Adwaita check verifies that integrated row, opens the rename dialog, activates Save, and then revokes the entry. It uses an in-memory settings backend and an isolated compositor.
 
 The v0.2.1 patch also increases the default Settings window to 760 × 820. The user confirmed the larger window is satisfactory.
+
+
+## v0.2.2 quality refactor — 2026-10-25
+
+All five review items are implemented in the local v0.2.2 release without changing the input backend:
+
+- Enrollment grants remain compatible with v0.2.1. Per-browser name/last-use values and permanent revocation use independent settings keys; Forget all advances the trust generation. Only enrollment writes the grant list. A metadata write cannot restore authorization, and stale grant snapshots cannot undo individual or global revocation.
+- Server startup, connection acceptance, message handling, session validation, and cookie issuance are separate methods. Cookie flags and authorization validity each have one implementation.
+- The browser initializes through `createClient(environment)`. Connection state drives controls, approval/resume share a transition, and tests import the actual client/keyboard/touchpad/viewport modules without source rewriting.
+- Preferences have separate sensitivity and device groups with explicit signal cleanup. Device rows are retained across name/usage updates; only added or removed entries create or remove rows. Trust settings use a separate object from delayed sensitivity transactions.
+- Shared limits and validation live in `limits.js`. Runtime installation, packaging, and HTTP assets use `resources.json`; package staging contains only declared runtime files.
+
+All 48 automated cases pass. Added checks include schema/shared-rule consistency, exact ZIP contents, legacy enrollment compatibility, overlapping metadata/revocation, watch cleanup, and stale snapshots restored by independent GJS processes using real persistent settings. Both individual and global revocation remain effective after those stale writes.
+
+Real Chromium checks pass for temporary approval, remembered trust, browser/service restarts, manual reconnect without refresh, isolation between trusted browsers, and individual/global revocation. The browser test now retries transient directory cleanup failures from Chromium helper shutdown; this does not alter application behavior.
+
+Native GTK/Adwaita checks pass for range persistence/default restoration and integrated device rows, including row identity across last-use updates, rename, and Forget. Isolated GNOME checks pass for notification actions/cleanup, pending-request expiry, lock-mode shutdown, and no automatic restart after unlock. Native settings/notifications tests use an isolated compositor; the user's desktop was not restarted or locked.
+
+Existing remembered-browser grants require no migration write or new credential: absent generation fields map to the initial generation and per-browser metadata/revocation defaults preserve their values. Reload the extension before using the updated preferences so both processes use the new authorization model. Physical mobile acceptance of this refactor remains a follow-up check.

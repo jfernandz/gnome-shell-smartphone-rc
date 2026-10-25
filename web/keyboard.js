@@ -1,6 +1,7 @@
 import {editMessages} from './editing.js';
 
-export function createKeyboard(send, isApproved) {
+export function createKeyboard(send, isApproved, environment = globalThis) {
+    const {document, navigator} = environment;
     const $ = id => document.getElementById(id);
     let editContext = 0;
     let lastText = '';

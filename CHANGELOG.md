@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 — 2026-10-25
+
+- Prevent metadata updates and stale enrollment snapshots from restoring revoked browser trust. Separate per-browser revocation/name/usage settings and global trust generations, preserving existing remembered browsers.
+- Separate server connection acceptance, message processing, session validation, and cookie issuance into focused methods.
+- Centralize mobile connection transitions and share approval/resume handling. Test the actual ES modules through an explicit browser environment instead of rewriting imports.
+- Split preferences into sensitivity and trusted-device groups; update existing device rows instead of rebuilding the list for metadata changes.
+- Share sensitivity and input limits across desktop and browser code. Use one runtime manifest for serving, local installation, and ZIP staging.
+- Add stale-write regressions across independent GJS processes, per-browser revocation browser coverage, and manifest/schema consistency checks.
+
 ## 0.2.1 — 2026-10-25
 
 - Re-enable Connect after disconnecting a remembered browser, allowing manual reconnection without refreshing or reconnecting automatically on foreground.

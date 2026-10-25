@@ -1,3 +1,5 @@
+import {MAX_EDIT} from '../limits.js';
+
 // Remote edits stay anchored at the end of the text written from this phone.
 export function textChange(previous, next) {
     const before = Array.from(previous);
@@ -12,13 +14,13 @@ export function editMessages(previous, next, context) {
     const change = textChange(previous, next);
     const messages = [];
     let remove = change.remove;
-    while (remove > 512) {
-        messages.push({type: 'edit', context, remove: 512, text: ''});
-        remove -= 512;
+    while (remove > MAX_EDIT) {
+        messages.push({type: 'edit', context, remove: MAX_EDIT, text: ''});
+        remove -= MAX_EDIT;
     }
     let chunk = '';
     for (const character of change.text) {
-        if (chunk.length + character.length > 512) {
+        if (chunk.length + character.length > MAX_EDIT) {
             messages.push({type: 'edit', context, remove, text: chunk});
             remove = 0;
             chunk = '';

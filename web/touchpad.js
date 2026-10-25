@@ -1,11 +1,14 @@
-export function createTouchpad(send, isApproved) {
+import {DEFAULT_SENSITIVITY, SENSITIVITY, MAX_MOTION, isSensitivityRange, snapSensitivity} from '../limits.js';
+
+export function createTouchpad(send, isApproved, environment = globalThis) {
+    const {document, requestAnimationFrame, cancelAnimationFrame, performance} = environment;
     const $ = id => document.getElementById(id);
     let sensitivity = 1;
-    let range = {min: 0.5, max: 10};
+    let range = {...DEFAULT_SENSITIVITY};
     try {
-        const saved = Number(localStorage.getItem('pointerSensitivity'));
-        if (Number.isFinite(saved) && saved >= 0.5 && saved <= 20)
-            sensitivity = Math.round(saved * 2) / 2;
+        const saved = Number(environment.localStorage.getItem('pointerSensitivity'));
+        if (Number.isFinite(saved) && saved >= SENSITIVITY.min && saved <= SENSITIVITY.max)
+            sensitivity = snapSensitivity(saved);
     } catch {
         // Pointer control still works when the browser blocks storage.
     }
@@ -18,10 +21,10 @@ export function createTouchpad(send, isApproved) {
         const value = Number($('sensitivity').value);
         if (!Number.isFinite(value) || value < range.min || value > range.max)
             return;
-        sensitivity = Math.round(value * 2) / 2;
+        sensitivity = snapSensitivity(value);
         showSensitivity();
         try {
-            localStorage.setItem('pointerSensitivity', String(sensitivity));
+            environment.localStorage.setItem('pointerSensitivity', String(sensitivity));
         } catch {
             // Keep the chosen value for this page even if it cannot be saved.
         }
@@ -42,7 +45,7 @@ export function createTouchpad(send, isApproved) {
         if (frame)
             cancelAnimationFrame(frame);
         if (dx || dy)
-            send({type: motionType, dx: Math.max(-500, Math.min(500, dx)), dy: Math.max(-500, Math.min(500, dy))});
+            send({type: motionType, dx: Math.max(-MAX_MOTION, Math.min(MAX_MOTION, dx)), dy: Math.max(-MAX_MOTION, Math.min(MAX_MOTION, dy))});
         dx = dy = 0;
         frame = 0;
     }
@@ -106,9 +109,7 @@ export function createTouchpad(send, isApproved) {
         dx = dy = 0;
     }
     function setRange(next) {
-        if (!next || !Number.isFinite(next.min) || !Number.isFinite(next.max) ||
-            next.min < 0.5 || next.max > 20 || next.min >= next.max ||
-            !Number.isInteger(next.min * 2) || !Number.isInteger(next.max * 2))
+        if (!isSensitivityRange(next))
             return;
         range = next;
         $('sensitivity').min = String(range.min);
@@ -116,7 +117,7 @@ export function createTouchpad(send, isApproved) {
         sensitivity = Math.max(range.min, Math.min(range.max, sensitivity));
         showSensitivity();
         try {
-            localStorage.setItem('pointerSensitivity', String(sensitivity));
+            environment.localStorage.setItem('pointerSensitivity', String(sensitivity));
         } catch {
             // The live range still applies when storage is unavailable.
         }

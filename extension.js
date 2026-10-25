@@ -51,11 +51,10 @@ export default class SmartphoneRemoteControl extends Extension {
         this._indicator.menu.addAction('Stop service', () => this._stop()).add_style_class_name('smartphone-rc-stop');
         this._indicator.menu.addAction('Settings', () => this.openPreferences());
         this._settingsId = this._settings.connect('changed', (_settings, key) => {
-            if (key === 'trusted-browsers')
-                this._server?.checkTrust();
-            else
+            if (key.startsWith('sensitivity-'))
                 this._server?.setSensitivity(sensitivityRange(this._settings));
         });
+        this._unwatchTrust = this._trusted.watch(() => this._server?.checkTrust());
         this._pairing.add_style_class_name('smartphone-rc-connect');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
@@ -242,6 +241,8 @@ export default class SmartphoneRemoteControl extends Extension {
 
     disable() {
         this._stop();
+        this._unwatchTrust();
+        this._unwatchTrust = null;
         this._settings.disconnect(this._settingsId);
         this._settings = null;
         this._trusted = null;
