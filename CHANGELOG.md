@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.4 — 2026-10-25
 
 - Add isolated first-run regressions for missing OpenSSL, iproute2 and prlimit, failed/malformed address discovery, no local addresses, partial certificate failures, and occupied ports. Preserve existing credentials and clean up failed startup resources.
 - Make dependency and tool-failure messages actionable, explain how to resolve an occupied port, and clear stale discovery errors after a successful Refresh.

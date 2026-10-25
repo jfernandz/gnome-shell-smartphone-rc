@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.3**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.4.4**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -321,7 +321,7 @@ Native GTK/Adwaita checks verify that About shows the version and repository fro
 The working desktop reported session metadata v0.3.1 while the installed files contained v0.4.2. About now reads installed metadata from its extension directory and separately shows the cached GNOME session version when they differ. Native preferences regression checks deliberately pass older session metadata to newer installed preferences and verify both displayed versions and the installed repository link. Existing sensitivity, trust-policy, rename and revocation checks pass. Packaging/schema/trust-process regressions and v0.4.3 ZIP metadata checks pass.
 
 
-## First-run failure simulation — unreleased
+## v0.4.4 First-run failure simulation — 2026-10-25
 
 All 57 automated tests pass. New fixtures use temporary directories and process-local PATH overrides to simulate absent iproute2, OpenSSL and prlimit without uninstalling system tools. They also cover no private interfaces, failed/malformed address discovery, and certificate generation that writes partial files before failing. Working configuration/certificate identity remains intact and partial credential directories are removed. Missing prlimit starts no child and leaves control off.
 
