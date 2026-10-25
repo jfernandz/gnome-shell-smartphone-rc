@@ -64,6 +64,8 @@ export class RemoteServer {
             this._origin = `${this._scheme}://${this._address}:${this._port}`;
         } catch (error) {
             this.stop();
+            if (error.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.ADDRESS_IN_USE))
+                throw new Error(`Port ${this._port} is already in use. Stop the other service or choose another port in Settings → Network.`);
             throw error;
         }
         for (const path of ['/', '/session', '/control'])

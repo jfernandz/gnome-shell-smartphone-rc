@@ -8,8 +8,15 @@ export function configDirectory() {
 }
 
 async function command(argv, cancellable = null) {
-    const process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+    const tool = GLib.find_program_in_path(argv[0]);
+    if (!tool) {
+        const packageName = argv[0] === 'ip' ? 'iproute2' : 'OpenSSL';
+        throw new Error(`${packageName} is required (${argv[0]} was not found). Install it using your system package manager, then try again.`);
+    }
+    const process = Gio.Subprocess.new([tool, ...argv.slice(1)], Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
+    let timedOut = false;
     const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, () => {
+        timedOut = true;
         process.force_exit();
         return GLib.SOURCE_REMOVE;
     });
@@ -18,8 +25,11 @@ async function command(argv, cancellable = null) {
             process.communicate_utf8_async(null, cancellable, (source, result) => {
                 try { resolve(source.communicate_utf8_finish(result)); } catch (e) { reject(e); }
             }));
+        const operation = argv[0] === 'ip' ? 'Could not detect local network addresses' : 'Could not generate the local certificate';
+        if (timedOut)
+            throw new Error(`${operation}: the command timed out. Try again.`);
         if (!process.get_successful())
-            throw new Error(error.trim() || `${argv[0]} failed. Check that the required tool is installed.`);
+            throw new Error(`${operation}. ${error.trim().slice(0, 512) || 'Check the tool installation and try again.'}`);
         return output;
     } finally {
         // Cancelling communication must also stop certificate generation.
@@ -31,9 +41,16 @@ async function command(argv, cancellable = null) {
 
 export async function localAddresses(cancellable = null) {
     const output = await command(['ip', '-j', '-4', 'address', 'show', 'up'], cancellable);
-    return JSON.parse(output).flatMap(device => device.addr_info
-        .filter(info => isPrivateIPv4(info.local))
-        .map(info => ({address: info.local, name: device.ifname})));
+    try {
+        const devices = JSON.parse(output);
+        if (!Array.isArray(devices) || devices.some(device => typeof device.ifname !== 'string' || !Array.isArray(device.addr_info)))
+            throw new Error('Invalid address list');
+        return devices.flatMap(device => device.addr_info
+            .filter(info => info && isPrivateIPv4(info.local))
+            .map(info => ({address: info.local, name: device.ifname})));
+    } catch {
+        throw new Error('Could not read local network addresses from iproute2. Check its installation and try again.');
+    }
 }
 
 export function readNetworkConfig(directory = configDirectory()) {

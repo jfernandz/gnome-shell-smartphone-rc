@@ -319,3 +319,12 @@ Native GTK/Adwaita checks verify that About shows the version and repository fro
 ## v0.4.3 Installed versus cached version — 2026-10-25
 
 The working desktop reported session metadata v0.3.1 while the installed files contained v0.4.2. About now reads installed metadata from its extension directory and separately shows the cached GNOME session version when they differ. Native preferences regression checks deliberately pass older session metadata to newer installed preferences and verify both displayed versions and the installed repository link. Existing sensitivity, trust-policy, rename and revocation checks pass. Packaging/schema/trust-process regressions and v0.4.3 ZIP metadata checks pass.
+
+
+## First-run failure simulation — unreleased
+
+All 57 automated tests pass. New fixtures use temporary directories and process-local PATH overrides to simulate absent iproute2, OpenSSL and prlimit without uninstalling system tools. They also cover no private interfaces, failed/malformed address discovery, and certificate generation that writes partial files before failing. Working configuration/certificate identity remains intact and partial credential directories are removed. Missing prlimit starts no child and leaves control off.
+
+An ephemeral loopback listener reserves a port while the real GJS network helper attempts startup. The resulting error explains the occupied port and Settings action, clears child/IPC/startup state, and permits a successful retry on an available port. Chromium trusted-browser recovery and revocation checks through the real helper continue to pass.
+
+The native GTK check `tests/network-errors-native.mjs` runs with SMARTPHONE_RC_NETWORK_TEST=1 and a temporary XDG_CONFIG_HOME. It verifies visible missing-tool/no-address messages, Refresh recovery, removal of stale detection errors, and re-enabled configuration controls after failure. No system packages, working configuration, desktop lock state, or extension installation are changed by these checks. Use the same isolated temporary-environment precautions as the network preferences check above. Command timeout handling is explicit, but this run does not add timeout-duration or sustained exhaustion coverage.

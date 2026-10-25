@@ -14,7 +14,8 @@ Readiness checklist for the current v0.4.3 implementation. The initial internal 
 - [ ] Complete sustained resource-exhaustion testing and assess OS sandboxing; current checks do not establish resilience against every native/network attack.
 - [x] Provide network address/port selection and local certificate generation/renewal in Settings, with a first-start setup prompt.
 - [x] Confirm the installation/configuration/control flow from the v0.4.0 ZIP on the physical setup, without the development loader.
-- [ ] Validate missing-dependency errors and complete first-use mobile certificate-warning coverage.
+- [x] Automate missing OpenSSL/iproute2/prlimit, failed/no-address discovery, partial certificate failure, and occupied-port cases; verify error display and retry controls in native Settings.
+- [ ] Complete first-use mobile certificate-warning coverage.
 - [x] Publish the [source repository](https://github.com/jfernandz/gnome-shell-smartphone-rc) and add its URL to metadata.
 - [x] Document contribution and development guidance in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Complete accessibility/theme checks, screenshots, current supported-device records, and a final code/readability audit.

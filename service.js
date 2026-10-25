@@ -27,7 +27,7 @@ export class RemoteService {
             this._reject = reject;
             const limiter = GLib.find_program_in_path('prlimit');
             if (!limiter) {
-                this._failed('The util-linux prlimit tool is required to limit the network service.');
+                this._failed('The util-linux prlimit tool is required to limit the network service. Install util-linux using your system package manager, then start remote control again.');
                 return;
             }
             try {

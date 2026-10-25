@@ -68,3 +68,19 @@ test('network service exits when its parent disappears and closes its listener',
     });
     await assert.rejects(get(fixture.url), /ECONNREFUSED|ECONNRESET/);
 });
+
+test('occupied port fails safely through the real helper and permits retry', {timeout: 10000}, async t => {
+    const {createServer} = await import('node:net');
+    const listener = createServer();
+    await new Promise((resolve, reject) => {
+        listener.once('error', reject);
+        listener.listen(0, '127.0.0.1', resolve);
+    });
+    t.after(() => new Promise(resolve => listener.close(resolve)));
+    const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-port-busy-'));
+    t.after(() => rmSync(directory, {recursive: true, force: true}));
+    execFileSync('bash', ['scripts/lib/stage.sh', directory]);
+    const output = execFileSync('gjs', ['-m', 'tests/service-startup-failure-fixture.js', directory,
+        String(listener.address().port)], {encoding: 'utf8', timeout: 8000, env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
+    assert.match(output, /^PASS: occupied port/);
+});

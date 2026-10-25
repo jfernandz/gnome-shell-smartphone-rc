@@ -72,6 +72,8 @@ Choose 7, 30, or 90 days in **Settings → Security** for newly remembered brows
 
 Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.4.3.
 
+Settings reports missing OpenSSL or iproute2 with installation guidance. If starting fails because prlimit is absent, install util-linux. A port-in-use error means another service already uses that address/port: stop it or choose a different port in Settings → Network. Failed certificate generation preserves the previous configuration.
+
 If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. The configured TCP port (8844 by default) must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
 
 ## Security and limitations

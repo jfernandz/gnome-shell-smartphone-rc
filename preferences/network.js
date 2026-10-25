@@ -49,6 +49,10 @@ export function createNetworkGroup() {
             detected = result;
             choices.model = Gtk.StringList.new(result.map(item => `${item.address} (${item.name})`));
             if (previous) address.text = previous;
+            if (result.length && ['Address detection failed', 'No private LAN IPv4 address found'].includes(status.title)) {
+                status.title = 'Addresses refreshed';
+                status.subtitle = 'Choose an address, then press Configure to save it. Existing configuration remains unchanged until then.';
+            }
             if (!result.length) {
                 status.title = 'No private LAN IPv4 address found';
                 status.subtitle = 'Connect the PC to your local network, then press Refresh.';

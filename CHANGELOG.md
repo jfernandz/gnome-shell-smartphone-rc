@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add isolated first-run regressions for missing OpenSSL, iproute2 and prlimit, failed/malformed address discovery, no local addresses, partial certificate failures, and occupied ports. Preserve existing credentials and clean up failed startup resources.
+- Make dependency and tool-failure messages actionable, explain how to resolve an occupied port, and clear stale discovery errors after a successful Refresh.
+
 ## 0.4.3 — 2026-10-25
 
 - Read About version and repository from installed metadata rather than GNOME's cached session metadata. Show both versions and an update-pending explanation when they differ.
