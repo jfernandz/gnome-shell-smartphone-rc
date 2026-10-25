@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.0**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest release is **v0.4.1**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -304,3 +304,8 @@ The optional native check is `tests/network-preferences-native.mjs`; set SMARTPH
 All 55 automated tests pass, along with the Chromium trusted-browser/helper suite. The network setup regression supplies an isolated address-discovery fixture so it does not depend on a LAN connection, and checks preservation after a simulated OpenSSL failure. The native UI check uses actual interface detection.
 
 The v0.4.0 release removes the obsolete network setup script and its unused address-validation helper. Existing configurations remain supported. Release checks rerun the full automated suite and Chromium helper recovery/trust checks, and inspect the generated runtime ZIP.
+
+
+## v0.4.1 metadata and ZIP acceptance — 2026-10-25
+
+The user confirmed that installation from the v0.4.0 ZIP and the subsequent configuration/control flow work as expected, without the development reload helper. This is physical acceptance of that installation path, not evidence of missing-dependency or broader compatibility coverage. v0.4.1 adds the public repository URL and updates release metadata/documentation; runtime behavior is unchanged. Packaging/schema/process checks and the generated ZIP metadata are checked for this patch.

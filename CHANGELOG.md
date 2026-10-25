@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 — 2026-10-25
+
+- Add the public GitHub repository URL to extension metadata.
+- Record successful physical-phone acceptance of the v0.4.0 ZIP installation and Settings-based configuration flow.
+
 ## 0.4.0 — 2026-10-25
 
 - Add Settings → Network with local IPv4 detection, configurable port, private certificate generation/renewal, fingerprint and expiry. Offer Open Settings when Start lacks valid configuration, preserving existing setups and removing the terminal requirement from normal first use.

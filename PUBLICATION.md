@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.4.0 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.4.1 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.
@@ -13,8 +13,9 @@ Readiness checklist for the current v0.4.0 implementation. The initial internal 
 - [x] Add bounded hostile-transport regressions and connection/resource limits.
 - [ ] Complete sustained resource-exhaustion testing and assess OS sandboxing; current checks do not establish resilience against every native/network attack.
 - [x] Provide network address/port selection and local certificate generation/renewal in Settings, with a first-start setup prompt.
-- [ ] Validate the first-run experience on a clean installation, including missing dependencies and mobile certificate warnings.
-- [ ] Add the actual repository URL to metadata after creating the public repository; do not invent one.
+- [x] Confirm the installation/configuration/control flow from the v0.4.0 ZIP on the physical setup, without the development loader.
+- [ ] Validate missing-dependency errors and complete first-use mobile certificate-warning coverage.
+- [x] Publish the [source repository](https://github.com/jfernandz/gnome-shell-smartphone-rc) and add its URL to metadata.
 - [x] Document contribution and development guidance in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Complete accessibility/theme checks, screenshots, current supported-device records, and a final code/readability audit.
 - [ ] Have the maintainer review and understand all submitted code and its security/lifecycle choices.

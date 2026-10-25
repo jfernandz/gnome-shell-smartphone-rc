@@ -5,6 +5,7 @@
   "shell-version": [
     "51"
   ],
-  "version-name": "0.4.0",
-  "settings-schema": "org.gnome.shell.extensions.smartphone-rc"
+  "version-name": "0.4.1",
+  "settings-schema": "org.gnome.shell.extensions.smartphone-rc",
+  "url": "https://github.com/jfernandz/gnome-shell-smartphone-rc"
 }
