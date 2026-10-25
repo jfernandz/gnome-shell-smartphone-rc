@@ -1,5 +1,6 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import GLib from 'gi://GLib';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {TrustedBrowsers} from './trusted.js';
 import {createSensitivityGroup} from './preferences/sensitivity.js';
@@ -21,13 +22,21 @@ export default class RemotePreferences extends ExtensionPreferences {
         page.add(sensitivity.group);
         page.add(security.group);
         page.add(devices.group);
-        const about = new Adw.PreferencesGroup({title: 'About', description: this.metadata.name});
-        about.add(new Adw.ActionRow({title: 'Version',
-            subtitle: this.metadata['version-name'] ?? String(this.metadata.version ?? 'Unknown')}));
+        // Shell passes cached metadata even when newer preferences files are on disk.
+        const [, contents] = GLib.file_get_contents(this.dir.get_child('metadata.json').get_path());
+        const installed = JSON.parse(new TextDecoder().decode(contents));
+        const version = metadata => metadata['version-name'] ?? String(metadata.version ?? 'Unknown');
+        const about = new Adw.PreferencesGroup({title: 'About', description: installed.name});
+        about.add(new Adw.ActionRow({title: 'Installed version', subtitle: version(installed)}));
+        if (version(installed) !== version(this.metadata)) {
+            about.add(new Adw.ActionRow({title: 'GNOME session version', subtitle: version(this.metadata)}));
+            about.add(new Adw.ActionRow({title: 'Update pending in this session',
+                subtitle: 'GNOME still reports the previous version. Log out and back in when convenient to load the installed update.'}));
+        }
         about.add(new Adw.ActionRow({title: 'License', subtitle: 'GPL-3.0-or-later'}));
-        if (this.metadata.url) {
+        if (installed.url) {
             const repository = new Adw.ActionRow({title: 'Repository'});
-            const link = new Gtk.LinkButton({label: 'Source code', uri: this.metadata.url,
+            const link = new Gtk.LinkButton({label: 'Source code', uri: installed.url,
                 valign: Gtk.Align.CENTER});
             repository.add_suffix(link);
             repository.activatable_widget = link;

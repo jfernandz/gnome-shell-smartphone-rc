@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3 — 2026-10-25
+
+- Read About version and repository from installed metadata rather than GNOME's cached session metadata. Show both versions and an update-pending explanation when they differ.
+
 ## 0.4.2 — 2026-10-25
 
 - Add an About section to Settings showing the loaded preferences copy's version from metadata, the license, and a source repository link.

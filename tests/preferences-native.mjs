@@ -13,7 +13,8 @@ const {default: Preferences} = await import(`file://${path}/prefs.js`);
 const {TrustedBrowsers} = await import(`file://${path}/trusted.js`);
 const [,data] = GLib.file_get_contents(`${path}/metadata.json`);
 const metadata = {...JSON.parse(new TextDecoder().decode(data)), path, dir: Gio.File.new_for_path(path)};
-const prefs = new Preferences(metadata);
+// Model a ZIP update: Shell can pass old metadata to newly installed preferences.
+const prefs = new Preferences({...metadata, 'version-name': '0.0.0'});
 const app = new Adw.Application({application_id: 'local.smartphone_rc.PreferencesTest', flags: Gio.ApplicationFlags.NON_UNIQUE});
 function widgets(root) {
     const result = [root];
@@ -28,8 +29,10 @@ app.connect('activate', () => {
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         try {
             const all = widgets(window);
-            const version = all.find(w => w instanceof Adw.ActionRow && w.title === 'Version');
+            const version = all.find(w => w instanceof Adw.ActionRow && w.title === 'Installed version');
             if (version?.subtitle !== metadata['version-name']) throw Error('About version does not match installed metadata');
+            const sessionVersion = all.find(w => w instanceof Adw.ActionRow && w.title === 'GNOME session version');
+            if (sessionVersion?.subtitle !== '0.0.0') throw Error('Cached session version not distinguished from installed version');
             const repository = all.find(w => w instanceof Gtk.LinkButton && w.label === 'Source code');
             if (repository?.uri !== metadata.url) throw Error('About repository does not match installed metadata');
             print('PASS: About displays installed metadata version and repository');
