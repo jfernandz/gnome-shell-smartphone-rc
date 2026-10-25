@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 — 2026-10-25
+
+- Add an About section to Settings showing the loaded preferences copy's version from metadata, the license, and a source repository link.
+
 ## 0.4.1 — 2026-10-25
 
 - Add the public GitHub repository URL to extension metadata.

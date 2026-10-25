@@ -28,6 +28,11 @@ app.connect('activate', () => {
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         try {
             const all = widgets(window);
+            const version = all.find(w => w instanceof Adw.ActionRow && w.title === 'Version');
+            if (version?.subtitle !== metadata['version-name']) throw Error('About version does not match installed metadata');
+            const repository = all.find(w => w instanceof Gtk.LinkButton && w.label === 'Source code');
+            if (repository?.uri !== metadata.url) throw Error('About repository does not match installed metadata');
+            print('PASS: About displays installed metadata version and repository');
             const min = all.find(w => w instanceof Adw.SpinRow && w.title === 'Minimum');
             const max = all.find(w => w instanceof Adw.SpinRow && w.title === 'Maximum');
             min.value = 12;
