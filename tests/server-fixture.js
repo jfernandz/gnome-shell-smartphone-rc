@@ -4,10 +4,13 @@ import Gio from 'gi://Gio';
 import {TrustedBrowsers} from '../trusted.js';
 import {RemoteServer} from '../server.js';
 
-const options = {port: Number(GLib.getenv('SMARTPHONE_RC_TEST_PORT') ?? 0), sessionSeconds: Number(GLib.getenv('SMARTPHONE_RC_TEST_SESSION_SECONDS') ?? 2)};
+const options = {authenticationMillis: Number(GLib.getenv('SMARTPHONE_RC_TEST_AUTH_MS') ?? 5000),
+    networkLimits: JSON.parse(GLib.getenv('SMARTPHONE_RC_TEST_NETWORK_LIMITS') ?? '{}'), port: Number(GLib.getenv('SMARTPHONE_RC_TEST_PORT') ?? 0), sessionSeconds: Number(GLib.getenv('SMARTPHONE_RC_TEST_SESSION_SECONDS') ?? 2)};
 let settings = null;
 if (GLib.getenv('SMARTPHONE_RC_TEST_TRUST')) {
     settings = new Gio.Settings({schema_id: 'org.gnome.shell.extensions.smartphone-rc'});
+    if (GLib.getenv('SMARTPHONE_RC_TEST_TRUST_DAYS'))
+        settings.set_uint('trust-duration-days', Number(GLib.getenv('SMARTPHONE_RC_TEST_TRUST_DAYS')));
     options.trusted = new TrustedBrowsers(settings);
     const other = GLib.getenv('SMARTPHONE_RC_TEST_OTHER_CREDENTIAL');
     if (other && !options.trusted.find(other))

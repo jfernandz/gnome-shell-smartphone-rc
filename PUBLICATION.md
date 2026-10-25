@@ -9,7 +9,9 @@ Preliminary review for v0.2.0, checked on 2026-10-25 against the [GNOME Shell Ex
 - [x] Declare clipboard use in metadata and require a user action to copy a pairing link.
 - [x] Stop control on disable/lock and remove notifications, listeners, signals, and timers.
 - [ ] Confirm reviewability of the embedded browser interface. The guidelines limit review of HTML/web JavaScript dependencies; acceptance of this architecture needs reviewer clarification.
-- [ ] Assess moving network serving out of the Shell process and test hostile connection/resource exhaustion. The current bounded input protocol does not establish resilience against every network-level attack.
+- [x] Move network serving out of the Shell process, bound private IPC, and test crash/parent-exit cleanup.
+- [x] Add bounded hostile-transport regressions and connection/resource limits.
+- [ ] Complete sustained resource-exhaustion testing and assess OS sandboxing; current checks do not establish resilience against every native/network attack.
 - [ ] Replace manual certificate/network setup with an installation experience suitable for public users.
 - [ ] Add the actual repository URL to metadata after creating the public repository; do not invent one.
 - [ ] Complete accessibility/theme checks, screenshots, contribution guidance, supported-device records, and a final code/readability audit.

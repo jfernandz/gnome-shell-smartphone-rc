@@ -17,7 +17,12 @@
     "schemas/org.gnome.shell.extensions.smartphone-rc.gschema.xml",
     "schemas/org.gnome.shell.extensions.smartphone-rc.browser.gschema.xml",
     "preferences/sensitivity.js",
-    "preferences/devices.js"
+    "preferences/devices.js",
+    "network-guard.js",
+    "ipc.js",
+    "service.js",
+    "service-worker.js",
+    "preferences/security.js"
   ],
   "web": {
     "/": {

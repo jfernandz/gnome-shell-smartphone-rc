@@ -1,5 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import {trustDurationDays} from './settings.js';
 
 export const TRUST_SECONDS = 90 * 24 * 60 * 60;
 const nowSeconds = () => Math.floor(GLib.get_real_time() / 1000000);
@@ -125,7 +126,7 @@ export class TrustedBrowsers {
         if (records.length >= 32)
             throw new Error('Forget a trusted browser before adding another (maximum 32).');
         const record = {id, name: name.trim().slice(0, 80) || 'My phone', generation,
-            created: this._now(), lastUsed: this._now(), expires: this._now() + TRUST_SECONDS};
+            created: this._now(), lastUsed: this._now(), expires: this._now() + trustDurationDays(this._settings) * 24 * 60 * 60};
         // Only enrollment writes grants. Metadata never rewrites authorization or revocation.
         if (!this._settings.set_string('trusted-browsers', JSON.stringify([...records, record])))
             throw new Error('Could not save trusted browsers.');

@@ -7,8 +7,10 @@ function memorySettings(defaults) {
     let next = 0;
     return {
         get_string: key => values.get(key) ?? '',
+        get_uint: key => values.get(key) ?? 90,
         get_boolean: key => values.get(key) ?? false,
         get_int64: key => values.get(key) ?? 0,
+        set_uint(key, value) { return this.write(key, value); },
         set_string(key, value) { return this.write(key, value); },
         set_boolean(key, value) { return this.write(key, value); },
         set_int64(key, value) { return this.write(key, value); },
@@ -90,4 +92,8 @@ assert(changes === 2, 'Watch observes metadata and individual revocation');
 unwatch();
 preferences.forgetAll();
 assert(changes === 2, 'Watch cleanup disconnects all settings signals');
+settings.set_uint('trust-duration-days', 7);
+const short = store.remember('34'.repeat(32));
+assert(short.expires - short.created === 7 * 86400, 'New trust uses configured duration');
+assert(fourth.expires - fourth.created === TRUST_SECONDS, 'Existing trust keeps original expiry');
 print('Trusted browser validation, persistence, expiry, revocation and concurrent metadata checks passed');

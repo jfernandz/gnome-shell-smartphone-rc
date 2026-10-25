@@ -38,7 +38,7 @@ function browserRow(trusted, window, initial) {
 
 export function createTrustedGroup(trusted, window) {
     const group = new Adw.PreferencesGroup({title: 'Trusted devices',
-        description: 'Each entry represents a browser profile, not phone hardware. Trust lasts 90 days. '
+        description: 'Each entry represents a browser profile, not phone hardware. Trust expires on the date shown below. '
             + 'Start the service manually after login or unlocking. Disconnect preserves trust; Forget revokes it.'});
     const empty = new Adw.ActionRow({title: 'No trusted devices',
         subtitle: 'Choose Remember this browser when approving a new connection on the PC.'});

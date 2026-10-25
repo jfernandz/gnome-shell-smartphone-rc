@@ -5,20 +5,18 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
-import {TrustedBrowsers} from './trusted.js';
-import {sensitivityRange} from './settings.js';
+import {trustDurationDays, sensitivityRange} from './settings.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {RemoteDialogs} from './dialogs.js';
 
 import {RemoteInput} from './input.js';
 import {TextFocus} from './focus.js';
-import {RemoteServer} from './server.js';
+import {RemoteService} from './service.js';
 import {isPrivateIPv4} from './network.js';
 
 export default class SmartphoneRemoteControl extends Extension {
     enable() {
         this._settings = this.getSettings();
-        this._trusted = new TrustedBrowsers(this._settings);
         this._notification = null;
         this._server = null;
         this._input = null;
@@ -41,20 +39,21 @@ export default class SmartphoneRemoteControl extends Extension {
         this._copy.visible = false;
         this._showCertificate = this._indicator.menu.addAction('Show certificate fingerprint', () => this._dialogs.showFingerprint(this._fingerprint));
         this._showCertificate.visible = false;
-        this._remember = new PopupMenu.PopupSwitchMenuItem('Remember this browser for 90 days', false);
+        this._remember = new PopupMenu.PopupSwitchMenuItem(`Remember this browser for ${trustDurationDays(this._settings)} days`, false);
         this._remember.visible = false;
         this._indicator.menu.addMenuItem(this._remember);
-        this._approve = this._indicator.menu.addAction('Approve phone', () => this._server?.approve(this._remember.state));
+        this._approve = this._indicator.menu.addAction('Approve phone', () => this._approveRequest(this._remember.state));
         this._approve.add_style_class_name('smartphone-rc-approve');
         this._approve.visible = false;
         this._indicator.menu.addAction('Disconnect / reject', () => this._server?.disconnect()).add_style_class_name('smartphone-rc-stop');
         this._indicator.menu.addAction('Stop service', () => this._stop()).add_style_class_name('smartphone-rc-stop');
         this._indicator.menu.addAction('Settings', () => this.openPreferences());
         this._settingsId = this._settings.connect('changed', (_settings, key) => {
+            if (key === 'trust-duration-days')
+                this._remember.label.text = `Remember this browser for ${trustDurationDays(this._settings)} days`;
             if (key.startsWith('sensitivity-'))
                 this._server?.setSensitivity(sensitivityRange(this._settings));
         });
-        this._unwatchTrust = this._trusted.watch(() => this._server?.checkTrust());
         this._pairing.add_style_class_name('smartphone-rc-connect');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
@@ -63,22 +62,32 @@ export default class SmartphoneRemoteControl extends Extension {
         });
     }
 
-    _start() {
+    async _start() {
         this._stop();
+        let starting = null;
         try {
             const options = this._networkOptions();
-            this._fingerprint = options.certificate
-                ? GLib.compute_checksum_for_data(GLib.ChecksumType.SHA256, options.certificate.certificate).toUpperCase().match(/.{2}/g).join(':')
-                : null;
-            this._showCertificate.visible = Boolean(this._fingerprint);
             this._input = new RemoteInput(message => {
                 this._server.send({type: 'typing-paused', message});
                 Main.notify('Smartphone Remote Control', `${message} Click the text field again to resume.`);
             });
-            this._server = new RemoteServer(this.path,
-                state => this._onSessionState(state),
-                input => this._handleInput(input), {...options, trusted: this._trusted, sensitivity: sensitivityRange(this._settings)});
-            this._url = this._server.start();
+            const service = new RemoteService(this.path, state => this._onSessionState(state),
+                input => this._handleInput(input), {...options, sensitivity: sensitivityRange(this._settings)}, message => {
+                    if (this._server === service) {
+                        this._stop();
+                        Main.notifyError('Smartphone Remote Control', message);
+                    }
+                });
+            starting = service;
+            this._server = service;
+            const started = await service.start();
+            if (this._server !== service)
+                return;
+            if (options.fingerprint && options.fingerprint !== started.fingerprint)
+                throw new Error('The service certificate does not match the local certificate.');
+            this._url = started.url;
+            this._fingerprint = started.fingerprint;
+            this._showCertificate.visible = Boolean(this._fingerprint);
             this._address.label.text = this._url.split('/#')[0];
             this._address.visible = true;
             this._copy.visible = true;
@@ -87,6 +96,8 @@ export default class SmartphoneRemoteControl extends Extension {
             this._writeSessionFile();
             this._dialogs.showPairing(this._url);
         } catch (error) {
+            if (starting && this._server !== starting)
+                return;
             this._stop();
             Main.notifyError('Smartphone Remote Control', error.message);
         }
@@ -113,6 +124,7 @@ export default class SmartphoneRemoteControl extends Extension {
             });
         }
         this._clearNotification();
+        this._dialogs.closeVerification();
         this._approve.visible = state === 'pending';
         this._remember.visible = state === 'pending';
         if (state === 'pending')
@@ -144,7 +156,7 @@ export default class SmartphoneRemoteControl extends Extension {
         const server = this._server;
         const notification = new MessageTray.Notification({
             source: MessageTray.getSystemSource(), title: 'Remote control requested',
-            body: `A browser at ${server.peer} requests control. Remembering it allows access for 90 days while the service is running.`,
+            body: `A browser at ${server.peer} requests control. Remembering it allows access for ${trustDurationDays(this._settings)} days while the service is running.`,
             iconName: 'input-touchpad-symbolic', resident: true,
         });
         this._notification = notification;
@@ -154,17 +166,33 @@ export default class SmartphoneRemoteControl extends Extension {
         });
         notification.addAction('Accept', () => {
             if (this._server === server)
-                server.approve(false);
+                this._approveRequest(false);
         });
         notification.addAction('Accept and remember', () => {
             if (this._server === server)
-                server.approve(true);
+                this._approveRequest(true);
         });
         notification.addAction('Reject', () => {
             if (this._server === server)
                 server.disconnect();
         });
         notification.source.addNotification(notification);
+    }
+
+    _approveRequest(remember) {
+        const service = this._server;
+        if (!service)
+            return;
+        if (!this._fingerprint && this._url?.startsWith('http://127.0.0.1:')) {
+            service.approve(remember);
+            return;
+        }
+        if (!this._fingerprint)
+            return;
+        this._dialogs.verifyCertificate(this._fingerprint, () => {
+            if (this._server === service)
+                service.approve(remember);
+        });
     }
 
     _showPairing() {
@@ -200,7 +228,8 @@ export default class SmartphoneRemoteControl extends Extension {
         const invalid = Gio.TlsCertificateFlags.BAD_IDENTITY | Gio.TlsCertificateFlags.EXPIRED | Gio.TlsCertificateFlags.NOT_ACTIVATED;
         if (errors & invalid)
             throw new Error('The local certificate is expired or does not match the LAN address. Run network setup again.');
-        return {address, certificate};
+        return {address, port: 8844, fingerprint: GLib.compute_checksum_for_data(GLib.ChecksumType.SHA256, certificate.certificate)
+            .toUpperCase().match(/.{2}/g).join(':'), certificatePath: `${directory}/certificate.pem`, privateKeyPath: `${directory}/private-key.pem`};
     }
 
     _stop() {
@@ -241,11 +270,8 @@ export default class SmartphoneRemoteControl extends Extension {
 
     disable() {
         this._stop();
-        this._unwatchTrust();
-        this._unwatchTrust = null;
         this._settings.disconnect(this._settingsId);
         this._settings = null;
-        this._trusted = null;
         Main.sessionMode.disconnect(this._lockId);
         this._indicator.destroy();
         this._indicator = null;

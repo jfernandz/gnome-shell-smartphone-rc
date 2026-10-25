@@ -36,7 +36,11 @@ app.connect('activate', () => {
             if (settings.get_double('sensitivity-max') !== 12.5) throw Error('Range did not persist');
             all.find(w => w instanceof Gtk.Button && w.label === 'Restore defaults').emit('clicked');
             if (min.value !== 0.5 || max.value !== 10) throw Error('Reset failed');
-            print('PASS: native preferences render, enforce range order, save and restore defaults');
+            const duration = all.find(w => w instanceof Adw.ComboRow && w.title === 'Remember new browsers for');
+            if (!duration) throw Error('Trust duration setting missing');
+            duration.selected = 0;
+            if (settings.get_uint('trust-duration-days') !== 7) throw Error('Trust duration did not persist');
+            print('PASS: native preferences render, enforce range order, save defaults and configure trust lifetime');
             settings.set_string('trusted-browsers', JSON.stringify([{id:'ab'.repeat(32), name:'Test phone', created:1000000000,lastUsed:1000000000,expires:2000000000}]));
             const refreshed = widgets(window);
             const device = refreshed.find(w => w instanceof Adw.ActionRow && w.title === 'Test phone');

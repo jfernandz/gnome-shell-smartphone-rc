@@ -7,7 +7,7 @@ if ! gnome-extensions info "$extension_id" >/dev/null 2>&1; then
 fi
 session_file="${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR must be set}/smartphone-rc-session"
 if [[ ! -f "$session_file" ]]; then
-    echo 'Choose "Start Wi-Fi session" in the extension menu first.' >&2
+    echo 'Choose "Start Wi-Fi service" in the extension menu first.' >&2
     exit 1
 fi
 IFS= read -r session_url < "$session_file" || [[ -n "$session_url" ]]

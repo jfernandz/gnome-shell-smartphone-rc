@@ -11,6 +11,11 @@
       <range min="1.0" max="20.0"/>
       <summary>Maximum pointer sensitivity</summary>
     </key>
+    <key name="trust-duration-days" type="u">
+      <default>90</default>
+      <range min="7" max="90"/>
+      <summary>Lifetime of newly remembered browser credentials in days</summary>
+    </key>
     <key name="trust-generation" type="s">
       <default>''</default>
       <summary>Generation of valid remembered-browser grants</summary>

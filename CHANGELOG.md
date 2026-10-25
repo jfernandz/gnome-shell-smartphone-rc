@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-25
+
+- Reject HTTP bodies, transfer encoding, oversized headers/URIs, and query credentials before normal handlers; bound connection counts, accept/request rates, handshake/header deadlines, and closing handshakes.
+- Enforce a 2 KiB total WebSocket message limit and require libsoup 3.8 or later. Authenticate new browsers in the first WSS message with a short deadline and bounded unauthenticated sockets.
+- Move network serving into a GJS child with private bounded IPC, Shell-side input validation, data/file-descriptor limits, and disabled core dumps. Stop input if the child or pipe fails, and exit the child if its parent disappears.
+- Require a desktop acknowledgement of matching browser/PC certificate fingerprints before first approval; compute and cross-check the local fingerprint independently.
+- Add 7/30/90-day trust settings for new enrollments, retaining the existing default and recorded expiry of existing browsers.
+- Add transport, process-lifecycle, browser-helper, certificate-dialog, and trust-policy regression checks; document the security model.
+
 ## 0.2.2 — 2026-10-25
 
 - Prevent metadata updates and stale enrollment snapshots from restoring revoked browser trust. Separate per-browser revocation/name/usage settings and global trust generations, preserving existing remembered browsers.

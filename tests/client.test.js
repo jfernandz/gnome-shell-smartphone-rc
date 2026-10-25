@@ -25,6 +25,7 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
             this.handlers = {};
             this.readyState = 1;
             this.sent = [];
+            this.authentication = [];
             sockets.push(this);
         }
         addEventListener(type, callback) { this.handlers[type] = callback; }
@@ -32,6 +33,7 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
         close(code) { this.emit('close', {code}); }
         send(value) {
             const message = JSON.parse(value);
+            if (message.type === 'authenticate') { this.authentication.push(message); return; }
             this.sent.push(message);
             if (message.type === 'disconnect')
                 cookieJar.authenticated = Boolean(cookieJar.trusted);
@@ -106,7 +108,7 @@ test('a scanned link survives a refresh before connecting and uses encrypted Web
     assert.equal(scanned.element('connect').disabled, false);
     const refreshed = page({storage});
     refreshed.element('connect').handlers.click();
-    assert.equal(refreshed.sockets[0].url, 'wss://192.168.1.147:8844/control?token=secret');
+    assert.equal(refreshed.sockets[0].url, 'wss://192.168.1.147:8844/control');
 });
 
 test('approval consumes the scanned secret and disconnection requires scanning a new QR', () => {
@@ -424,7 +426,9 @@ test('a pending invitation survives opening its URL in a new Chrome tab and disa
     const chrome = page({hash: lens.location.hash});
     assert.equal(chrome.element('connect').disabled, false);
     chrome.element('connect').handlers.click();
-    assert.match(chrome.sockets[0].url, /token=secret/);
+    assert.equal(chrome.sockets[0].url, 'wss://192.168.1.147:8844/control');
+    chrome.sockets[0].emit('open');
+    assert.deepEqual(chrome.sockets[0].authentication, [{type: 'authenticate', token: 'secret'}]);
     chrome.sockets[0].emit('message', {data: JSON.stringify({type: 'approved', exchangeToken: 'exchange-secret'})});
     assert.equal(chrome.location.hash, '');
 });

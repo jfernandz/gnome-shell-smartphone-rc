@@ -12,6 +12,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-cookie-browser-'));
 const otherCredential = randomBytes(32).toString('hex');
 const trustedMode = process.argv.includes('--trusted');
+const helperMode = process.argv.includes('--helper');
 const children = [];
 const debuggers = [];
 const events = [];
@@ -50,6 +51,8 @@ try {
     const certificate = new X509Certificate(readFileSync(`${directory}/cert.pem`));
     const spki = certificate.publicKey.export({type: 'spki', format: 'der'});
     const pin = createHash('sha256').update(spki).digest('base64');
+    if (helperMode)
+        execFileSync('bash', ['scripts/stage.sh', `${directory}/runtime`], {cwd: root});
     if (trustedMode) {
         mkdirSync(`${directory}/schemas`);
         for (const name of ['org.gnome.shell.extensions.smartphone-rc', 'org.gnome.shell.extensions.smartphone-rc.browser'])
@@ -57,7 +60,7 @@ try {
         execFileSync('glib-compile-schemas', ['--strict', `${directory}/schemas`]);
     }
     function startServer(port = 0) {
-        const child = spawn('gjs', ['-m', 'tests/server-fixture.js', '127.0.0.1', `${directory}/cert.pem`, `${directory}/key.pem`], {
+        const child = spawn('gjs', ['-m', ...(helperMode ? ['tests/service-fixture.js', `${directory}/runtime`] : ['tests/server-fixture.js']), '127.0.0.1', `${directory}/cert.pem`, `${directory}/key.pem`], {
         cwd: root, env: {...process.env, SMARTPHONE_RC_TEST_SESSION_SECONDS: '1800',
             SMARTPHONE_RC_TEST_PORT: String(port),
             ...(trustedMode ? {SMARTPHONE_RC_TEST_TRUST: '1', SMARTPHONE_RC_TEST_OTHER_CREDENTIAL: otherCredential, GSETTINGS_SCHEMA_DIR: `${directory}/schemas`,
@@ -69,7 +72,11 @@ try {
     return child;
     }
     let server = startServer();
-    const pairing = await waitFor(() => events.find(event => event.url)?.url);
+    const pairing = await waitFor(() => {
+        const failure = events.find(event => event.failure);
+        if (failure) throw new Error(failure.failure);
+        return events.find(event => event.url)?.url;
+    });
     const origin = new URL(pairing).origin;
     let browser;
     let control;
@@ -123,8 +130,9 @@ try {
     await control('Browser.close');
     await exited;
     await launchBrowser();
-    const restarted = await tab(`${origin}/`);
+    let restarted = await tab(`${origin}/`);
     await waitFor(() => restarted.evaluate('document.querySelector("#status").textContent === "Connected"')).catch(async error => {
+        console.error('Resources:', await restarted.evaluate('performance.getEntriesByType("resource").map(r=>({name:r.name,status:r.responseStatus,bytes:r.transferSize}))'));
         console.error('Restart status:', await restarted.evaluate('document.querySelector("#status").textContent'));
         console.error('Cookies:', (await restarted.call('Network.getCookies', {urls: [origin]})).cookies.map(cookie => cookie.name));
         console.error('States:', events.filter(event => event.state));
@@ -132,6 +140,12 @@ try {
     });
     assert.equal(events.filter(event => event.state === 'pending').length, 1);
     console.log('PASS: restarting Chromium with its saved profile restores the approved session');
+    await control('Target.closeTarget', {targetId: restarted.targetId});
+    restarted = await tab(pairing);
+    await restarted.evaluate('document.querySelector("#connect").click()');
+    await waitFor(() => restarted.evaluate('document.querySelector("#status").textContent === "Connected"'));
+    assert.equal(events.filter(event => event.state === 'pending').length, 1);
+    console.log('PASS: reopening a scanned link with a valid cookie preserves the authorized session');
     if (trustedMode) {
         const trustCookie = (await restarted.call('Network.getCookies', {urls: [origin]})).cookies
             .find(cookie => cookie.name === '__Host-smartphone_rc_trust');
@@ -139,7 +153,9 @@ try {
         assert.equal(trustCookie.httpOnly, true);
         assert.equal(trustCookie.secure, true);
         assert.equal(trustCookie.sameSite, 'Strict');
-        assert.ok(trustCookie.expires - Date.now() / 1000 > 89 * 86400);
+        const days = Number(process.env.SMARTPHONE_RC_TEST_TRUST_DAYS ?? 90);
+        assert.ok(trustCookie.expires - Date.now() / 1000 > (days - 1) * 86400);
+        assert.ok(trustCookie.expires - Date.now() / 1000 <= days * 86400 + 5);
         const {browserContextId} = await control('Target.createBrowserContext');
         const stranger = await tab(`${origin}/`, browserContextId);
         assert.equal(await stranger.evaluate('document.querySelector("#connect").disabled'), true);

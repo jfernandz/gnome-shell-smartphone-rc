@@ -23,4 +23,4 @@ printf '{"address":"%s"}\n' "$network_address" > "$config_dir/network.json"
 echo "Wi-Fi address: https://$network_address:8844"
 echo 'Local certificate fingerprint (compare with the certificate shown by the phone browser):'
 openssl x509 -in "$config_dir/certificate.pem" -noout -fingerprint -sha256
-echo 'Choose "Start Wi-Fi session" in the extension menu, then copy the pairing link.'
+echo 'Choose "Start Wi-Fi service" in the extension menu, then copy the pairing link.'

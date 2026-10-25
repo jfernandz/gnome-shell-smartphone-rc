@@ -164,8 +164,8 @@ export function createClient(environment = globalThis) {
         }
         clearRetry();
         userDisconnected = false;
-        const credential = cookieSession ? '' : `?token=${encodeURIComponent(token)}`;
-        const connection = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/control${credential}`);
+        const pairing = cookieSession ? null : token;
+        const connection = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/control`);
         socket = connection;
         retryTimer = setTimeout(() => {
             retryTimer = 0;
@@ -179,8 +179,11 @@ export function createClient(environment = globalThis) {
             }
         }, 10000);
         connection.addEventListener('open', () => {
-            if (socket === connection)
+            if (socket === connection) {
                 clearRetry();
+                if (pairing)
+                    connection.send(JSON.stringify({type: 'authenticate', token: pairing}));
+            }
         });
         transition(resuming ? 'reconnecting' : 'connecting', resuming ? 'Reconnecting…' : 'Connecting…');
         connection.addEventListener('message', event => {
@@ -206,7 +209,7 @@ export function createClient(environment = globalThis) {
             if (message.type === 'settings' || message.type === 'approved')
                 touchpad.setRange(message.sensitivity);
             if (message.type === 'pending')
-                transition('pending', 'Approve this connection in the PC top-bar menu.');
+                transition('pending', 'On the PC, verify the browser certificate and approve.');
             if (message.type === 'approved' || message.type === 'resumed')
                 activateConnection(connection, message);
             if (message.type === 'suspended')

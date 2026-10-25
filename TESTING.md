@@ -229,3 +229,25 @@ Real Chromium checks pass for temporary approval, remembered trust, browser/serv
 Native GTK/Adwaita checks pass for range persistence/default restoration and integrated device rows, including row identity across last-use updates, rename, and Forget. Isolated GNOME checks pass for notification actions/cleanup, pending-request expiry, lock-mode shutdown, and no automatic restart after unlock. Native settings/notifications tests use an isolated compositor; the user's desktop was not restarted or locked.
 
 Existing remembered-browser grants require no migration write or new credential: absent generation fields map to the initial generation and per-browser metadata/revocation defaults preserve their values. Reload the extension before using the updated preferences so both processes use the new authorization model. Physical mobile acceptance of this refactor remains a follow-up check.
+
+
+## v0.3.0 security hardening — 2026-10-25
+
+All six security review items are included in the local v0.3.0 release:
+
+1. A guarded TCP listener limits live connections before TLS/HTTP parsing. Handshake/header deadlines, bounded closing handshakes, accept/request budgets, short-lived HTTP transports, empty-body enforcement, header/URI limits, and early handlers cover every route. Unauthenticated WebSockets have a separate small budget and authentication deadline.
+2. GNOME Shell launches a GJS network child through prlimit with private inherited pipes. Data allocation, descriptors, core dumps, private-pipe line/queue size, and message/input rates are bounded. Input is validated again in Shell. Process/pipe failure stops input, and parent disappearance exits the helper. This is fault isolation under the same user identity, not an OS sandbox.
+3. Both WebSocket frames and assembled messages are limited to 2 KiB using libsoup 3.8. Oversized fragmented messages close the connection before pending approval or input dispatch.
+4. New-browser approval requires a native certificate comparison acknowledgement. The local certificate fingerprint is computed independently in Shell and cross-checked with the helper. This remains manual verification of the actual browser certificate, not automatic pinning or a trust claim based on page/QR text.
+5. Pairing credentials travel in the first WSS authentication message, not the handshake query. URL query credentials are rejected. Already authorized cookies remain usable when reopening a scanned link, without disconnecting on its redundant authentication message.
+6. Settings offers 7/30/90-day lifetimes for new enrollments; existing trust keeps its recorded expiry. Unsupported configured values fall back to seven days. The normal default remains 90 days.
+
+All 54 automated tests pass. New transport checks prove rejection of a 1 MiB upload before 100 Continue, oversized headers, query credentials, fragmented payloads, stalled authentication, and slow-header connection exhaustion. Process checks inspect the real child limits, kill the helper, kill its parent, and verify that the listener closes. Existing authorization, revocation, input and packaging checks continue to pass.
+
+Chromium tests exercise the real network helper with temporary authorization and seven-day remembered trust. Browser restart, full service-process restart, reopening a scanned link with a valid cookie, same-page Disconnect → Connect, cross-browser isolation, and individual/global revocation pass. The seven-day cookie lifetime is checked against the recorded policy.
+
+Native GTK/Adwaita checks pass for the duration selector, existing sensitivity behavior and device management. In an isolated GNOME 51.1 compositor, the real TLS approval dialog refuses approval before acknowledgement, then enables control after acknowledgement. Killing the child clears input/focus while Shell remains alive. Entering lock mode closes the pending certificate dialog and child; leaving it does not restart the service. The user's desktop was not locked or restarted.
+
+The optional native harness is `tests/shell-security-native.mjs`. It requires an explicitly isolated Shell, `SMARTPHONE_RC_ISOLATED_SHELL=1`, and paths to that session's bus-address file and runtime directory. It must not be run against the user's working desktop.
+
+The user confirmed the new flow works on the physical phone, including the requested certificate-approval/settings validation. Sustained/adversarial native-library saturation remains unvalidated. See SECURITY.md for the threat model and remaining limits. Existing v0.2.2 tags/artifacts are unchanged.

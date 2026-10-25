@@ -1,13 +1,23 @@
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
+import {CheckBox} from 'resource:///org/gnome/shell/ui/checkBox.js';
 import {QrCode} from 'resource:///org/gnome/shell/ui/qrCode.js';
+
+function fingerprintLabel(fingerprint) {
+    const bytes = fingerprint.split(':');
+    const lines = [];
+    for (let index = 0; index < bytes.length; index += 8)
+        lines.push(bytes.slice(index, index + 8).join(':'));
+    return new St.Label({text: lines.join('\n'), x_align: Clutter.ActorAlign.CENTER});
+}
 
 export class RemoteDialogs {
     constructor() {
         this._pairing = null;
         this._pairingQr = null;
         this._certificate = null;
+        this._verification = null;
     }
 
     closePairing() {
@@ -48,19 +58,50 @@ export class RemoteDialogs {
         this.closeCertificate();
         this._certificate = new ModalDialog.ModalDialog();
         this._certificate.contentLayout.add_child(new St.Label({text: 'Local certificate — SHA-256'}));
-        const bytes = fingerprint.split(':');
-        const lines = [];
-        for (let i = 0; i < bytes.length; i += 8)
-            lines.push(bytes.slice(i, i + 8).join(':'));
-        this._certificate.contentLayout.add_child(new St.Label({
-            text: lines.join('\n'),
-            x_align: Clutter.ActorAlign.CENTER,
-        }));
+        this._certificate.contentLayout.add_child(fingerprintLabel(fingerprint));
         this._certificate.setButtons([{label: 'Close', action: () => this.closeCertificate()}]);
         this._certificate.open();
     }
 
+    closeVerification() {
+        if (this._verification) {
+            this._verification.destroy();
+            this._verification = null;
+        }
+    }
+
+    verifyCertificate(fingerprint, onConfirm) {
+        this.closeVerification();
+        const dialog = new ModalDialog.ModalDialog();
+        this._verification = dialog;
+        dialog.contentLayout.add_child(new St.Label({text: 'Verify the PC certificate'}));
+        const help = new St.Label({text: 'Open certificate details in your phone browser.\nCompare its SHA-256 fingerprint with this one.\nA fingerprint displayed by a web page is not proof.'});
+        dialog.contentLayout.add_child(help);
+        dialog.contentLayout.add_child(fingerprintLabel(fingerprint));
+        const checkbox = new CheckBox('The browser certificate fingerprint matches');
+        dialog.contentLayout.add_child(checkbox);
+        dialog.setButtons([
+            {label: 'Cancel', action: () => this.closeVerification()},
+            {label: 'Approve', action: () => {
+                if (!checkbox.checked)
+                    return;
+                this.closeVerification();
+                onConfirm();
+            }},
+        ]);
+        const approve = dialog.buttonLayout.get_last_child();
+        const update = () => {
+            approve.reactive = approve.can_focus = checkbox.checked;
+            if (checkbox.checked) approve.remove_style_pseudo_class('insensitive');
+            else approve.add_style_pseudo_class('insensitive');
+        };
+        update();
+        checkbox.connect('notify::checked', update);
+        dialog.open();
+    }
+
     destroy() {
+        this.closeVerification();
         this.closePairing();
         this.closeCertificate();
     }

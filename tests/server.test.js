@@ -54,7 +54,7 @@ for (const tls of [false, true]) {
                 response.on('data', data => body += data);
                 response.on('end', () => resolve({status: response.statusCode, headers: response.headers, body}));
             });
-            request.on('error', reject);
+            request.on('error', error => { error.message += ` (${options.method ?? 'GET'} ${path})`; reject(error); });
             request.end();
         });
     }
@@ -80,15 +80,18 @@ for (const tls of [false, true]) {
     // Node's browser-compatible WebSocket cannot set Origin; use its HTTP upgrade transport below.
     const {randomBytes} = await import('node:crypto');
     async function connect(origin, token = null, cookie = null, requestOrigin = origin) {
-        const request = transport.request(`${origin}/control${token ? `?token=${token}` : ''}`, {...requestOptions, headers: {
+        const request = transport.request(`${origin}/control`, {...requestOptions, headers: {
             Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
             'Sec-WebSocket-Key': randomBytes(16).toString('base64'), Origin: requestOrigin,
             ...(cookie ? {Cookie: cookie} : {}),
         }});
         const result = new Promise((resolve, reject) => {
-            request.on('upgrade', (_response, socket, head) => resolve({socket, head}));
+            request.on('upgrade', (_response, socket, head) => {
+                if (token) send(socket, {type: 'authenticate', token});
+                resolve({socket, head});
+            });
             request.on('response', response => {response.resume(); resolve({status: response.statusCode});});
-            request.on('error', reject);
+            request.on('error', error => { error.message += ` (WebSocket ${token ? 'pairing' : 'cookie'} ${requestOrigin})`; reject(error); });
         });
         request.end();
         return result;
@@ -132,6 +135,7 @@ for (const tls of [false, true]) {
     }
     async function deniedCookie(cookie) {
         const result = await connect(url.origin, null, cookie);
+        send(result.socket, {type: 'authenticate', token: 'invalid'});
         const frame = result.head.length ? result.head : (await once(result.socket, 'data'))[0];
         assert.equal(frame[0] & 15, 8);
         result.socket.destroy();

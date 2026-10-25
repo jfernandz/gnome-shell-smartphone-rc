@@ -2,12 +2,12 @@
 
 Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.2.2 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.3.0 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
 - A top-bar menu to start, approve, reject, disconnect, and stop the service, with subtle action colors.
-- Pairing notifications with Accept, Accept and remember, and Reject buttons.
+- Pairing notifications with Accept, Accept and remember, and Reject buttons, followed by a guided certificate check for new browsers.
 - Native GNOME preferences for sensitivity limits and trusted browsers.
 - An encrypted connection bound to one selected private LAN IPv4 address.
 - A temporary pairing QR code, one phone at a time, and the requesting peer's IP shown on the PC.
@@ -16,13 +16,13 @@ Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. 
 - Live mobile typing, corrections, and deletion, with a mobile text editor and the native keyboard's Enter key.
 - Desktop text-focus detection that requests the phone keyboard automatically, with a manual Keyboard fallback.
 - A temporary Secure/HttpOnly/SameSite=Strict cookie that recovers approval across tabs and browser restarts, expiring after 30 minutes of inactivity.
-- Optional remembered browsers with 90-day trust, editable names, last-used dates, and individual/global revocation.
+- Optional remembered browsers with configurable 7/30/90-day trust, editable names, last-used dates, and individual/global revocation.
 - Background pause and automatic reconnection for the approved browser.
 - Session shutdown when the extension is disabled or the desktop locks.
 
 ## Set up Wi-Fi
 
-Requirements: GNOME Shell 51, GJS, libsoup 3, OpenSSL, and `iproute2`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
+Requirements: GNOME Shell 51, GJS, libsoup 3.8 or later, util-linux (`prlimit`), OpenSSL, and `iproute2`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
 
 Run the one-time network setup from the project directory:
 
@@ -52,7 +52,7 @@ gnome-extensions enable smartphone-rc@jfaparicio.github.io
 1. Open the touchpad icon in the PC top bar and choose **Start Wi-Fi service**.
 2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display a pending code again, or **Copy pairing link** as an alternative. After approval, **New pairing QR** remains available in the PC menu: it ends the previous connection and generates a fresh invitation requiring approval.
 3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or the setup output) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
-4. Tap **Connect**, then choose **Accept**, **Accept and remember**, or **Reject** in the PC notification. Alternatively, use **Approve phone** in the menu, optionally enabling **Remember this browser for 90 days** first. The displayed IP is an informational label; it does not establish device identity.
+4. Tap **Connect**, then choose **Accept**, **Accept and remember**, or **Reject** in the PC notification. Accept opens a certificate verification dialog: compare the PC fingerprint with the certificate details provided by the phone browser, acknowledge the match, then approve. Alternatively, use **Approve phone** in the menu, optionally enabling **Remember this browser** first. The displayed IP is an informational label; it does not establish device identity.
 5. Move a finger over the black touchpad. Focus a desktop text field: the phone shows its editor and requests the native keyboard. Type normally; changes appear on the PC immediately. Use the native Enter key to confirm a search. If the browser does not open the keyboard, tap **Keyboard** or the mobile editor. While typing, the layout follows the visible viewport and reported keyboard bounds, keeps the editor above the keyboard, and temporarily hides the sensitivity slider and click buttons to preserve space.
 
 Opening the bare IP address in a browser without a valid approval cookie asks you to scan the QR and keeps Connect disabled until it has a pairing secret. The link expires after two minutes. Approval must happen within 30 seconds of connecting. Refreshing before pressing Connect preserves the link in that browser tab; approval consumes it. Without remembered trust, an explicit disconnect or expired link requires a new pairing invitation. An approved browser can refresh, open a new tab, or recover after closing Chrome using its temporary cookie. Bookmark the plain PC address to reopen it without a QR while that approval remains valid.
@@ -67,7 +67,7 @@ Open **Settings** from the extension menu. Set the sensitivity minimum and maxim
 
 Remembering is opt-in on the PC during approval. A remembered device represents a browser profile, not a hardware identifier: another browser or cleared cookies requires pairing again. The list provides editable names, approval/last-use/expiry dates, **Forget**, and **Forget all**. Revocation immediately disconnects an affected active browser. Names are labels, not proof of identity.
 
-Remembered trust lasts 90 days from enrollment, without sliding renewal. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
+Choose 7, 30, or 90 days in **Settings → Security** for newly remembered browsers (default 90). Existing browsers keep their recorded expiry; forget and pair again to change it. Trust does not renew on use. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
 
 Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic unlock reconnection in v0.2.0.
 
@@ -77,7 +77,7 @@ If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and
 
 LAN sessions require TLS; there is no unencrypted LAN fallback. HTTPS protects the page and WSS protects control events. A self-signed certificate still needs a deliberate first-use identity check: blindly accepting an unexpected certificate does not authenticate the PC. A browser trust exception is a prototype setup cost; QR-based certificate identity bootstrapping remains a design item.
 
-Pairing uses 32 bytes from the OS random source. The secret travels in the URL fragment when opening the page, remains in the address bar until approval (to support opening the pending link in Chrome), and is sent to the same-origin WebSocket over TLS. It is retained only in that tab's session storage until approval. Approval consumes the pairing secret. A one-use exchange valid for 30 seconds lets the server issue a host-only `__Host-smartphone_rc` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. The cookie secret is not exposed to JavaScript or stored in Web Storage. It authorizes recovery for 30 minutes of inactivity and is revoked by explicit disconnect, server stop/restart, desktop lock, or disabling the extension. Temporary authorization lives only in server memory, so that cookie cannot recover a restarted service. The separate opt-in trust credential described above can establish a new session after the service is manually restarted. Periodic cookie refresh does not extend the server's idle deadline; input and foreground resumption do. The PC stores the pending link in a mode-0600 runtime file and removes it on approval, expiration, or stop. Never post a pairing link publicly. IP addresses are useful labels, not proof of hardware identity.
+Pairing uses 32 bytes from the OS random source. The secret travels in the URL fragment when opening the page, remains in the address bar until approval (to support opening the pending link in Chrome), and is sent as the first authentication message on the same-origin WebSocket over TLS, without a URL query. It is retained only in that tab's session storage until approval. Approval consumes the pairing secret. A one-use exchange valid for 30 seconds lets the server issue a host-only `__Host-smartphone_rc` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. The cookie secret is not exposed to JavaScript or stored in Web Storage. It authorizes recovery for 30 minutes of inactivity and is revoked by explicit disconnect, server stop/restart, desktop lock, or disabling the extension. Temporary authorization lives only in server memory, so that cookie cannot recover a restarted service. The separate opt-in trust credential described above can establish a new session after the service is manually restarted. Periodic cookie refresh does not extend the server's idle deadline; input and foreground resumption do. The PC stores the pending link in a mode-0600 runtime file and removes it on approval, expiration, or stop. Never post a pairing link publicly. IP addresses are useful labels, not proof of hardware identity.
 
 Requests must use the configured host and WebSocket origin. Control messages are validated, size limited, and rate limited, including pending connections. Only one pending or approved connection is accepted. The extension exposes only the encrypted Wi-Fi flow. Automated server tests use loopback bindings internally.
 
@@ -87,7 +87,7 @@ Focus detection uses GNOME's input method, IBus notifications, and editable Shel
 
 Text insertion uses GNOME's input method when the application acknowledges text updates. Deletion uses native Backspace events, never surrounding-text deletion offsets. Edits are serialized using application acknowledgements; an unacknowledged edit pauses typing after one second while leaving pointer control connected. Click the PC text field again to resume typing. Applications without surrounding-text support use a layout-dependent virtual-keyboard fallback. Arbitrary Unicode in fallback applications, dragging, and modifier shortcuts are not promised. The user has confirmed scroll and basic typing work on their desktop. See [TESTING.md](TESTING.md) for detailed validation and remaining checks.
 
-The small libsoup server currently runs in the Shell process. Process isolation and adversarial resource-exhaustion testing remain work before a public release. This is not yet ready for extensions.gnome.org; see [PUBLICATION.md](PUBLICATION.md) for the preliminary review.
+The libsoup server runs in a separate GJS child with private bounded IPC and resource/network limits. This isolates network-process failures from GNOME Shell; it is not an OS sandbox. See [SECURITY.md](SECURITY.md) for the trust model and limits, and [PUBLICATION.md](PUBLICATION.md) for remaining public-distribution work.
 
 ## Development
 
@@ -108,6 +108,8 @@ Server tests choose ephemeral loopback ports, exercise HTTP and TLS, and never i
 ```sh
 node tests/cookie-browser.mjs
 node tests/cookie-browser.mjs --trusted
+node tests/cookie-browser.mjs --trusted --helper
+SMARTPHONE_RC_TEST_TRUST_DAYS=7 node tests/cookie-browser.mjs --trusted --helper
 ```
 
 This test uses a fresh temporary browser profile and trusts only its generated test certificate's public-key pin. It does not change your normal Chrome profile or certificate policy. The server fixture's automatic approval callback is test-only.

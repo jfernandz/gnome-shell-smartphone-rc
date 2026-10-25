@@ -115,8 +115,19 @@ Automatic startup and automatic post-unlock reconnection remain later-version id
 
 Released locally as v0.2.2; earlier tags and artifacts remain unchanged.
 
+### v0.3.0 security hardening
+
+- [x] Reject HTTP bodies early and bound connections, rates, headers, URIs, and deadlines.
+- [x] Isolate network serving in a bounded GJS child with private validated IPC and crash/parent-exit cleanup.
+- [x] Enforce complete WebSocket message size, including fragmented messages.
+- [x] Guide and gate first approval on comparison with the actual browser certificate.
+- [x] Move pairing authentication out of URL queries into the first WSS message.
+- [x] Add configurable new-browser trust lifetimes while preserving existing enrollments.
+
+Released locally as v0.3.0 after the user confirmed the new mobile flow works. Sustained stress testing remains follow-up work; prior tags/artifacts are unchanged.
+
 ### Current implementation status
 
-v0.2.2 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. It adds actionable pairing notifications, native Settings with live sensitivity limits, opt-in remembered browsers with individual/global revocation, and menu action colors. The user confirmed remembered-browser recovery after service restart and working Settings on the physical phone. The patch release adds manual mobile reconnection without refresh, integrated device rows, and a larger default Settings window. The latest patch protects revocations from stale writes and refactors session handling, preferences, and shared resources. All 48 automated tests, temporary/trusted Chromium recovery checks, and isolated native preferences/notification/lock checks pass. The runtime ZIP is built and inspected. Automatic startup remains deferred; certificate setup, broader compatibility, and publication requirements remain follow-up work. See TESTING.md, CHANGELOG.md, and PUBLICATION.md for evidence and limitations.
+v0.3.0 is released locally for GNOME Shell 51, tested on 51.1 with Wayland. It isolates network serving in a resource-limited GJS child, bounds HTTP/WebSocket traffic and private IPC, requires guided certificate verification for new-browser approval, authenticates pairing outside URL queries, and adds configurable 7/30/90-day trust. Existing enrollments retain their expiry. The user confirmed the new mobile flow works. All 54 automated tests, Chromium helper/recovery checks, and isolated native certificate/preferences/lock/crash checks pass. The runtime ZIP is built and inspected. Automatic startup remains deferred; sustained stress testing, broader compatibility, and publication review remain follow-up work. See TESTING.md, SECURITY.md, CHANGELOG.md, and PUBLICATION.md for evidence and limitations.
 
 Work through phases in order, updating this checklist and recording decisions as they are made. Start with the smallest technical proof; defer visual polish until pairing and input work reliably. A phase is complete only when its exit condition has been checked.

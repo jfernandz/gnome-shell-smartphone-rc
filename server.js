@@ -4,6 +4,7 @@ import Soup from 'gi://Soup?version=3.0';
 
 import {RateLimit, validateInput} from './protocol.js';
 import {isPrivateIPv4} from './network.js';
+import {NetworkGuard} from './network-guard.js';
 import {DEFAULT_SENSITIVITY} from './limits.js';
 
 export const PORT = 8844;
@@ -12,6 +13,8 @@ const TRUST_COOKIE = '__Host-smartphone_rc_trust';
 
 export class RemoteServer {
     constructor(directory, onState, onInput, options = {}) {
+        if (typeof Soup.WebsocketConnection.prototype.set_max_total_message_size !== 'function')
+            throw new Error('libsoup 3.8 or later is required for bounded WebSocket messages.');
         this._address = options.address ?? '127.0.0.1';
         this._port = options.port ?? PORT;
         this._certificate = options.certificate ?? null;
@@ -24,11 +27,14 @@ export class RemoteServer {
         this._onState = onState;
         this._onInput = onInput;
         this._server = null;
+        this._guardOptions = options.networkLimits ?? {};
+        this._unauthenticated = new Map();
         this._client = null;
         this._expiry = 0;
         this._pairingExpiry = 0;
         this._sessionSecret = null;
         this._sessionExpiry = 0;
+        this._authenticationMillis = options.authenticationMillis ?? 5000;
         this._sessionSeconds = options.sessionSeconds ?? 1800;
         this._exchangeToken = null;
         this._trusted = options.trusted ?? null;
@@ -53,18 +59,16 @@ export class RemoteServer {
         this._deadline = GLib.get_monotonic_time() + 120 * 1000000;
         this._server = new Soup.Server();
         try {
-            if (this._certificate)
-                this._server.set_tls_certificate(this._certificate);
-            const address = new Gio.InetSocketAddress({
-                address: Gio.InetAddress.new_from_string(this._address), port: this._port,
-            });
-            this._server.listen(address, this._certificate ? Soup.ServerListenOptions.HTTPS : 0);
-            this._port = this._server.get_listeners()[0].get_local_address().get_port();
+            this._guard = new NetworkGuard(this._server, this._certificate, this._guardOptions);
+            this._port = this._guard.listen(this._address, this._port);
             this._origin = `${this._scheme}://${this._address}:${this._port}`;
         } catch (error) {
             this.stop();
             throw error;
         }
+        for (const path of ['/', '/session', '/control'])
+            this._server.add_early_handler(path, (_server, message, requestPath) => this._earlyRequest(message, requestPath));
+        this._server.connect('request-finished', (_server, message) => this._guard?.finished(message));
         this._server.add_handler('/', (_server, message, path) => this._serve(message, path));
         this._server.add_handler('/session', (_server, message) => this._sessionRequest(message));
         this._server.add_handler('/control', (_server, message) => {
@@ -85,18 +89,112 @@ export class RemoteServer {
         return `${this._origin}/#${this._token}`;
     }
 
+    _earlyRequest(message, path) {
+        const headers = message.get_request_headers();
+        // Keep HTTP transports short-lived; control uses a separate persistent WebSocket.
+        if (path !== '/control')
+            message.get_response_headers().replace('Connection', 'close');
+        const reject = status => {
+            message.get_request_body().set_accumulate(false);
+            message.get_response_headers().replace('Connection', 'close');
+            message.set_status(status, null);
+        };
+        let headerBytes = 0;
+        headers.foreach((name, value) => {
+            if (headerBytes <= 8192)
+                headerBytes += value.length > 8192 ? value.length : new TextEncoder().encode(`${name}: ${value}\r\n`).length;
+        });
+        if (headerBytes > 8192) {
+            reject(431);
+            return;
+        }
+        if (path.length > 256) {
+            reject(414);
+            return;
+        }
+        if (!this._guard.headers(message)) {
+            reject(Soup.Status.TOO_MANY_REQUESTS);
+            return;
+        }
+        if (!this._isOwnHost(message) || message.get_uri().get_query() !== null) {
+            reject(Soup.Status.FORBIDDEN);
+            return;
+        }
+        const length = headers.get_one('Content-Length');
+        if (headers.get_one('Transfer-Encoding') || (length !== null && length !== '0')) {
+            reject(Soup.Status.REQUEST_ENTITY_TOO_LARGE);
+            return;
+        }
+        const method = message.get_method();
+        if (path === '/control' || path === '/session') {
+            const origin = headers.get_one('Origin');
+            if ((path === '/control' && (method !== 'GET' || origin !== this._origin)) ||
+                (path === '/session' && ((method !== 'GET' && method !== 'POST') ||
+                    (origin && origin !== this._origin) || (method === 'POST' && origin !== this._origin))))
+                reject(Soup.Status.FORBIDDEN);
+        } else if (method !== 'GET') {
+            reject(Soup.Status.FORBIDDEN);
+        } else if (!Object.hasOwn(this._assets, path)) {
+            reject(Soup.Status.NOT_FOUND);
+        }
+    }
+
     _acceptConnection(message, connection) {
-        const query = message.get_uri().get_query();
-        const now = GLib.get_monotonic_time();
+        connection.set_max_incoming_payload_size(2048);
+        connection.set_max_total_message_size(2048);
+        connection.set_keepalive_interval(15);
+        connection.set_keepalive_pong_timeout(5);
+        this._guard.websocket(message, connection);
+        const peer = message.get_remote_address().get_address().to_string();
         const trusted = this._trustedRecord(message);
         const session = this._hasSession(message);
+        if (session || trusted) {
+            this._attachConnection(peer, connection, trusted, session);
+            return;
+        }
+        if (this._unauthenticated.size >= 4 || this._client || !this._token || GLib.get_monotonic_time() > this._deadline) {
+            connection.close(1008, 'Pairing unavailable');
+            return;
+        }
+        const clear = () => {
+            const pending = this._unauthenticated.get(connection);
+            if (!pending)
+                return;
+            this._unauthenticated.delete(connection);
+            GLib.Source.remove(pending.timer);
+            connection.disconnect(pending.message);
+            connection.disconnect(pending.closed);
+        };
+        const pending = {};
+        pending.timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this._authenticationMillis, () => {
+            // clear() removes this source before it can run again.
+            clear();
+            connection.close(1008, 'Authentication timed out');
+            return GLib.SOURCE_REMOVE;
+        });
+        pending.closed = connection.connect('closed', clear);
+        pending.message = connection.connect('message', (_connection, type, bytes) => {
+            let authentication = null;
+            try {
+                if (type === Soup.WebsocketDataType.TEXT && bytes.get_size() <= 256)
+                    authentication = JSON.parse(new TextDecoder().decode(bytes.get_data()));
+            } catch { /* Reject malformed authentication. */ }
+            clear();
+            if (authentication?.type !== 'authenticate' || authentication.token !== this._token ||
+                typeof authentication.token !== 'string' || !this._token || this._client ||
+                GLib.get_monotonic_time() > this._deadline) {
+                connection.close(1008, 'Pairing unavailable');
+                return;
+            }
+            this._attachConnection(peer, connection, null, false);
+        });
+        this._unauthenticated.set(connection, pending);
+    }
+
+    _attachConnection(peer, connection, trusted, session) {
         const resuming = session || Boolean(trusted);
         if (trusted && this._client && (!this._approved || this._trustedId !== trusted.id)) {
             connection.close(1008, 'Another browser is connected');
-            return;
-        }
-        if (!resuming && (this._client || !this._token || now > this._deadline || query !== `token=${this._token}`)) {
-            connection.close(1008, 'Pairing unavailable');
             return;
         }
         if (resuming && this._client) {
@@ -106,7 +204,9 @@ export class RemoteServer {
         }
         if (trusted && !session)
             this._clearSession();
-        this._peer = message.get_remote_address().get_address().to_string();
+        this._cookieAuthenticated = Boolean(resuming);
+        this._firstMessage = true;
+        this._peer = peer;
         connection.set_max_incoming_payload_size(2048);
         this._client = connection;
         this._approved = false;
@@ -133,11 +233,13 @@ export class RemoteServer {
     }
 
     _handleMessage(type, bytes) {
+        const first = this._firstMessage;
+        this._firstMessage = false;
         if (this._approved && !this._sessionActive()) {
             this.disconnect();
             return;
         }
-        if (type !== Soup.WebsocketDataType.TEXT || !this._rate.accept(GLib.get_monotonic_time() / 1000)) {
+        if (bytes.get_size() > 2048 || type !== Soup.WebsocketDataType.TEXT || !this._rate.accept(GLib.get_monotonic_time() / 1000)) {
             this.disconnect();
             return;
         }
@@ -145,7 +247,12 @@ export class RemoteServer {
             return;
         let input;
         try {
-            input = validateInput(JSON.parse(new TextDecoder().decode(bytes.get_data())));
+            const packet = JSON.parse(new TextDecoder().decode(bytes.get_data()));
+            // A scanned link may arrive with an already valid recovery cookie.
+            if (first && this._cookieAuthenticated && bytes.get_size() <= 256 &&
+                packet?.type === 'authenticate' && typeof packet.token === 'string' && /^[a-f0-9]{64}$/.test(packet.token))
+                return;
+            input = validateInput(packet);
         } catch {
             this.disconnect();
             return;
@@ -204,8 +311,13 @@ export class RemoteServer {
     }
 
     send(message) {
-        if (this._client && this._approved)
-            this._client.send_text(JSON.stringify(message));
+        if (!this._client || !this._approved)
+            return;
+        if (!this._sessionActive()) {
+            this.disconnect();
+            return;
+        }
+        this._client.send_text(JSON.stringify(message));
     }
 
     approve(remember = false) {
@@ -410,6 +522,13 @@ export class RemoteServer {
     }
 
     stop() {
+        for (const [connection, pending] of this._unauthenticated) {
+            GLib.Source.remove(pending.timer);
+            connection.disconnect(pending.message);
+            connection.disconnect(pending.closed);
+            connection.close(1001, 'Service stopped');
+        }
+        this._unauthenticated.clear();
         if (this._pairingExpiry) {
             GLib.Source.remove(this._pairingExpiry);
             this._pairingExpiry = 0;
@@ -419,6 +538,8 @@ export class RemoteServer {
             this._server.disconnect();
             this._server = null;
         }
+        this._guard?.stop();
+        this._guard = null;
         this._token = null;
     }
 }

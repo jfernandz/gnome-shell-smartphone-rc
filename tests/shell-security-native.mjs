@@ -1,0 +1,116 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {X509Certificate, randomBytes} from 'node:crypto';
+import {once} from 'node:events';
+import https from 'node:https';
+
+if (process.env.SMARTPHONE_RC_ISOLATED_SHELL !== '1' || !process.argv[2] || !process.argv[3])
+    throw Error('Use SMARTPHONE_RC_ISOLATED_SHELL=1 and pass isolated bus-file and runtime-directory paths.');
+const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-native-security-'));
+const bus = readFileSync(process.argv[2], 'utf8');
+const runtimeDirectory = process.argv[3];
+const base = 'Main.extensionManager.lookup("smartphone-rc@jfaparicio.github.io").stateObj';
+
+function evaluate(code) {
+    const result = execFileSync('gdbus', ['call', '--address', bus, '--dest', 'org.gnome.Shell',
+        '--object-path', '/org/gnome/Shell', '--method', 'org.gnome.Shell.Eval', code], {encoding: 'utf8'});
+    assert.ok(result.startsWith('(true,'), result);
+    return result;
+}
+
+async function wait(code) {
+    for (let attempt = 0; attempt < 200; attempt++) {
+        if (evaluate(code).includes("'true'")) return;
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    throw Error(`Native security condition timed out: ${code}`);
+}
+
+let socket;
+try {
+    execFileSync('openssl', ['req', '-new', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256',
+        '-nodes', '-days', '1', '-subj', '/CN=Native Test', '-addext', 'subjectAltName=IP:127.0.0.1',
+        '-keyout', `${directory}/key.pem`, '-out', `${directory}/cert.pem`], {stdio: 'ignore'});
+    const certificate = readFileSync(`${directory}/cert.pem`);
+    const options = {address: '127.0.0.1', port: 0, certificatePath: `${directory}/cert.pem`,
+        privateKeyPath: `${directory}/key.pem`, fingerprint: new X509Certificate(certificate).fingerprint256};
+
+    async function connect() {
+        evaluate(`(async()=>{
+            const extension = ${base};
+            extension._networkOptions = () => (${JSON.stringify(options)});
+            await extension._start();
+            return extension._server !== null;
+        })()`);
+        const url = new URL(readFileSync(join(runtimeDirectory, 'smartphone-rc-session'), 'utf8'));
+        const request = https.request(`${url.origin}/control`, {ca: certificate, headers: {
+            Origin: url.origin, Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
+            'Sec-WebSocket-Key': randomBytes(16).toString('base64'),
+        }});
+        const ready = once(request, 'upgrade');
+        request.end();
+        [, socket] = await ready;
+        socket.on('data', () => {});
+        const body = Buffer.from(JSON.stringify({type: 'authenticate', token: url.hash.slice(1)}));
+        const mask = randomBytes(4);
+        socket.write(Buffer.concat([Buffer.from([0x81, 0x80 | body.length]), mask,
+            Buffer.from(body.map((byte, index) => byte ^ mask[index % 4]))]));
+        await wait(`${base}._server?._state === 'pending'`);
+    }
+
+    await connect();
+    evaluate(`${base}._notification._actions[0].activate()`);
+    await wait(`${base}._dialogs._verification !== null`);
+    evaluate(`(()=>{
+        const dialog = ${base}._dialogs._verification;
+        const button = dialog.buttonLayout.get_last_child();
+        if (button.reactive) throw Error('Approval enabled before verification');
+        button.emit('clicked', 1);
+        return true;
+    })()`);
+    assert.ok(evaluate(`${base}._server._state === 'pending'`).includes("'true'"));
+    evaluate(`(()=>{
+        const dialog = ${base}._dialogs._verification;
+        dialog.contentLayout.get_children().find(actor => actor.toggle_mode).checked = true;
+        const button = dialog.buttonLayout.get_last_child();
+        if (!button.reactive) throw Error('Approval still disabled');
+        button.emit('clicked', 1);
+        return true;
+    })()`);
+    await wait(`${base}._server?._state === 'connected'`);
+    assert.ok(evaluate(`${base}._focus !== null`).includes("'true'"));
+    console.log('PASS: TLS native approval requires fingerprint acknowledgement before input becomes available');
+
+    evaluate(`${base}._server._process.force_exit()`);
+    await wait(`${base}._server === null`);
+    assert.ok(evaluate(`${base}._input === null && ${base}._focus === null`).includes("'true'"));
+    socket.destroy();
+    console.log('PASS: helper crash stops native input/focus while GNOME remains alive');
+
+    await connect();
+    evaluate(`${base}._approveRequest(false)`);
+    evaluate(`(()=>{
+        const extension = ${base};
+        const dialogs = extension._dialogs;
+        Main.sessionMode.pushMode('unlock-dialog');
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            GLib.file_set_contents(${JSON.stringify(join(directory, 'lock.json'))}, JSON.stringify({
+                stopped: extension._server === null, closed: dialogs._verification === null,
+            }));
+            Main.sessionMode.popMode('unlock-dialog');
+            return GLib.SOURCE_REMOVE;
+        });
+        return true;
+    })()`);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    assert.deepEqual(JSON.parse(readFileSync(join(directory, 'lock.json'), 'utf8')), {stopped: true, closed: true});
+    assert.ok(evaluate(`${base}._server === null`).includes("'true'"));
+    console.log('PASS: lock mode closes certificate approval and helper, without automatic restart after unlock');
+} finally {
+    socket?.destroy();
+    evaluate(`${base}._stop()`);
+    rmSync(directory, {recursive: true, force: true});
+}
