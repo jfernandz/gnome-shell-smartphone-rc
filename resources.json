@@ -22,7 +22,9 @@
     "ipc.js",
     "service.js",
     "service-worker.js",
-    "preferences/security.js"
+    "preferences/security.js",
+    "network-config.js",
+    "preferences/network.js"
   ],
   "web": {
     "/": {

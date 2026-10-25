@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.3.1 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.4.0 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -24,16 +24,15 @@ Control a GNOME desktop from a smartphone browser over the local network. The ph
 
 Requirements: GNOME Shell 51, GJS, libsoup 3.8 or later, util-linux (`prlimit`), OpenSSL, and `iproute2`. Installation also uses `glib-compile-schemas`; ZIP packaging uses `gnome-extensions pack`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
 
-Run the one-time network setup from the project directory:
+Install the extension from the project directory:
 
 ```sh
-bash scripts/setup-network.sh
-# Or choose a specific LAN address:
-# bash scripts/setup-network.sh 192.168.1.147
 bash scripts/install.sh
 ```
 
-Setup selects the PC's default-route address, creates a private TLS key and a self-signed certificate valid for 90 days, and saves configuration under `~/.config/smartphone-rc/`. It prints the certificate's SHA-256 fingerprint. If the address changes or the certificate expires, run setup again and start a fresh session. Setup does not modify the firewall or install a certificate authority.
+After loading the extension, open **Settings → Network**. Select a detected private LAN IPv4 address (or enter one assigned to an active interface), keep port **8844** or choose another unprivileged port, then press **Configure**. This generates a private TLS key and a self-signed certificate valid for 90 days and saves configuration under `~/.config/smartphone-rc/` (or `$XDG_CONFIG_HOME/smartphone-rc/`). The page shows the certificate's SHA-256 fingerprint and expiry. Configuration does not start the service, modify the firewall, or install a certificate authority.
+
+Pressing **Start remote control** before setup, or with invalid/expired certificate configuration, offers **Open Settings**. If the address changes or the certificate expires, stop remote control, configure networking again, and start it again. Compare the new certificate in the phone browser. Existing configurations remain supported; network setup and renewal are handled entirely in Settings.
 
 To load the extension or update it **without logging out**, run:
 
@@ -53,7 +52,7 @@ The menu shows **Start remote control** while off and **Stop remote control** wh
 
 1. Open the touchpad icon in the PC top bar and choose **Start remote control**.
 2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display a pending code again, or **Copy pairing link** as an alternative. After approval, **New pairing QR** remains available in the PC menu: it ends the previous connection and generates a fresh invitation. A new browser requires approval; a browser with valid remembered trust can reconnect without it.
-3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or the setup output) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
+3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or Settings → Network) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
 4. Tap **Connect**, then choose **Accept**, **Accept and remember**, or **Reject** in the PC notification. Accept opens a certificate verification dialog: compare the PC fingerprint with the certificate details provided by the phone browser, acknowledge the match, then approve. Alternatively, use **Approve phone** in the menu, optionally enabling **Remember this browser** first. The displayed IP is an informational label; it does not establish device identity.
 5. Move a finger over the black touchpad. Focus a desktop text field: the phone shows its editor and requests the native keyboard. Type normally; changes appear on the PC immediately. Use the native Enter key to confirm a search. If the browser does not open the keyboard, tap **Keyboard** or the mobile editor. While typing, the layout follows the visible viewport and reported keyboard bounds, keeps the editor above the keyboard, and temporarily hides the sensitivity slider and click buttons to preserve space.
 
@@ -71,9 +70,9 @@ Remembering is opt-in on the PC during approval. A remembered device represents 
 
 Choose 7, 30, or 90 days in **Settings → Security** for newly remembered browsers (default 90). Existing browsers keep their recorded expiry; forget and pair again to change it. Trust does not renew on use. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
 
-Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.3.1.
+Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.4.0.
 
-If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. TCP port 8844 must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
+If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. The configured TCP port (8844 by default) must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
 
 ## Security and limitations
 
@@ -93,7 +92,7 @@ The libsoup server runs in a separate GJS child with private bounded IPC and res
 
 ## Development
 
-The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `service-worker.js`; `server.js` handles HTTP/WebSocket sessions and `network-guard.js` bounds incoming connections. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups live in `preferences/`.
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `service-worker.js`; `server.js` handles HTTP/WebSocket sessions and `network-guard.js` bounds incoming connections. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups, including initial network configuration, live in `preferences/`.
 
 `limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/lib/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
 

@@ -16,6 +16,8 @@ The PC may use Ethernet while the phone uses Wi-Fi. One browser controls the des
 - [x] **v0.3.1 — Lifecycle:** state-dependent Start/Stop/Reject/Disconnect actions and LAN-neutral wording.
 - [x] **Post-release maintenance:** remove the obsolete phone-opening helper, consolidate internal script helpers, and preserve the reusable Looking Glass reload entry point.
 
+- [x] **v0.4.0 — Settings-based setup:** local address detection, configurable port, certificate generation/renewal and details, first-start Settings prompt, and removal of the manual network setup script. Physical-phone acceptance confirmed.
+
 These are local releases. They do not imply GitHub publication or extensions.gnome.org acceptance. Detailed changes are in [CHANGELOG.md](CHANGELOG.md); evidence and limits are in [TESTING.md](TESTING.md) and [SECURITY.md](SECURITY.md).
 
 ## Remaining validation and distribution work

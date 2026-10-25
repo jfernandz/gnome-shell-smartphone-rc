@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.3.1**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. Release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.4.0**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -291,3 +291,16 @@ The public setup/install/package scripts and both development reload entry point
 Five packaging/schema/process integration cases pass with the new paths. An isolated smoke check verifies network setup, private-key permissions, invalid address rejection, and two distinct reload builds with compiled schemas. The reusable Looking Glass import path and prepare-reload.sh --build-only interface remain unchanged, preserving compatibility with already cached reload modules.
 
 An isolated install matches the runtime manifest plus compiled schemas exactly. Chromium helper checks also pass after relocating staging, including browser/service restart, reconnect, and revocation.
+
+
+## v0.4.0 Settings-based network setup — 2026-10-25
+
+Network setup now runs in native preferences, with detected private IPv4 addresses, an editable address, port selection, and certificate fingerprint/expiry. The service remains manually started. Missing or invalid configuration opens a Shell dialog offering Settings. Legacy address-only configuration and certificates remain readable.
+
+The GJS network setup regression checks generated certificate identity, the selected port, mode-0700 configuration directories, mode-0600 keys/configuration, invalid/nonlocal address rejection, failed-setup preservation, and legacy compatibility in a temporary directory. A native GTK/Adwaita check exercises address detection, Configure, and success-state display using a temporary XDG_CONFIG_HOME. No working configuration is changed.
+
+The optional native check is `tests/network-preferences-native.mjs`; set SMARTPHONE_RC_NETWORK_TEST=1 and use a temporary XDG_CONFIG_HOME. It creates a real certificate, requires a graphical display and an active private LAN address, and must not be pointed at the normal configuration directory. The user confirmed that the new Settings workflow works on the physical setup.
+
+All 55 automated tests pass, along with the Chromium trusted-browser/helper suite. The network setup regression supplies an isolated address-discovery fixture so it does not depend on a LAN connection, and checks preservation after a simulated OpenSSL failure. The native UI check uses actual interface detection.
+
+The v0.4.0 release removes the obsolete network setup script and its unused address-validation helper. Existing configurations remain supported. Release checks rerun the full automated suite and Chromium helper recovery/trust checks, and inspect the generated runtime ZIP.

@@ -12,7 +12,7 @@ import {RemoteDialogs} from './dialogs.js';
 import {RemoteInput} from './input.js';
 import {TextFocus} from './focus.js';
 import {RemoteService} from './service.js';
-import {isPrivateIPv4} from './network.js';
+import {readNetworkConfig} from './network-config.js';
 
 export default class SmartphoneRemoteControl extends Extension {
     enable() {
@@ -70,7 +70,13 @@ export default class SmartphoneRemoteControl extends Extension {
         this._stop();
         let starting = null;
         try {
-            const options = this._networkOptions();
+            let options;
+            try {
+                options = this._networkOptions();
+            } catch (error) {
+                this._dialogs.showNetworkSetup(() => this.openPreferences(), error.message);
+                return;
+            }
             this._input = new RemoteInput(message => {
                 this._server.send({type: 'typing-paused', message});
                 Main.notify('Smartphone Remote Control', `${message} Click the text field again to resume.`);
@@ -230,20 +236,7 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _networkOptions() {
-        const directory = `${GLib.get_user_config_dir()}/smartphone-rc`;
-        if (!GLib.file_test(`${directory}/network.json`, GLib.FileTest.EXISTS))
-            throw new Error('Local networking has not been configured. Follow the network setup steps in README.');
-        const [, contents] = GLib.file_get_contents(`${directory}/network.json`);
-        const {address} = JSON.parse(new TextDecoder().decode(contents));
-        if (!isPrivateIPv4(address))
-            throw new Error('The configured address must be a private LAN IPv4 address.');
-        const certificate = Gio.TlsCertificate.new_from_files(`${directory}/certificate.pem`, `${directory}/private-key.pem`);
-        const errors = certificate.verify(new Gio.NetworkAddress({hostname: address, port: 8844}), null);
-        const invalid = Gio.TlsCertificateFlags.BAD_IDENTITY | Gio.TlsCertificateFlags.EXPIRED | Gio.TlsCertificateFlags.NOT_ACTIVATED;
-        if (errors & invalid)
-            throw new Error('The local certificate is expired or does not match the LAN address. Run network setup again.');
-        return {address, port: 8844, fingerprint: GLib.compute_checksum_for_data(GLib.ChecksumType.SHA256, certificate.certificate)
-            .toUpperCase().match(/.{2}/g).join(':'), certificatePath: `${directory}/certificate.pem`, privateKeyPath: `${directory}/private-key.pem`};
+        return readNetworkConfig();
     }
 
     _stop() {

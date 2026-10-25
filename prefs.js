@@ -2,6 +2,7 @@ import Adw from 'gi://Adw';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import {TrustedBrowsers} from './trusted.js';
 import {createSensitivityGroup} from './preferences/sensitivity.js';
+import {createNetworkGroup} from './preferences/network.js';
 import {createSecurityGroup} from './preferences/security.js';
 import {createTrustedGroup} from './preferences/devices.js';
 
@@ -14,10 +15,13 @@ export default class RemotePreferences extends ExtensionPreferences {
         const sensitivity = createSensitivityGroup(this.getSettings());
         const devices = createTrustedGroup(new TrustedBrowsers(this.getSettings()), window);
         const security = createSecurityGroup(this.getSettings());
+        const network = createNetworkGroup();
+        page.add(network.group);
         page.add(sensitivity.group);
         page.add(security.group);
         page.add(devices.group);
         window.connect('close-request', () => {
+            network.destroy();
             sensitivity.destroy();
             security.destroy();
             devices.destroy();

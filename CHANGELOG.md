@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 — 2026-10-25
 
+- Add Settings → Network with local IPv4 detection, configurable port, private certificate generation/renewal, fingerprint and expiry. Offer Open Settings when Start lacks valid configuration, preserving existing setups and removing the terminal requirement from normal first use.
+- Remove the network setup script and its unused address-validation helper; native preferences now own network configuration.
+- Refresh project documentation, the implementation plan, and validation guidance; add a contribution guide.
 - Remove the obsolete ADB page-opening helper, move shared script helpers under scripts/lib, and document active entry points. Preserve the existing Looking Glass reload paths and stage development snapshots directly.
 
 ## 0.3.1 — 2026-10-25

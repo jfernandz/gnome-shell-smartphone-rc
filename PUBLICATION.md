@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.3.1 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.4.0 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.
@@ -12,7 +12,8 @@ Readiness checklist for the current v0.3.1 implementation. The initial internal 
 - [x] Move network serving out of the Shell process, bound private IPC, and test crash/parent-exit cleanup.
 - [x] Add bounded hostile-transport regressions and connection/resource limits.
 - [ ] Complete sustained resource-exhaustion testing and assess OS sandboxing; current checks do not establish resilience against every native/network attack.
-- [ ] Replace manual certificate/network setup with an installation experience suitable for public users.
+- [x] Provide network address/port selection and local certificate generation/renewal in Settings, with a first-start setup prompt.
+- [ ] Validate the first-run experience on a clean installation, including missing dependencies and mobile certificate warnings.
 - [ ] Add the actual repository URL to metadata after creating the public repository; do not invent one.
 - [x] Document contribution and development guidance in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Complete accessibility/theme checks, screenshots, current supported-device records, and a final code/readability audit.
