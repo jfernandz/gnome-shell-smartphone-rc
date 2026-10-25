@@ -19,7 +19,7 @@ export class RemoteServer {
         this._port = options.port ?? PORT;
         this._certificate = options.certificate ?? null;
         if (this._address !== '127.0.0.1' && (!isPrivateIPv4(this._address) || !this._certificate))
-            throw new Error('Wi-Fi requires a private IPv4 address and a TLS certificate.');
+            throw new Error('LAN access requires a private IPv4 address and a TLS certificate.');
         this._scheme = this._certificate ? 'https' : 'http';
         this._directory = directory;
         const [, manifest] = GLib.file_get_contents(`${directory}/resources.json`);

@@ -5,6 +5,6 @@
   "shell-version": [
     "51"
   ],
-  "version-name": "0.3.0",
+  "version-name": "0.3.1",
   "settings-schema": "org.gnome.shell.extensions.smartphone-rc"
 }

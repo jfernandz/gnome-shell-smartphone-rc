@@ -1,8 +1,8 @@
 # Smartphone Remote Control
 
-Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. The phone acts as a touchpad and keyboard, with no mobile app required.
+Control a GNOME desktop from a smartphone browser over the local network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.3.0 for GNOME Shell 51 (tested on 51.1, Wayland).** Wi-Fi connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.3.1 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -20,7 +20,7 @@ Control a GNOME desktop from a smartphone browser over the local Wi-Fi network. 
 - Background pause and automatic reconnection for the approved browser.
 - Session shutdown when the extension is disabled or the desktop locks.
 
-## Set up Wi-Fi
+## Set up local networking
 
 Requirements: GNOME Shell 51, GJS, libsoup 3.8 or later, util-linux (`prlimit`), OpenSSL, and `iproute2`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
 
@@ -49,7 +49,9 @@ gnome-extensions enable smartphone-rc@jfaparicio.github.io
 
 ## Connect the phone
 
-1. Open the touchpad icon in the PC top bar and choose **Start Wi-Fi service**.
+The menu shows **Start remote control** while off and **Stop remote control** while running. **Reject request** and **Disconnect phone** appear only when applicable. Locking the desktop stops remote control; after unlocking, start it again from the menu.
+
+1. Open the touchpad icon in the PC top bar and choose **Start remote control**.
 2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display a pending code again, or **Copy pairing link** as an alternative. After approval, **New pairing QR** remains available in the PC menu: it ends the previous connection and generates a fresh invitation requiring approval.
 3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or the setup output) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
 4. Tap **Connect**, then choose **Accept**, **Accept and remember**, or **Reject** in the PC notification. Accept opens a certificate verification dialog: compare the PC fingerprint with the certificate details provided by the phone browser, acknowledge the match, then approve. Alternatively, use **Approve phone** in the menu, optionally enabling **Remember this browser** first. The displayed IP is an informational label; it does not establish device identity.
@@ -59,7 +61,7 @@ Opening the bare IP address in a browser without a valid approval cookie asks yo
 
 When Chrome goes into the background, input pauses. Returning to the tab resumes the connection, or automatically reconnects if the transport was closed. Temporary approval can recover for up to 30 minutes after the last input or foreground resume; remembered browsers may establish a new session during their trust lifetime while the service is running. Reconnection resets unfinished mobile editing state rather than replaying it into a potentially changed PC field.
 
-Choose **Disconnect / reject** to end a connection or reject a request. A remembered browser can tap **Connect** again without refreshing the page. This clears temporary approval but preserves remembered trust. **Stop service** prevents all access until you manually start it again; use **Settings → Trusted devices → Forget** to revoke a remembered browser permanently. If scanning opens a Lens window, choose **Open in Chrome** from its menu before tapping Connect. The pending invitation remains in the URL until approval so it can be transferred to that browser tab. An embedded browser window may not appear among your normal Chrome tabs. Recovery uses a cookie shared by that browser rather than tab-only storage. Different browser engines may have separate cookie stores; use **New pairing QR** on the PC if the new browser does not have the cookie. The extension cannot recover a tab that the browser has closed.
+Choose **Disconnect phone** to end a connection or **Reject request** while approval is pending. A remembered browser can tap **Connect** again without refreshing the page. This clears temporary approval but preserves remembered trust. **Stop remote control** prevents all access until you manually start it again; use **Settings → Trusted devices → Forget** to revoke a remembered browser permanently. If scanning opens a Lens window, choose **Open in Chrome** from its menu before tapping Connect. The pending invitation remains in the URL until approval so it can be transferred to that browser tab. An embedded browser window may not appear among your normal Chrome tabs. Recovery uses a cookie shared by that browser rather than tab-only storage. Different browser engines may have separate cookie stores; use **New pairing QR** on the PC if the new browser does not have the cookie. The extension cannot recover a tab that the browser has closed.
 
 ## Settings and trusted devices
 
@@ -79,7 +81,7 @@ LAN sessions require TLS; there is no unencrypted LAN fallback. HTTPS protects t
 
 Pairing uses 32 bytes from the OS random source. The secret travels in the URL fragment when opening the page, remains in the address bar until approval (to support opening the pending link in Chrome), and is sent as the first authentication message on the same-origin WebSocket over TLS, without a URL query. It is retained only in that tab's session storage until approval. Approval consumes the pairing secret. A one-use exchange valid for 30 seconds lets the server issue a host-only `__Host-smartphone_rc` cookie with `Secure`, `HttpOnly`, `SameSite=Strict`, and `Path=/`. The cookie secret is not exposed to JavaScript or stored in Web Storage. It authorizes recovery for 30 minutes of inactivity and is revoked by explicit disconnect, server stop/restart, desktop lock, or disabling the extension. Temporary authorization lives only in server memory, so that cookie cannot recover a restarted service. The separate opt-in trust credential described above can establish a new session after the service is manually restarted. Periodic cookie refresh does not extend the server's idle deadline; input and foreground resumption do. The PC stores the pending link in a mode-0600 runtime file and removes it on approval, expiration, or stop. Never post a pairing link publicly. IP addresses are useful labels, not proof of hardware identity.
 
-Requests must use the configured host and WebSocket origin. Control messages are validated, size limited, and rate limited, including pending connections. Only one pending or approved connection is accepted. The extension exposes only the encrypted Wi-Fi flow. Automated server tests use loopback bindings internally.
+Requests must use the configured host and WebSocket origin. Control messages are validated, size limited, and rate limited, including pending connections. Only one pending or approved connection is accepted. The extension exposes only encrypted LAN connections. Automated server tests use loopback bindings internally.
 
 The mobile editor shows text entered from this phone, not the existing contents of the PC field. It streams committed input, deletion, and autocorrection; IME composition is committed once it finishes. The field is left untouched during typing so the mobile keyboard keeps its own editing state. Large changes are split into bounded protocol messages without splitting Unicode characters. The mobile editor accepts up to 65,536 UTF-16 units per field/session before it must be cleared or reset. Changing detected fields resets the buffer; edits carry a focus context so stale edits can be discarded. Avoid moving the PC caret or editing from both devices during a mobile correction sequence: full bidirectional cursor/selection synchronization is not implemented.
 

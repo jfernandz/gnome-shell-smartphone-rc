@@ -7,5 +7,5 @@
     "test:browser": "node tests/cookie-browser.mjs",
     "test:trusted-browser": "node tests/cookie-browser.mjs --trusted"
   },
-  "version": "0.3.0"
+  "version": "0.3.1"
 }

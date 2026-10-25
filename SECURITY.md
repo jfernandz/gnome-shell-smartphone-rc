@@ -4,7 +4,7 @@ This extension grants pointer and keyboard control of an unlocked GNOME desktop.
 
 ## Server identity
 
-Wi-Fi requires HTTPS/WSS. Setup creates a private local key and a self-signed certificate; it does not install a certificate authority or change the firewall. Before approving a new browser, compare the PC's SHA-256 fingerprint with the certificate details provided by the phone browser. The approval dialog requires acknowledgement of that comparison. A fingerprint displayed inside a web page, including one derived from a QR link, is not independent verification of TLS identity.
+LAN access requires HTTPS/WSS. Setup creates a private local key and a self-signed certificate; it does not install a certificate authority or change the firewall. Before approving a new browser, compare the PC's SHA-256 fingerprint with the certificate details provided by the phone browser. The approval dialog requires acknowledgement of that comparison. A fingerprint displayed inside a web page, including one derived from a QR link, is not independent verification of TLS identity.
 
 This remains manual certificate verification, not automatic browser certificate pinning. Repeat the comparison whenever the browser warns about a changed certificate, including for remembered devices. Stop if the fingerprints differ. The desktop independently computes the local fingerprint and checks the service's certificate against it.
 

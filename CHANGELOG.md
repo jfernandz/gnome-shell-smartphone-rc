@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 — 2026-10-25
+
+- Show Start only when remote control is off, Stop while starting/running, and Reject/Disconnect only when a request or phone is present. Preserve the stopped menu after lock/unlock and helper failure.
+- Rename the menu actions to Start/Stop remote control and describe networking as LAN rather than Wi-Fi-specific.
+
 ## 0.3.0 — 2026-10-25
 
 - Reject HTTP bodies, transfer encoding, oversized headers/URIs, and query credentials before normal handlers; bound connection counts, accept/request rates, handshake/header deadlines, and closing handshakes.

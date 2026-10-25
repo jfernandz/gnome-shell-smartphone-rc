@@ -2,6 +2,12 @@
 
 Feature checklist. Checked items are implemented in v0.2.0 and covered by automated or isolated native checks. Remembered-browser recovery and Settings are also confirmed on the physical phone.
 
+- [ ] **Remote volume control.** Add a mobile slider and mute/unmute action for the current default audio output, using GNOME's mixer integration. Reflect desktop-side changes and output-device switches, handle missing outputs, and keep volume within the normal 0–100% range by default. Accept only bounded authenticated actions through the existing validated IPC.
+
+- [ ] **Remote desktop lock.** Add an explicit mobile action to lock the current GNOME session. Explain that locking immediately stops the remote service and disconnects the phone; unlocking and service reactivation remain local actions. Verify that queued input cannot run after locking.
+
+- [ ] **Remote suspend.** Add a mobile action to suspend the PC, with a confirmation to prevent accidental taps. Check suspend availability through GNOME/systemd-logind, respect inhibitors and authorization requirements, and report unsupported or denied requests. Lock the session before sleep, stop remote control, and require local service reactivation after resume. Do not promise remote wake-up; it would require a separate design.
+
 - [ ] **Optional service startup after login.** Add a setting, disabled by default, to start the service automatically after GNOME login. Depend on trusted-browser support so remembered browsers can connect without another approval; new browsers still require QR pairing and desktop approval. Disconnect on desktop lock, with automatic reconnection after unlock controlled by a separate opt-in setting. Keep stop and device-revocation actions available, explain that an authorized browser can control an unlocked desktop over Wi-Fi, and exclude control of the login and lock screens.
 
 - [x] **Configurable sensitivity range.** Let users set the minimum and maximum pointer sensitivity in extension settings, with a **Restore defaults** action. Apply the range to the mobile slider, retain 0.5 increments, require the minimum to be below the maximum, and clamp the current sensitivity when the range changes. Keep an independent internal bound for safe pointer movement.

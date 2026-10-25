@@ -251,3 +251,12 @@ Native GTK/Adwaita checks pass for the duration selector, existing sensitivity b
 The optional native harness is `tests/shell-security-native.mjs`. It requires an explicitly isolated Shell, `SMARTPHONE_RC_ISOLATED_SHELL=1`, and paths to that session's bus-address file and runtime directory. It must not be run against the user's working desktop.
 
 The user confirmed the new flow works on the physical phone, including the requested certificate-approval/settings validation. Sustained/adversarial native-library saturation remains unvalidated. See SECURITY.md for the threat model and remaining limits. Existing v0.2.2 tags/artifacts are unchanged.
+
+
+## v0.3.1 menu lifecycle and LAN wording — 2026-10-25
+
+Start, Stop and Disconnect were previously unconditional menu actions, making the stopped state appear contradictory after unlocking. The menu now hides Start while starting/running, hides Stop while off, and shows Reject/Disconnect only for pending/connected/suspended phone states. An isolated native GNOME run verifies the initial stopped menu, pending and connected labels/visibility, helper-failure shutdown, and the stopped menu after lock/unlock. The user's real desktop was not locked or restarted.
+
+Visible actions now say Start/Stop remote control. Setup documentation and messages refer to local networking/LAN; an Ethernet-connected PC remains supported. This is a presentation change, not a change to transport or authorization policy.
+
+The user confirmed the corrected menu behaves better. Released locally as v0.3.1.

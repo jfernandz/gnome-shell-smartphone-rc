@@ -7,7 +7,7 @@ if ! gnome-extensions info "$extension_id" >/dev/null 2>&1; then
 fi
 session_file="${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR must be set}/smartphone-rc-session"
 if [[ ! -f "$session_file" ]]; then
-    echo 'Choose "Start Wi-Fi service" in the extension menu first.' >&2
+    echo 'Choose "Start remote control" in the extension menu first.' >&2
     exit 1
 fi
 IFS= read -r session_url < "$session_file" || [[ -n "$session_url" ]]
@@ -16,7 +16,7 @@ case "$origin" in
     https://*)
         certificate="${XDG_CONFIG_HOME:-$HOME/.config}/smartphone-rc/certificate.pem"
         if ! curl --cacert "$certificate" --fail --silent --max-time 3 "$origin/" >/dev/null; then
-            echo 'The Wi-Fi server is not reachable or its certificate does not match. Start a new session; rerun network setup if the PC address changed.' >&2
+            echo 'The remote control server is not reachable or its certificate does not match. Start a new session; rerun network setup if the PC address changed.' >&2
             exit 1
         fi
         ;;

@@ -61,7 +61,9 @@ try {
         await wait(`${base}._server?._state === 'pending'`);
     }
 
+    assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     await connect();
+    assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.visible && ${base}._disconnectAction.label.text === 'Reject request'`).includes("'true'"));
     evaluate(`${base}._notification._actions[0].activate()`);
     await wait(`${base}._dialogs._verification !== null`);
     evaluate(`(()=>{
@@ -82,6 +84,7 @@ try {
     })()`);
     await wait(`${base}._server?._state === 'connected'`);
     assert.ok(evaluate(`${base}._focus !== null`).includes("'true'"));
+    assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.label.text === 'Disconnect phone'`).includes("'true'"));
     console.log('PASS: TLS native approval requires fingerprint acknowledgement before input becomes available');
 
     evaluate(`${base}._server._process.force_exit()`);
@@ -108,6 +111,8 @@ try {
     await new Promise(resolve => setTimeout(resolve, 1200));
     assert.deepEqual(JSON.parse(readFileSync(join(directory, 'lock.json'), 'utf8')), {stopped: true, closed: true});
     assert.ok(evaluate(`${base}._server === null`).includes("'true'"));
+    assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
+    console.log('PASS: menu actions reflect stopped, pending, connected and post-lock states');
     console.log('PASS: lock mode closes certificate approval and helper, without automatic restart after unlock');
 } finally {
     socket?.destroy();

@@ -26,7 +26,8 @@ export default class SmartphoneRemoteControl extends Extension {
         this._indicator.add_child(new St.Icon({icon_name: 'input-touchpad-symbolic', style_class: 'system-status-icon'}));
         this._status = new PopupMenu.PopupMenuItem('Remote control is off', {reactive: false});
         this._indicator.menu.addMenuItem(this._status);
-        this._indicator.menu.addAction('Start Wi-Fi service', () => this._start()).add_style_class_name('smartphone-rc-connect');
+        this._startAction = this._indicator.menu.addAction('Start remote control', () => this._start());
+        this._startAction.add_style_class_name('smartphone-rc-connect');
         this._address = new PopupMenu.PopupMenuItem('', {reactive: false});
         this._address.visible = false;
         this._indicator.menu.addMenuItem(this._address);
@@ -45,8 +46,10 @@ export default class SmartphoneRemoteControl extends Extension {
         this._approve = this._indicator.menu.addAction('Approve phone', () => this._approveRequest(this._remember.state));
         this._approve.add_style_class_name('smartphone-rc-approve');
         this._approve.visible = false;
-        this._indicator.menu.addAction('Disconnect / reject', () => this._server?.disconnect()).add_style_class_name('smartphone-rc-stop');
-        this._indicator.menu.addAction('Stop service', () => this._stop()).add_style_class_name('smartphone-rc-stop');
+        this._disconnectAction = this._indicator.menu.addAction('Disconnect phone', () => this._server?.disconnect());
+        this._disconnectAction.add_style_class_name('smartphone-rc-stop');
+        this._stopAction = this._indicator.menu.addAction('Stop remote control', () => this._stop());
+        this._stopAction.add_style_class_name('smartphone-rc-stop');
         this._indicator.menu.addAction('Settings', () => this.openPreferences());
         this._settingsId = this._settings.connect('changed', (_settings, key) => {
             if (key === 'trust-duration-days')
@@ -55,6 +58,7 @@ export default class SmartphoneRemoteControl extends Extension {
                 this._server?.setSensitivity(sensitivityRange(this._settings));
         });
         this._pairing.add_style_class_name('smartphone-rc-connect');
+        this._updateServiceActions('off');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
             if (Main.sessionMode.isLocked)
@@ -80,6 +84,8 @@ export default class SmartphoneRemoteControl extends Extension {
                 });
             starting = service;
             this._server = service;
+            this._status.label.text = 'Starting remote control…';
+            this._updateServiceActions('starting');
             const started = await service.start();
             if (this._server !== service)
                 return;
@@ -104,6 +110,7 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _onSessionState(state) {
+        this._updateServiceActions(state);
         if (state === 'reconnecting')
             console.info('Smartphone Remote Control: phone transport interrupted; waiting for reconnection.');
         this._status.label.text = {
@@ -141,6 +148,13 @@ export default class SmartphoneRemoteControl extends Extension {
         }
         if (state === 'pending')
             this._notifyRequest();
+    }
+
+    _updateServiceActions(state) {
+        this._startAction.visible = state === 'off';
+        this._stopAction.visible = state !== 'off';
+        this._disconnectAction.visible = ['pending', 'connected', 'suspended'].includes(state);
+        this._disconnectAction.label.text = state === 'pending' ? 'Reject request' : 'Disconnect phone';
     }
 
     _clearNotification() {
@@ -218,7 +232,7 @@ export default class SmartphoneRemoteControl extends Extension {
     _networkOptions() {
         const directory = `${GLib.get_user_config_dir()}/smartphone-rc`;
         if (!GLib.file_test(`${directory}/network.json`, GLib.FileTest.EXISTS))
-            throw new Error('Wi-Fi has not been configured. Follow the network setup steps in README.');
+            throw new Error('Local networking has not been configured. Follow the network setup steps in README.');
         const [, contents] = GLib.file_get_contents(`${directory}/network.json`);
         const {address} = JSON.parse(new TextDecoder().decode(contents));
         if (!isPrivateIPv4(address))
@@ -257,6 +271,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._approve.visible = false;
         this._remember.visible = false;
         this._status.label.text = 'Remote control is off';
+        this._updateServiceActions('off');
     }
 
     _writeSessionFile() {
@@ -277,6 +292,9 @@ export default class SmartphoneRemoteControl extends Extension {
         this._indicator = null;
         this._dialogs = null;
         this._status = null;
+        this._startAction = null;
+        this._stopAction = null;
+        this._disconnectAction = null;
         this._approve = null;
         this._remember = null;
         this._address = null;
