@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add ESLint correctness checks for GJS, browser and Node code, with pinned development dependencies, a lockfile and a lint command. Keep all lint tooling out of runtime ZIPs.
+- Preserve the original cause for occupied-port errors, remove a dead test-fixture assignment and simplify the runtime-path validation expression without changing its accepted paths.
+
 ## 0.4.6 — 2026-10-25
 
 - Use cancellable asynchronous GIO for configuration/certificate reads and old-certificate cleanup in Shell. Cancel pending startup on Stop/disable to prevent stale helpers or dialogs.

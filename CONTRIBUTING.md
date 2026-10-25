@@ -4,12 +4,31 @@ Target GNOME Shell 51 on Wayland. Keep code, UI text, comments, and documentatio
 
 ## Development workflow
 
-1. Make a focused change in the project source. No npm dependencies are required.
-2. Run the checks relevant to the change. For protocol, authorization, process, schema, or packaging changes, run `node --test tests/*.test.js`. Browser checks and validation records are in [TESTING.md](TESTING.md).
+1. Make a focused change in the project source. Runtime installation requires no npm dependencies; lint tooling is development-only.
+2. Run `npm run lint` and the checks relevant to the change. For protocol, authorization, process, schema, or packaging changes, run `node --test tests/*.test.js`. Browser checks and validation records are in [TESTING.md](TESTING.md).
 3. Run `bash scripts/prepare-reload.sh` and execute its printed command in Looking Glass. Later, recall that same command with Up and Enter to build and load the latest source. Reloading stops current remote connections; it does not require logging out.
 4. Check the interaction on the phone where relevant and document remaining coverage honestly.
 
 Run native GNOME integration checks only in an isolated compositor and D-Bus session. Never use lock/unlock or compositor termination against the working desktop. Automated server tests use loopback fixtures and do not inject desktop input.
+
+## Lint
+
+Use Node.js 22.13+ on the 22.x line, or Node.js 24+; the current development environment uses Node.js 26. Install the pinned development dependencies and run ESLint:
+
+```sh
+npm ci --ignore-scripts
+npm run lint
+```
+
+The lockfile makes installation reproducible. ESLint checks GJS, browser code and Node tests with separate globals; it applies recommended correctness rules, strict equality and implicit-coercion checks, without a formatting preset. Ignore dist, node_modules and .venv. The command fails on errors or warnings. A single local exception permits the deliberate control-character rejection in the input validator; unused exceptions are errors.
+
+If npm is unavailable but node_modules is already installed, run the identical lint check directly:
+
+```sh
+node node_modules/eslint/bin/eslint.js . --max-warnings 0
+```
+
+ESLint, its configuration and dependencies are excluded from extension ZIPs. Lint does not replace GJS/Chromium/native tests or the manual review described in [SHEXLI.md](SHEXLI.md).
 
 ## Project boundaries
 

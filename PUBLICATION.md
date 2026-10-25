@@ -22,6 +22,8 @@ Readiness checklist for the current v0.4.6 implementation. The initial internal 
 - [ ] Have the maintainer review and understand all submitted code and its security/lifecycle choices.
 - [ ] Request publication separately, then publish to GitHub and submit to extensions.gnome.org.
 
+- [x] Add reproducible ESLint correctness checks for GJS, browser code and Node tests; review findings and verify lint tooling stays out of the ZIP.
+
 ## Static analysis
 
 See [SHEXLI.md](SHEXLI.md) for reproducible tooling and the disposition of all seven v0.4.5 findings. v0.4.6 addresses synchronous Shell file reads/cleanup; six findings remain for documented version/schema limitations, separate entry points, lifecycle ownership and manual clipboard review. No analyzer rule is suppressed, and the released v0.4.5 ZIP is unchanged.

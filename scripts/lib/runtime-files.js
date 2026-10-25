@@ -6,7 +6,7 @@ const [, bytes] = GLib.file_get_contents(directory.get_child('resources.json').g
 const manifest = JSON.parse(new TextDecoder().decode(bytes));
 const files = [...new Set([...manifest.runtime, ...Object.values(manifest.web).map(asset => asset.file)])];
 for (const file of files) {
-    if (!/^[a-zA-Z0-9_.\/-]+$/.test(file) || file.startsWith('/') || file.split('/').includes('..'))
+    if (!/^[a-zA-Z0-9_./-]+$/.test(file) || file.startsWith('/') || file.split('/').includes('..'))
         throw new Error(`Invalid runtime path: ${file}`);
 }
 if (ARGV[0] === '--extra') {

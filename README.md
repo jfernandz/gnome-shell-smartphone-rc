@@ -100,7 +100,7 @@ The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.j
 
 Trusted-browser enrollment snapshots remain compatible with v0.2.1. Names and last-use updates use separate per-browser settings; individual revocation is permanent for that credential, and Forget all changes the valid trust generation. Metadata updates and stale enrollment snapshots cannot undo either revocation. Settings never writes the enrollment list; only the running service enrolls browsers after explicit approval.
 
-No npm dependencies are required. Local installation compiles the GSettings schema; the GNOME extension installer compiles it when installing a ZIP. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3.8+, util-linux, and OpenSSL:
+No npm dependencies are required at runtime. Development lint uses pinned devDependencies: run `npm ci --ignore-scripts` and `npm run lint` with Node.js 22.13+ (22.x) or 24+. See [CONTRIBUTING.md](CONTRIBUTING.md#lint) for environment configuration and direct Node invocation when npm is unavailable. Local installation compiles the GSettings schema; the GNOME extension installer compiles it when installing a ZIP. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3.8+, util-linux, and OpenSSL:
 
 ```sh
 node --test tests/*.test.js

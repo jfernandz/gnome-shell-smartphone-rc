@@ -21,6 +21,7 @@ export function validateInput(message) {
         if (Number.isSafeInteger(message.context) && message.context >= 0 &&
             Number.isInteger(message.remove) && message.remove >= 0 && message.remove <= MAX_EDIT &&
             typeof message.text === 'string' && message.text.length <= MAX_EDIT &&
+            // eslint-disable-next-line no-control-regex -- Reject control characters and lone surrogates in remote text.
             !/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(message.text))
             return {type: 'edit', context: message.context, remove: message.remove, text: message.text};
         break;

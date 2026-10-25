@@ -344,3 +344,12 @@ Release verification passes all 58 automated tests, the Chromium trusted-browser
 The original v0.4.5 ZIP produces seven findings in shexli 0.2.1. Reproducing with tree-sitter 0.25.2 avoids the observed native crash with 0.26.0. v0.4.6 removes the synchronous-file-I/O warning, leaving six findings documented in SHEXLI.md, without suppressing rules or changing the released ZIP.
 
 All 58 automated tests and Chromium trusted-browser/helper recovery checks pass after making configuration/certificate reads and certificate cleanup asynchronous. Native GTK preferences, setup and error recovery checks pass in the isolated compositor. Native Shell checks verify Stop and disable during pending startup, with no stale helper or setup dialog; all three flagged menu rows emit destroy on disable. Existing certificate approval, helper crash and lock cleanup checks also pass. The working desktop was not restarted or locked.
+
+
+## ESLint correctness checks — unreleased
+
+ESLint 10.13.0 with @eslint/js 10.0.1 and globals 17.13.0 checks project JavaScript with explicit GJS, browser and Node environments. The lockfile pins developer dependencies; no formatting preset is applied. Lint passes with zero errors and warnings. An intentional, line-specific no-control-regex exception retains rejection of control characters/lone surrogates; unused exception directives fail lint.
+
+Reviewed corrections preserve the original cause when reporting an occupied port, remove an unused initial assignment in the server test fixture, and remove a redundant escape in the runtime path allowlist. Production protocol validation behavior is unchanged. All 58 automated tests, real Chromium trusted/helper checks and exact runtime ZIP manifest checks pass. A fresh npm ci followed by lint also passes; GJS/browser/Node global separation is checked explicitly. Tooling and node_modules are not shipped in the extension ZIP.
+
+Initially npm was absent from PATH, so a temporary verified distribution outside the repository was used for dependency installation without changing system packages. The user subsequently installed npm 12.2.1, and npm run lint passes directly with the normal system command. No temporary npm path is required. Direct Node invocation documented in CONTRIBUTING.md remains an optional fallback. Native desktop/session state is unchanged.
