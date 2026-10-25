@@ -6,7 +6,9 @@ This extension grants pointer and keyboard control of an unlocked GNOME desktop.
 
 LAN access requires HTTPS/WSS. Setup creates a private local key and a self-signed certificate; it does not install a certificate authority or change the firewall. Before approving a new browser, compare the PC's SHA-256 fingerprint with the certificate details provided by the phone browser. The approval dialog requires acknowledgement of that comparison. A fingerprint displayed inside a web page, including one derived from a QR link, is not independent verification of TLS identity.
 
-This remains manual certificate verification, not automatic browser certificate pinning. Repeat the comparison whenever the browser warns about a changed certificate, including for remembered devices. Stop if the fingerprints differ. The desktop independently computes the local fingerprint and checks the service's certificate against it.
+This remains manual certificate verification, not automatic browser certificate pinning. Repeat the comparison whenever the browser warns about a changed certificate, including for remembered devices. Stop if the fingerprints differ. The desktop independently computes the local fingerprint and checks the service's certificate against it. Local certificate validation explicitly checks not-before/not-after dates and the selected IP subject alternative name; it does not rely solely on verify() flags for self-signed validity. Generation validates staged credentials before committing configuration. Cancellation/timeout waits for the direct child to terminate before partial-file cleanup.
+
+Old unreferenced generated certificate directories older than 24 hours are eligible for cleanup only before service startup, after stopping the previous helper. Selected/recent certificates, staging directories, legacy files, symlinks and directories containing unexpected files are retained. This avoids changing a running helper's credential files; files are not securely erased from storage.
 
 ## Pairing and trust
 

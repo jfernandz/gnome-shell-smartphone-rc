@@ -24,7 +24,9 @@
     "service-worker.js",
     "preferences/security.js",
     "network-config.js",
-    "preferences/network.js"
+    "preferences/network.js",
+    "subprocess.js",
+    "certificates.js"
   ],
   "web": {
     "/": {

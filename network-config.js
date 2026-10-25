@@ -1,46 +1,16 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {isPrivateIPv4} from './network.js';
+import {runCommand} from './subprocess.js';
+import {certificateOptions, removeStagedCertificate} from './certificates.js';
 
 const decoder = new TextDecoder();
 export function configDirectory() {
     return `${GLib.get_user_config_dir()}/smartphone-rc`;
 }
 
-async function command(argv, cancellable = null) {
-    const tool = GLib.find_program_in_path(argv[0]);
-    if (!tool) {
-        const packageName = argv[0] === 'ip' ? 'iproute2' : 'OpenSSL';
-        throw new Error(`${packageName} is required (${argv[0]} was not found). Install it using your system package manager, then try again.`);
-    }
-    const process = Gio.Subprocess.new([tool, ...argv.slice(1)], Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
-    let timedOut = false;
-    const timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 15, () => {
-        timedOut = true;
-        process.force_exit();
-        return GLib.SOURCE_REMOVE;
-    });
-    try {
-        const [, output, error] = await new Promise((resolve, reject) =>
-            process.communicate_utf8_async(null, cancellable, (source, result) => {
-                try { resolve(source.communicate_utf8_finish(result)); } catch (e) { reject(e); }
-            }));
-        const operation = argv[0] === 'ip' ? 'Could not detect local network addresses' : 'Could not generate the local certificate';
-        if (timedOut)
-            throw new Error(`${operation}: the command timed out. Try again.`);
-        if (!process.get_successful())
-            throw new Error(`${operation}. ${error.trim().slice(0, 512) || 'Check the tool installation and try again.'}`);
-        return output;
-    } finally {
-        // Cancelling communication must also stop certificate generation.
-        process.force_exit();
-        if (GLib.MainContext.default().find_source_by_id(timer))
-            GLib.Source.remove(timer);
-    }
-}
-
 export async function localAddresses(cancellable = null) {
-    const output = await command(['ip', '-j', '-4', 'address', 'show', 'up'], cancellable);
+    const output = await runCommand(['ip', '-j', '-4', 'address', 'show', 'up'], {cancellable, packageName: 'iproute2', operation: 'Could not detect local network addresses'});
     try {
         const devices = JSON.parse(output);
         if (!Array.isArray(devices) || devices.some(device => typeof device.ifname !== 'string' || !Array.isArray(device.addr_info)))
@@ -62,17 +32,7 @@ export function readNetworkConfig(directory = configDirectory()) {
     if (credentials !== undefined && !/^tls-[a-f0-9-]{36}$/.test(credentials))
         throw new Error('Invalid certificate configuration. Configure networking again in Settings.');
     const base = credentials ? `${directory}/${credentials}` : directory;
-    const certificatePath = `${base}/certificate.pem`;
-    const privateKeyPath = `${base}/private-key.pem`;
-    const certificate = Gio.TlsCertificate.new_from_files(certificatePath, privateKeyPath);
-    const errors = certificate.verify(new Gio.NetworkAddress({hostname: address, port}), null);
-    const invalid = Gio.TlsCertificateFlags.BAD_IDENTITY | Gio.TlsCertificateFlags.EXPIRED | Gio.TlsCertificateFlags.NOT_ACTIVATED;
-    if (errors & invalid)
-        throw new Error('The certificate has expired or does not match the address. Configure networking again in Settings.');
-    const fingerprint = GLib.compute_checksum_for_data(GLib.ChecksumType.SHA256, certificate.certificate)
-        .toUpperCase().match(/.{2}/g).join(':');
-    return {address, port, certificatePath, privateKeyPath, fingerprint,
-        expires: certificate.get_not_valid_after()?.format('%Y-%m-%d') ?? 'Unknown'};
+    return certificateOptions(base, address, port);
 }
 
 export async function configureNetwork(address, port, cancellable = null, directory = configDirectory()) {
@@ -85,28 +45,30 @@ export async function configureNetwork(address, port, cancellable = null, direct
     GLib.mkdir_with_parents(directory, 0o700);
     root.set_attribute_uint32('unix::mode', 0o700, Gio.FileQueryInfoFlags.NONE, null);
     const credentials = `tls-${GLib.uuid_string_random()}`;
-    const base = `${directory}/${credentials}`;
-    GLib.mkdir_with_parents(base, 0o700);
+    let base = `${directory}/.pending-${credentials}`;
+    Gio.File.new_for_path(base).make_directory(null);
+    Gio.File.new_for_path(base).set_attribute_uint32('unix::mode', 0o700, Gio.FileQueryInfoFlags.NONE, null);
     try {
-        await command(['openssl', 'req', '-new', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256',
+        await runCommand(['openssl', 'req', '-new', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256',
             '-nodes', '-sha256', '-days', '90', '-keyout', `${base}/private-key.pem`, '-out', `${base}/certificate.pem`,
             '-subj', '/CN=Smartphone Remote Control', '-addext', `subjectAltName=IP:${address}`,
             '-addext', 'basicConstraints=critical,CA:FALSE', '-addext', 'keyUsage=critical,digitalSignature',
-            '-addext', 'extendedKeyUsage=serverAuth'], cancellable);
+            '-addext', 'extendedKeyUsage=serverAuth'], {cancellable, packageName: 'OpenSSL', operation: 'Could not generate the local certificate'});
         for (const name of ['private-key.pem', 'certificate.pem'])
             Gio.File.new_for_path(`${base}/${name}`).set_attribute_uint32('unix::mode', 0o600, Gio.FileQueryInfoFlags.NONE, null);
-        const certificate = Gio.TlsCertificate.new_from_files(`${base}/certificate.pem`, `${base}/private-key.pem`);
-        if (certificate.verify(new Gio.NetworkAddress({hostname: address, port}), null) & Gio.TlsCertificateFlags.BAD_IDENTITY)
-            throw new Error('Generated certificate does not match the selected address.');
-        // Commit last: failures leave the previous working configuration intact.
+        const validated = certificateOptions(base, address, port);
+        cancellable?.set_error_if_cancelled();
+        const destination = `${directory}/${credentials}`;
+        Gio.File.new_for_path(base).move(Gio.File.new_for_path(destination), Gio.FileCopyFlags.NONE, cancellable, null);
+        base = destination;
+        const result = {...validated, certificatePath: `${base}/certificate.pem`, privateKeyPath: `${base}/private-key.pem`};
+        // The last fallible operation publishes already validated files. Nothing after
+        // this commit may enter rollback and remove the referenced credentials.
         Gio.File.new_for_path(`${directory}/network.json`).replace_contents(
             JSON.stringify({address, port, credentials}), null, false, Gio.FileCreateFlags.PRIVATE | Gio.FileCreateFlags.REPLACE_DESTINATION, cancellable);
-        return readNetworkConfig(directory);
+        return result;
     } catch (error) {
-        for (const name of ['private-key.pem', 'certificate.pem']) {
-            try { Gio.File.new_for_path(`${base}/${name}`).delete(null); } catch { /* Not created yet. */ }
-        }
-        Gio.File.new_for_path(base).delete(null);
+        removeStagedCertificate(base);
         throw error;
     }
 }

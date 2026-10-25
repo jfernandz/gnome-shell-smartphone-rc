@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.5 — 2026-10-25
+
+- Validate certificate validity dates and IP subject alternative names explicitly, sharing validation between reading and generation. Reject expired, not-yet-valid and mismatched certificates before publishing configuration.
+- Finish validating staged credentials before atomically replacing network configuration; failed generation/publication preserves previous credentials.
+- Extract subprocess execution and wait for child termination on cancellation/timeout before removing partial files.
+- Clean unreferenced generated certificate directories older than 24 hours before service startup, after stopping the previous helper. Preserve selected/recent credentials, staging directories, legacy files, symlinks and directories containing unexpected files.
+- Add regressions for certificate validity, publication failure, cancellation/timeout child cleanup and conservative certificate retention.
+
 ## 0.4.4 — 2026-10-25
 
 - Add isolated first-run regressions for missing OpenSSL, iproute2 and prlimit, failed/malformed address discovery, no local addresses, partial certificate failures, and occupied ports. Preserve existing credentials and clean up failed startup resources.

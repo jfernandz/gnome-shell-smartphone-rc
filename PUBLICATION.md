@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.4.4 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.4.5 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.

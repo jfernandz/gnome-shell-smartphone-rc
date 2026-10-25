@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.4.4 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.4.5 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -30,7 +30,7 @@ Install the extension from the project directory:
 bash scripts/install.sh
 ```
 
-After loading the extension, open **Settings → Network**. Select a detected private LAN IPv4 address (or enter one assigned to an active interface), keep port **8844** or choose another unprivileged port, then press **Configure**. This generates a private TLS key and a self-signed certificate valid for 90 days and saves configuration under `~/.config/smartphone-rc/` (or `$XDG_CONFIG_HOME/smartphone-rc/`). The page shows the certificate's SHA-256 fingerprint and expiry. Configuration does not start the service, modify the firewall, or install a certificate authority.
+After loading the extension, open **Settings → Network**. Select a detected private LAN IPv4 address (or enter one assigned to an active interface), keep port **8844** or choose another unprivileged port, then press **Configure**. This generates a private TLS key and a self-signed certificate valid for 90 days and saves configuration under `~/.config/smartphone-rc/` (or `$XDG_CONFIG_HOME/smartphone-rc/`). The page shows the certificate's SHA-256 fingerprint and expiry. Configuration does not start the service, modify the firewall, or install a certificate authority. Certificates are checked for validity dates and the selected IP before configuration is saved. Cancelling setup preserves existing configuration.
 
 Pressing **Start remote control** before setup, or with invalid/expired certificate configuration, offers **Open Settings**. If the address changes or the certificate expires, stop remote control, configure networking again, and start it again. Compare the new certificate in the phone browser. Existing configurations remain supported; network setup and renewal are handled entirely in Settings.
 
@@ -70,9 +70,9 @@ Remembering is opt-in on the PC during approval. A remembered device represents 
 
 Choose 7, 30, or 90 days in **Settings → Security** for newly remembered browsers (default 90). Existing browsers keep their recorded expiry; forget and pair again to change it. Trust does not renew on use. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
 
-Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.4.4.
+Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.4.5.
 
-Settings reports missing OpenSSL or iproute2 with installation guidance. If starting fails because prlimit is absent, install util-linux. A port-in-use error means another service already uses that address/port: stop it or choose a different port in Settings → Network. Failed certificate generation preserves the previous configuration.
+Settings reports missing OpenSSL or iproute2 with installation guidance. If starting fails because prlimit is absent, install util-linux. A port-in-use error means another service already uses that address/port: stop it or choose a different port in Settings → Network. Failed certificate generation preserves the previous configuration. Before starting the service, old unreferenced generated certificate directories older than 24 hours are cleaned up after stopping the previous helper; selected/recent certificates, in-progress setup, and legacy files are retained.
 
 If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. The configured TCP port (8844 by default) must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
 

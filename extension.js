@@ -12,7 +12,8 @@ import {RemoteDialogs} from './dialogs.js';
 import {RemoteInput} from './input.js';
 import {TextFocus} from './focus.js';
 import {RemoteService} from './service.js';
-import {readNetworkConfig} from './network-config.js';
+import {configDirectory, readNetworkConfig} from './network-config.js';
+import {cleanupOldCertificates} from './certificates.js';
 
 export default class SmartphoneRemoteControl extends Extension {
     enable() {
@@ -68,6 +69,7 @@ export default class SmartphoneRemoteControl extends Extension {
 
     async _start() {
         this._stop();
+        cleanupOldCertificates(configDirectory());
         let starting = null;
         try {
             let options;

@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.4**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.4.5**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -328,3 +328,12 @@ All 57 automated tests pass. New fixtures use temporary directories and process-
 An ephemeral loopback listener reserves a port while the real GJS network helper attempts startup. The resulting error explains the occupied port and Settings action, clears child/IPC/startup state, and permits a successful retry on an available port. Chromium trusted-browser recovery and revocation checks through the real helper continue to pass.
 
 The native GTK check `tests/network-errors-native.mjs` runs with SMARTPHONE_RC_NETWORK_TEST=1 and a temporary XDG_CONFIG_HOME. It verifies visible missing-tool/no-address messages, Refresh recovery, removal of stale detection errors, and re-enabled configuration controls after failure. No system packages, working configuration, desktop lock state, or extension installation are changed by these checks. Use the same isolated temporary-environment precautions as the network preferences check above. Command timeout handling is explicit, but this run does not add timeout-duration or sustained exhaustion coverage.
+
+
+## v0.4.5 Certificate setup hardening — 2026-10-25
+
+The certificate regression creates real expired and future-dated self-signed certificates using OpenSSL CA date options, verifies explicit date/IP rejection, and simulates expired output during setup. Invalid generated output leaves the working configuration unchanged. A blocked configuration destination tests publication failure and retention of existing credential files.
+
+Cancellation during a fake long-running certificate generator and an explicit short command timeout both verify that the direct child has been reaped before returning; partial credentials are removed and the previous configuration remains intact. Cleanup tests retain selected/recent/staged credentials, legacy or unrecognized files, symlinks and directories with extra files while removing eligible unreferenced old generations. Production cleanup runs only before service startup after stopping the previous helper. All checks use temporary files and fake tool discovery; the working desktop/session configuration is unchanged.
+
+Release verification passes all 58 automated tests, the Chromium trusted-browser/helper recovery and revocation suite, and native GTK preferences/About, network setup, and missing-dependency/Refresh checks. The v0.4.5 ZIP is built from the runtime manifest and inspected for version, source URL and exact file contents. No working GNOME session was restarted or locked.
