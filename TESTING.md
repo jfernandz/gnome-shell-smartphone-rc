@@ -1,5 +1,27 @@
 # Validation record
 
+## Current baseline
+
+The latest local release is **v0.3.1**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. Release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+
+The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
+
+Run the current automated suite from the repository root:
+
+```sh
+node --test tests/*.test.js
+node tests/cookie-browser.mjs --trusted --helper
+SMARTPHONE_RC_TEST_TRUST_DAYS=7 node tests/cookie-browser.mjs --trusted --helper
+```
+
+Requirements and additional browser commands are in [README.md](README.md#development). Current server tests use ephemeral loopback ports; they do not require stopping the working desktop's service. Native Shell tests must use an isolated compositor and D-Bus session, never the working desktop. Do not lock or restart the user's session to run them.
+
+Remaining coverage includes iOS Safari, multiple monitors/scaling, accessibility/themes, sustained resource-exhaustion testing, and a broader application/IME compatibility matrix. Android/Chrome versions below describe the initial recorded environment, not certification of later browser updates. See [SECURITY.md](SECURITY.md) for security limits and [PUBLICATION.md](PUBLICATION.md) for release-distribution work.
+
+## Historical validation journal
+
+The following entries preserve observations in implementation order. Test counts, commands, paths, limitations, and pending work describe each stage; later entries may supersede them. In particular, the early local prototype and its forwarding setup are not the current LAN usage instructions.
+
 ## Environment
 
 Validated on 2026-10-24 using GNOME Shell / Mutter 51.1 on Wayland, GJS 1.90.1, libsoup 3, and Node.js 26.12.0. The USB-connected Android phone was an RMX3943 running Android 16 and Chrome 156.0.8078.47.

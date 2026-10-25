@@ -10,7 +10,7 @@ This remains manual certificate verification, not automatic browser certificate 
 
 ## Pairing and trust
 
-Pairing invitations use 32 random bytes, expire after two minutes, and are consumed by approval. The invitation fragment is kept until approval to support opening Lens links in Chrome. It is sent in the first WSS message, never in the handshake query. New connections need explicit desktop approval within the pending window.
+Pairing invitations use 32 random bytes, expire after two minutes, and are consumed by approval. The invitation fragment is kept until approval to support opening Lens links in Chrome. It is sent in the first WSS message, never in the handshake query. New browsers need explicit desktop approval within 30 seconds of connecting. Valid temporary or remembered authorization allows recovery without another approval.
 
 Recovery cookies use Secure, HttpOnly, SameSite=Strict, a host-only `__Host-` name, and Path=/. Temporary authorization expires after 30 minutes of inactivity. Remembering a browser is opt-in, with 7, 30, or 90 days selected in Settings; 90 days remains the default for compatibility. Invalid configured durations fall back to seven days. The duration applies only to new enrollments; existing devices keep their recorded expiry.
 
@@ -38,6 +38,6 @@ Addresses are informational labels, never proof of device identity. Binding to a
 
 Regression coverage includes rejected HTTP uploads before 100 Continue, oversized headers, fragmented messages, URL credentials, slow connections, authentication expiry, origin checks, revoked credentials, process crash, and parent disappearance. Chromium checks exercise temporary and remembered sessions through the real helper, including service/browser restart and shorter trust duration. Native checks cover the certificate gate, preferences, and lock/crash cleanup. The user also confirmed the new flow works on the physical phone.
 
-These are bounded checks, not an exhaustive denial-of-service or native-library security audit. Keep GNOME, GJS, GnuTLS and libsoup updated. First-use certificate verification remains a user action; iOS and full accessibility/browser coverage remain unvalidated. Public distribution/review is tracked in PUBLICATION.md.
+These are bounded checks, not an exhaustive denial-of-service or native-library security audit. Keep GNOME, GJS, GnuTLS and libsoup updated. First-use certificate verification remains a user action; iOS and full accessibility/browser coverage remain unvalidated. Public distribution/review is tracked in [PUBLICATION.md](PUBLICATION.md).
 
 Do not publish private keys, pairing links, cookies, or typed text in bug reports. Use private maintainer reporting for suspected authorization or credential disclosure issues.

@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.3.1 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.3.1 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 ## Features
 
@@ -22,7 +22,7 @@ Control a GNOME desktop from a smartphone browser over the local network. The ph
 
 ## Set up local networking
 
-Requirements: GNOME Shell 51, GJS, libsoup 3.8 or later, util-linux (`prlimit`), OpenSSL, and `iproute2`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
+Requirements: GNOME Shell 51, GJS, libsoup 3.8 or later, util-linux (`prlimit`), OpenSSL, and `iproute2`. Installation also uses `glib-compile-schemas`; ZIP packaging uses `gnome-extensions pack`. Both devices must be on a local network that allows communication between them; the PC may use Ethernet. Chrome on Android is the initial mobile browser target.
 
 Run the one-time network setup from the project directory:
 
@@ -52,7 +52,7 @@ gnome-extensions enable smartphone-rc@jfaparicio.github.io
 The menu shows **Start remote control** while off and **Stop remote control** while running. **Reject request** and **Disconnect phone** appear only when applicable. Locking the desktop stops remote control; after unlocking, start it again from the menu.
 
 1. Open the touchpad icon in the PC top bar and choose **Start remote control**.
-2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display a pending code again, or **Copy pairing link** as an alternative. After approval, **New pairing QR** remains available in the PC menu: it ends the previous connection and generates a fresh invitation requiring approval.
+2. Scan the QR code displayed by the PC and open the complete link on the phone. The QR includes the temporary pairing secret. Use **Show pairing QR** to display a pending code again, or **Copy pairing link** as an alternative. After approval, **New pairing QR** remains available in the PC menu: it ends the previous connection and generates a fresh invitation. A new browser requires approval; a browser with valid remembered trust can reconnect without it.
 3. On the first visit, the browser warns that the local certificate is self-signed. Compare its SHA-256 fingerprint with **Show certificate fingerprint** in the PC menu (or the setup output) before allowing an exception for this address. Do not disable certificate checking globally or install a root CA.
 4. Tap **Connect**, then choose **Accept**, **Accept and remember**, or **Reject** in the PC notification. Accept opens a certificate verification dialog: compare the PC fingerprint with the certificate details provided by the phone browser, acknowledge the match, then approve. Alternatively, use **Approve phone** in the menu, optionally enabling **Remember this browser** first. The displayed IP is an informational label; it does not establish device identity.
 5. Move a finger over the black touchpad. Focus a desktop text field: the phone shows its editor and requests the native keyboard. Type normally; changes appear on the PC immediately. Use the native Enter key to confirm a search. If the browser does not open the keyboard, tap **Keyboard** or the mobile editor. While typing, the layout follows the visible viewport and reported keyboard bounds, keeps the editor above the keyboard, and temporarily hides the sensitivity slider and click buttons to preserve space.
@@ -71,7 +71,7 @@ Remembering is opt-in on the PC during approval. A remembered device represents 
 
 Choose 7, 30, or 90 days in **Settings → Security** for newly remembered browsers (default 90). Existing browsers keep their recorded expiry; forget and pair again to change it. Trust does not renew on use. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
 
-Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic unlock reconnection in v0.2.0.
+Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.3.1.
 
 If the page cannot open, check the PC address, guest Wi-Fi/client isolation, and the PC firewall. TCP port 8844 must be reachable from the phone. The extension does not open router ports, configure the firewall, or listen on all interfaces.
 
@@ -93,13 +93,13 @@ The libsoup server runs in a separate GJS child with private bounded IPC and res
 
 ## Development
 
-The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and transport/session HTTP handling in `server.js`. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups live in `preferences/`.
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `service-worker.js`; `server.js` handles HTTP/WebSocket sessions and `network-guard.js` bounds incoming connections. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups live in `preferences/`.
 
 `limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/lib/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
 
 Trusted-browser enrollment snapshots remain compatible with v0.2.1. Names and last-use updates use separate per-browser settings; individual revocation is permanent for that credential, and Forget all changes the valid trust generation. Metadata updates and stale enrollment snapshots cannot undo either revocation. Settings never writes the enrollment list; only the running service enrolls browsers after explicit approval.
 
-No npm dependencies are required. Local installation compiles the GSettings schema; the GNOME extension installer compiles it when installing a ZIP. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3, and OpenSSL:
+No npm dependencies are required. Local installation compiles the GSettings schema; the GNOME extension installer compiles it when installing a ZIP. Run automated protocol and actual GJS server tests with Node.js 22+, GJS, libsoup 3.8+, util-linux, and OpenSSL:
 
 ```sh
 node --test tests/*.test.js
@@ -117,6 +117,8 @@ SMARTPHONE_RC_TEST_TRUST_DAYS=7 node tests/cookie-browser.mjs --trusted --helper
 This test uses a fresh temporary browser profile and trusts only its generated test certificate's public-key pin. It does not change your normal Chrome profile or certificate policy. The server fixture's automatic approval callback is test-only.
 
 See [scripts/README.md](scripts/README.md) for the installation, packaging, and development entry points.
+
+See [TESTING.md](TESTING.md) for validation evidence and remaining coverage, and [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 Logs are available with `journalctl --user -f -o cat`.
 
