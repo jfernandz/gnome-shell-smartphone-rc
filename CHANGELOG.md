@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Remove the obsolete ADB page-opening helper, move shared script helpers under scripts/lib, and document active entry points. Preserve the existing Looking Glass reload paths and stage development snapshots directly.
+
 ## 0.3.1 — 2026-10-25
 
 - Show Start only when remote control is off, Stop while starting/running, and Reject/Disconnect only when a request or phone is present. Preserve the stopped menu after lock/unlock and helper failure.

@@ -1,7 +1,7 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
-const directory = Gio.File.new_for_uri(import.meta.url).get_parent().get_parent();
+const directory = Gio.File.new_for_uri(import.meta.url).get_parent().get_parent().get_parent();
 const [, bytes] = GLib.file_get_contents(directory.get_child('resources.json').get_path());
 const manifest = JSON.parse(new TextDecoder().decode(bytes));
 const files = [...new Set([...manifest.runtime, ...Object.values(manifest.web).map(asset => asset.file)])];

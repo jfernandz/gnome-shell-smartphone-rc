@@ -23,7 +23,7 @@ test('GSettings schema ranges and defaults agree with the shared sensitivity rul
     const {SENSITIVITY} = await import('../limits.js');
     const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-schema-'));
     t.after(() => rmSync(directory, {recursive: true, force: true}));
-    execFileSync('bash', ['scripts/stage.sh', directory]);
+    execFileSync('bash', ['scripts/lib/stage.sh', directory]);
     const probe = `
         const Gio = imports.gi.Gio;
         const source = Gio.SettingsSchemaSource.new_from_directory(ARGV[0], Gio.SettingsSchemaSource.get_default(), false);
@@ -43,7 +43,7 @@ test('GSettings schema ranges and defaults agree with the shared sensitivity rul
 test('independent GJS processes cannot restore revoked trust by writing stale enrollment snapshots', t => {
     const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-trust-process-'));
     t.after(() => rmSync(directory, {recursive: true, force: true}));
-    execFileSync('bash', ['scripts/stage.sh', directory]);
+    execFileSync('bash', ['scripts/lib/stage.sh', directory]);
     const env = {...process.env, GSETTINGS_BACKEND: 'keyfile', GSETTINGS_SCHEMA_DIR: join(directory, 'schemas'),
         XDG_CONFIG_HOME: join(directory, 'config')};
     const run = (...args) => JSON.parse(execFileSync('gjs', ['-m', 'tests/trust-process-fixture.js', ...args], {env, encoding: 'utf8'}));

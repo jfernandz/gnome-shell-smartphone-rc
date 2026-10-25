@@ -5,8 +5,8 @@ cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/smartphone-rc"
 mkdir -p "$cache_dir"
 build_dir=$(mktemp -d "$cache_dir/build-XXXXXX")
 # A fresh import path avoids GNOME Shell's JavaScript module cache.
-XDG_DATA_HOME="$build_dir" bash "$project_dir/scripts/install.sh" >/dev/null
 extension_dir="$build_dir/gnome-shell/extensions/smartphone-rc@jfaparicio.github.io"
+bash "$project_dir/scripts/lib/stage.sh" "$extension_dir"
 if [[ "${1:-}" == '--build-only' ]]; then
     printf '%s\n' "$extension_dir"
     exit 0

@@ -260,3 +260,12 @@ Start, Stop and Disconnect were previously unconditional menu actions, making th
 Visible actions now say Start/Stop remote control. Setup documentation and messages refer to local networking/LAN; an Ethernet-connected PC remains supported. This is a presentation change, not a change to transport or authorization policy.
 
 The user confirmed the corrected menu behaves better. Released locally as v0.3.1.
+
+
+## Script cleanup — 2026-10-25
+
+The public setup/install/package scripts and both development reload entry points remain in use. Shared staging, manifest enumeration, and IPv4 validation helpers now live under `scripts/lib/`; references in callers and integration tests were updated. The obsolete ADB page-opening helper and its current README instructions were removed. Historical test records remain unchanged.
+
+Five packaging/schema/process integration cases pass with the new paths. An isolated smoke check verifies network setup, private-key permissions, invalid address rejection, and two distinct reload builds with compiled schemas. The reusable Looking Glass import path and prepare-reload.sh --build-only interface remain unchanged, preserving compatibility with already cached reload modules.
+
+An isolated install matches the runtime manifest plus compiled schemas exactly. Chromium helper checks also pass after relocating staging, including browser/service restart, reconnect, and revocation.

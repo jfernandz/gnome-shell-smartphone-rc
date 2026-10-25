@@ -52,7 +52,7 @@ try {
     const spki = certificate.publicKey.export({type: 'spki', format: 'der'});
     const pin = createHash('sha256').update(spki).digest('base64');
     if (helperMode)
-        execFileSync('bash', ['scripts/stage.sh', `${directory}/runtime`], {cwd: root});
+        execFileSync('bash', ['scripts/lib/stage.sh', `${directory}/runtime`], {cwd: root});
     if (trustedMode) {
         mkdirSync(`${directory}/schemas`);
         for (const name of ['org.gnome.shell.extensions.smartphone-rc', 'org.gnome.shell.extensions.smartphone-rc.browser'])

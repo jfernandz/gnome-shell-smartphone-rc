@@ -95,7 +95,7 @@ The libsoup server runs in a separate GJS child with private bounded IPC and res
 
 The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and transport/session HTTP handling in `server.js`. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups live in `preferences/`.
 
-`limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
+`limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/lib/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
 
 Trusted-browser enrollment snapshots remain compatible with v0.2.1. Names and last-use updates use separate per-browser settings; individual revocation is permanent for that credential, and Forget all changes the valid trust generation. Metadata updates and stale enrollment snapshots cannot undo either revocation. Settings never writes the enrollment list; only the running service enrolls browsers after explicit approval.
 
@@ -116,13 +116,7 @@ SMARTPHONE_RC_TEST_TRUST_DAYS=7 node tests/cookie-browser.mjs --trusted --helper
 
 This test uses a fresh temporary browser profile and trusts only its generated test certificate's public-key pin. It does not change your normal Chrome profile or certificate policy. The server fixture's automatic approval callback is test-only.
 
-With `adb` and `curl` installed and an authorized Android device attached, this helper opens the current pairing link:
-
-```sh
-bash scripts/open-phone.sh
-```
-
-For HTTPS links, ADB only launches Chrome; the page and control events travel over the LAN. You can unplug the cable after opening the link. The helper verifies the local server against the configured certificate before opening the page.
+See [scripts/README.md](scripts/README.md) for the installation, packaging, and development entry points.
 
 Logs are available with `journalctl --user -f -o cat`.
 

@@ -4,7 +4,7 @@ umask 077
 project_dir="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 network_address="${1:-$(ip -4 route get 1.1.1.1 | awk '{for (i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')}"
 # Validate before including the address in certificate arguments or configuration.
-gjs -m "$project_dir/scripts/check-address.js" "$network_address"
+gjs -m "$project_dir/scripts/lib/check-address.js" "$network_address"
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/smartphone-rc"
 mkdir -p "$config_dir"
 chmod 700 "$config_dir"

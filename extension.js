@@ -98,7 +98,7 @@ export default class SmartphoneRemoteControl extends Extension {
             this._address.visible = true;
             this._copy.visible = true;
             this._pairing.visible = true;
-            // The development script reads this temporary URL through a user-only file.
+            // Native development checks read this temporary URL through a user-only file.
             this._writeSessionFile();
             this._dialogs.showPairing(this._url);
         } catch (error) {

@@ -10,7 +10,7 @@ import http from 'node:http';
 
 async function start(t) {
     const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-service-'));
-    execFileSync('bash', ['scripts/stage.sh', directory]);
+    execFileSync('bash', ['scripts/lib/stage.sh', directory]);
     const child = spawn('gjs', ['-m', 'tests/service-fixture.js', directory], {env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
     const events = [];
     let errors = '';

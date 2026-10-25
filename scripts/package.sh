@@ -5,8 +5,8 @@ release_version=$(gjs -c 'const [,data]=imports.gi.GLib.file_get_contents(ARGV[0
 [[ "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid release version' >&2; exit 1; }
 bundle_dir=$(mktemp -d)
 trap 'rm -rf "$bundle_dir"' EXIT
-bash "$project_dir/scripts/stage.sh" "$bundle_dir/source"
-file_list=$(gjs -m "$project_dir/scripts/runtime-files.js" --extra)
+bash "$project_dir/scripts/lib/stage.sh" "$bundle_dir/source"
+file_list=$(gjs -m "$project_dir/scripts/lib/runtime-files.js" --extra)
 sources=()
 while IFS= read -r source; do
     sources+=(--extra-source="$source")
