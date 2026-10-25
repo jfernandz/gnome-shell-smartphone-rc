@@ -3,6 +3,7 @@ import Gtk from 'gi://Gtk';
 
 function renameBrowser(trusted, window, record) {
     const name = new Gtk.Entry({text: record.name, max_length: 80, activates_default: true});
+    name.update_property([Gtk.AccessibleProperty.LABEL], ['Device name']);
     const dialog = new Adw.AlertDialog({heading: 'Rename device', body: 'Choose a name for this browser profile.',
         extra_child: name, close_response: 'cancel', default_response: 'save'});
     dialog.add_response('cancel', 'Cancel');
@@ -31,6 +32,8 @@ function browserRow(trusted, window, initial) {
             const date = value => new Date(value * 1000).toLocaleString();
             const expired = record.expires * 1000 <= Date.now() ? 'Expired · ' : '';
             row.title = record.name;
+            rename.update_property([Gtk.AccessibleProperty.LABEL], [`Rename ${record.name}`]);
+            forget.update_property([Gtk.AccessibleProperty.LABEL], [`Forget ${record.name}`]);
             row.subtitle = `${expired}Approved: ${date(record.created)}\nLast used: ${date(record.lastUsed)}\nExpires: ${date(record.expires)}`;
         },
     };

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {checkBrowserAccessibility} from './browser-accessibility.mjs';
 import {spawn, execFileSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, mkdirSync, copyFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -113,6 +114,8 @@ try {
     const first = await tab(pairing);
     await first.evaluate('document.querySelector("#connect").click()');
     await waitFor(() => first.evaluate('document.querySelector("#status").textContent === "Connected"'));
+    if (process.argv.includes('--accessibility'))
+        await checkBrowserAccessibility(first, process.env.SMARTPHONE_RC_ACCESSIBILITY_OUTPUT);
     const cookies = await waitFor(async () => (await first.call('Network.getCookies', {urls: [origin]})).cookies.find(cookie => cookie.name === '__Host-smartphone_rc'));
     assert.equal(cookies.httpOnly, true);
     assert.equal(cookies.secure, true);

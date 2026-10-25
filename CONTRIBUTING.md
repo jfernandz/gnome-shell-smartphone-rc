@@ -40,6 +40,8 @@ ESLint, its configuration and dependencies are excluded from extension ZIPs. Lin
 
 Preserve authorization checks on both sides of IPC, immediate revocation, and stop-on-lock/disable/failure behavior. The network child is not an OS sandbox. Review [SECURITY.md](SECURITY.md) before changing pairing, cookies, input, or process boundaries.
 
+For mobile UI changes, run `npm run test:accessibility` with Chromium installed. Native theme/font and accessible-name checks require an isolated compositor; see [ACCESSIBILITY.md](ACCESSIBILITY.md).
+
 ## Packaging and documentation
 
 Build a development ZIP with `bash scripts/package.sh /path/to/output` to avoid overwriting an existing release artifact. Scripts, tests, local credentials, and development loaders are excluded from runtime packages. See [scripts/README.md](scripts/README.md) for entry points.

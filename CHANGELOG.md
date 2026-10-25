@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.7 — 2026-10-25
+
+- Expose keyboard disclosure state and sensitivity multiplier to assistive technology; label editor help and per-browser Settings actions, and restore focus when hiding the editor.
+- Add visible keyboard focus, a taller sensitivity target, wrapping connection controls and touchpad instructions that fit enlarged text.
+- Add focused Chromium accessibility/layout/contrast checks and native theme/font/accessible-label checks, with documented remaining coverage.
+
 
 - Add ESLint correctness checks for GJS, browser and Node code, with pinned development dependencies, a lockfile and a lint command. Keep all lint tooling out of runtime ZIPs.
 - Preserve the original cause for occupied-port errors, remove a dead test-fixture assignment and simplify the runtime-path validation expression without changing its accepted paths.

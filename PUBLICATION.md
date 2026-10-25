@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.4.6 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.4.7 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.
@@ -18,7 +18,9 @@ Readiness checklist for the current v0.4.6 implementation. The initial internal 
 - [ ] Complete first-use mobile certificate-warning coverage.
 - [x] Publish the [source repository](https://github.com/jfernandz/gnome-shell-smartphone-rc) and add its URL to metadata.
 - [x] Document contribution and development guidance in [CONTRIBUTING.md](CONTRIBUTING.md).
-- [ ] Complete accessibility/theme checks, screenshots, current supported-device records, and a final code/readability audit.
+- [x] Add focused Chromium keyboard/reflow/contrast checks and native accessible-name/theme/font checks; record evidence in [ACCESSIBILITY.md](ACCESSIBILITY.md).
+- [ ] Complete real assistive-technology, high-contrast and physical display-scaling checks.
+- [ ] Prepare publication screenshots, current supported-device records, and a final code/readability audit.
 - [ ] Have the maintainer review and understand all submitted code and its security/lifecycle choices.
 - [ ] Request publication separately, then publish to GitHub and submit to extensions.gnome.org.
 

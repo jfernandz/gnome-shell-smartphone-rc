@@ -3,6 +3,8 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=4.0';
 import Adw from 'gi://Adw';
+// Enable GTK's test accessibility backend before constructing widgets.
+GLib.setenv('GTK_A11Y', 'test', true);
 imports.package.init({name: 'gnome-shell', prefix: '/usr', libdir: '/usr/lib'});
 Gio.resources_register(Gio.Resource.load('/usr/share/gnome-shell/org.gnome.Shell.Extensions.src.gresource'));
 if (GLib.getenv('GSETTINGS_BACKEND') !== 'memory' || !ARGV[0])
@@ -23,11 +25,25 @@ function widgets(root) {
     return result;
 }
 app.connect('activate', () => {
+    const scheme = GLib.getenv('SMARTPHONE_RC_TEST_COLOR_SCHEME');
+    if (scheme)
+        Adw.StyleManager.get_default().color_scheme = scheme === 'dark' ? Adw.ColorScheme.FORCE_DARK : Adw.ColorScheme.FORCE_LIGHT;
+    const font = GLib.getenv('SMARTPHONE_RC_TEST_FONT');
+    if (font) Gtk.Settings.get_default().gtk_font_name = font;
     const window = new Adw.PreferencesWindow({application: app});
     prefs.fillPreferencesWindow(window);
     window.present();
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         try {
+            if (scheme && Adw.StyleManager.get_default().dark !== (scheme === 'dark'))
+                throw Error('Requested native color scheme was not applied');
+            const screenshot = GLib.getenv('SMARTPHONE_RC_TEST_SCREENSHOT');
+            if (screenshot) {
+                const snapshot = new Gtk.Snapshot();
+                new Gtk.WidgetPaintable({widget: window}).snapshot(snapshot, window.get_width(), window.get_height());
+                const texture = window.get_renderer().render_texture(snapshot.to_node(), null);
+                if (!texture.save_to_png(screenshot)) throw Error('Could not save native preview');
+            }
             const all = widgets(window);
             const version = all.find(w => w instanceof Adw.ActionRow && w.title === 'Installed version');
             if (version?.subtitle !== metadata['version-name']) throw Error('About version does not match installed metadata');
@@ -53,6 +69,8 @@ app.connect('activate', () => {
             const refreshed = widgets(window);
             const device = refreshed.find(w => w instanceof Adw.ActionRow && w.title === 'Test phone');
             if (!device || !device.subtitle.includes('Last used:')) throw Error('Integrated browser row missing');
+            for (const action of refreshed.filter(w => w instanceof Gtk.Button && (w.tooltip_text === 'Rename device' || w.label === 'Forget')))
+                if (!Gtk.test_accessible_has_property(action, Gtk.AccessibleProperty.LABEL)) throw Error('Device action lacks an explicit accessible name');
             const trusted = new TrustedBrowsers(prefs.getSettings());
             trusted.touch('ab'.repeat(32));
             if (widgets(window).find(w => w instanceof Adw.ActionRow && w.title === 'Test phone') !== device)
@@ -60,6 +78,7 @@ app.connect('activate', () => {
             refreshed.find(w => w instanceof Gtk.Button && w.tooltip_text === 'Rename device').emit('clicked');
             const dialog = window.get_visible_dialog();
             if (!(dialog instanceof Adw.AlertDialog)) throw Error('Rename dialog missing');
+            if (!Gtk.test_accessible_has_property(dialog.extra_child, Gtk.AccessibleProperty.LABEL)) throw Error('Rename entry lacks an accessible name');
             dialog.extra_child.text = 'Renamed phone';
             widgets(dialog).find(w => w instanceof Gtk.Button && w.label === 'Save').emit('clicked');
             if (trusted.list()[0].name !== 'Renamed phone' || device.title !== 'Renamed phone') throw Error('Rename failed');

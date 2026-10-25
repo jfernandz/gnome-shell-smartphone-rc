@@ -17,6 +17,7 @@ export function createKeyboard(send, isApproved, environment = globalThis) {
         if (!isApproved())
             return;
         $('typing').hidden = false;
+        $('keyboard').ariaExpanded = 'true';
         document.body.classList.add('typing');
         $('text').focus({preventScroll: true});
         try {
@@ -27,9 +28,13 @@ export function createKeyboard(send, isApproved, environment = globalThis) {
     }
 
     function hide() {
+        const restoreFocus = document.activeElement === $('text');
         $('text').blur();
         $('typing').hidden = true;
+        $('keyboard').ariaExpanded = 'false';
         document.body.classList.remove('typing');
+        if (restoreFocus && !$('keyboard').disabled)
+            $('keyboard').focus({preventScroll: true});
     }
 
     function editText() {

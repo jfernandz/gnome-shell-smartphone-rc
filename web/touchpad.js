@@ -14,6 +14,7 @@ export function createTouchpad(send, isApproved, environment = globalThis) {
     }
     function showSensitivity() {
         $('sensitivity').value = String(sensitivity);
+        $('sensitivity').ariaValueText = `${sensitivity.toFixed(1)} times`;
         $('sensitivity-value').textContent = `${sensitivity.toFixed(1)}×`;
     }
     showSensitivity();

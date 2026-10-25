@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.6**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.4.7**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -346,10 +346,19 @@ The original v0.4.5 ZIP produces seven findings in shexli 0.2.1. Reproducing wit
 All 58 automated tests and Chromium trusted-browser/helper recovery checks pass after making configuration/certificate reads and certificate cleanup asynchronous. Native GTK preferences, setup and error recovery checks pass in the isolated compositor. Native Shell checks verify Stop and disable during pending startup, with no stale helper or setup dialog; all three flagged menu rows emit destroy on disable. Existing certificate approval, helper crash and lock cleanup checks also pass. The working desktop was not restarted or locked.
 
 
-## ESLint correctness checks — unreleased
+## v0.4.7 ESLint correctness checks — 2026-10-25
 
 ESLint 10.13.0 with @eslint/js 10.0.1 and globals 17.13.0 checks project JavaScript with explicit GJS, browser and Node environments. The lockfile pins developer dependencies; no formatting preset is applied. Lint passes with zero errors and warnings. An intentional, line-specific no-control-regex exception retains rejection of control characters/lone surrogates; unused exception directives fail lint.
 
 Reviewed corrections preserve the original cause when reporting an occupied port, remove an unused initial assignment in the server test fixture, and remove a redundant escape in the runtime path allowlist. Production protocol validation behavior is unchanged. All 58 automated tests, real Chromium trusted/helper checks and exact runtime ZIP manifest checks pass. A fresh npm ci followed by lint also passes; GJS/browser/Node global separation is checked explicitly. Tooling and node_modules are not shipped in the extension ZIP.
 
 Initially npm was absent from PATH, so a temporary verified distribution outside the repository was used for dependency installation without changing system packages. The user subsequently installed npm 12.2.1, and npm run lint passes directly with the normal system command. No temporary npm path is required. Direct Node invocation documented in CONTRIBUTING.md remains an optional fallback. Native desktop/session state is unchanged.
+
+
+## v0.4.7 Focused accessibility and layout checks — 2026-10-25
+
+All 58 automated tests and lint pass. The new npm run test:accessibility mode exercises the real Chromium/helper session, checks keyboard Tab/Enter behavior, accessible control names, synchronized editor disclosure/focus, minimum target height, key-text contrast and portrait/landscape/200%-text reflow, then completes the trusted-browser recovery/revocation checks. Enlarged text exposed overflowing touchpad instructions; intrinsic sizing now keeps them inside the touchpad.
+
+Native GTK preferences pass with GTK's test accessibility backend, checking labelled browser actions and the rename entry alongside existing preferences behavior. Isolated runs force light/Sans 11 and dark/Sans 22, render previews, and verify the requested theme. Synthetic browser/native previews were inspected; they are development artifacts, not publication screenshots. No working session theme, font, configuration or remote connection was changed.
+
+See ACCESSIBILITY.md for exact commands and limits. Screen-reader announcements on real TalkBack/Orca, physical scaling, keyboard occlusion under enlarged text, high-contrast modes and other browsers remain manual follow-ups.
