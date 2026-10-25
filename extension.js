@@ -25,6 +25,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._dialogs = new RemoteDialogs();
         this._indicator = new PanelMenu.Button(0.0, 'Smartphone Remote Control');
         this._indicator.add_child(new St.Icon({icon_name: 'input-touchpad-symbolic', style_class: 'system-status-icon'}));
+        // The indicator owns its menu; destroying it destroys every menu item.
         this._status = new PopupMenu.PopupMenuItem('Remote control is off', {reactive: false});
         this._indicator.menu.addMenuItem(this._status);
         this._startAction = this._indicator.menu.addAction('Start remote control', () => this._start());
@@ -69,13 +70,20 @@ export default class SmartphoneRemoteControl extends Extension {
 
     async _start() {
         this._stop();
-        cleanupOldCertificates(configDirectory());
+        const cancellable = new Gio.Cancellable();
+        this._startingCancel = cancellable;
+        this._status.label.text = 'Starting remote control…';
+        this._updateServiceActions('starting');
         let starting = null;
         try {
             let options;
             try {
-                options = this._networkOptions();
+                await cleanupOldCertificates(configDirectory(), undefined, cancellable);
+                options = await this._networkOptions(cancellable);
+                cancellable.set_error_if_cancelled();
             } catch (error) {
+                if (cancellable.is_cancelled()) return;
+                this._stop();
                 this._dialogs.showNetworkSetup(() => this.openPreferences(), error.message);
                 return;
             }
@@ -99,6 +107,7 @@ export default class SmartphoneRemoteControl extends Extension {
                 return;
             if (options.fingerprint && options.fingerprint !== started.fingerprint)
                 throw new Error('The service certificate does not match the local certificate.');
+            this._startingCancel = null;
             this._url = started.url;
             this._fingerprint = started.fingerprint;
             this._showCertificate.visible = Boolean(this._fingerprint);
@@ -182,6 +191,8 @@ export default class SmartphoneRemoteControl extends Extension {
             iconName: 'input-touchpad-symbolic', resident: true,
         });
         this._notification = notification;
+        // This owned notification is destroyed on stop/disable; GNOME disposes
+        // its signal handlers after emitting destroy (including this callback).
         notification.connect('destroy', () => {
             if (this._notification === notification)
                 this._notification = null;
@@ -237,11 +248,13 @@ export default class SmartphoneRemoteControl extends Extension {
             this._focus.reset();
     }
 
-    _networkOptions() {
-        return readNetworkConfig();
+    _networkOptions(cancellable = null) {
+        return readNetworkConfig(configDirectory(), cancellable);
     }
 
     _stop() {
+        this._startingCancel?.cancel();
+        this._startingCancel = null;
         this._clearNotification();
         if (this._focus) {
             this._focus.destroy();

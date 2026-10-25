@@ -1,10 +1,10 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {isPrivateIPv4} from './network.js';
+import {readText} from './file-io.js';
 import {runCommand} from './subprocess.js';
 import {certificateOptions, removeStagedCertificate} from './certificates.js';
 
-const decoder = new TextDecoder();
 export function configDirectory() {
     return `${GLib.get_user_config_dir()}/smartphone-rc`;
 }
@@ -23,16 +23,15 @@ export async function localAddresses(cancellable = null) {
     }
 }
 
-export function readNetworkConfig(directory = configDirectory()) {
-    const [, contents] = GLib.file_get_contents(`${directory}/network.json`);
-    const config = JSON.parse(decoder.decode(contents));
+export async function readNetworkConfig(directory = configDirectory(), cancellable = null) {
+    const config = JSON.parse(await readText(`${directory}/network.json`, cancellable));
     const {address, port = 8844, credentials} = config;
     if (!isPrivateIPv4(address) || !Number.isInteger(port) || port < 1024 || port > 65535)
         throw new Error('Choose a private LAN IPv4 address and a port between 1024 and 65535 in Settings → Network.');
     if (credentials !== undefined && !/^tls-[a-f0-9-]{36}$/.test(credentials))
         throw new Error('Invalid certificate configuration. Configure networking again in Settings.');
     const base = credentials ? `${directory}/${credentials}` : directory;
-    return certificateOptions(base, address, port);
+    return certificateOptions(base, address, port, null, cancellable);
 }
 
 export async function configureNetwork(address, port, cancellable = null, directory = configDirectory()) {
@@ -56,7 +55,7 @@ export async function configureNetwork(address, port, cancellable = null, direct
             '-addext', 'extendedKeyUsage=serverAuth'], {cancellable, packageName: 'OpenSSL', operation: 'Could not generate the local certificate'});
         for (const name of ['private-key.pem', 'certificate.pem'])
             Gio.File.new_for_path(`${base}/${name}`).set_attribute_uint32('unix::mode', 0o600, Gio.FileQueryInfoFlags.NONE, null);
-        const validated = certificateOptions(base, address, port);
+        const validated = await certificateOptions(base, address, port, null, cancellable);
         cancellable?.set_error_if_cancelled();
         const destination = `${directory}/${credentials}`;
         Gio.File.new_for_path(base).move(Gio.File.new_for_path(destination), Gio.FileCopyFlags.NONE, cancellable, null);

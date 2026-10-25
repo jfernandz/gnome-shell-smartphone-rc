@@ -26,7 +26,7 @@ try {
     const button = all.find(w => w instanceof Gtk.Button && w.label === 'Configure');
     button.emit('clicked');
     for (let i = 0; i < 200 && !button.sensitive; i++) await delay();
-    const config = readNetworkConfig();
+    const config = await readNetworkConfig();
     if (config.port !== 9443) throw Error('Selected port was not saved');
     if (!widgets(window).some(w => w instanceof Adw.ActionRow && w.title.startsWith('Configured: https://'))) throw Error('Missing success state');
     print('PASS: native Network preferences detect addresses and configure certificate/port');

@@ -55,7 +55,7 @@ done
 `);
     await rejects(() => configureNetwork(valid.address, 9443, null, directory), /expired or is not yet valid/);
     check(decode(configPath) === before && entries() === originalEntries, 'Invalid certificate changed working setup or left staging files');
-    check(readNetworkConfig(directory).fingerprint === valid.fingerprint, 'Working certificate was replaced');
+    check((await readNetworkConfig(directory)).fingerprint === valid.fingerprint, 'Working certificate was replaced');
     // Rejecting publication must remove the newly generated files, too.
     Gio.File.new_for_path(`${tools}/openssl`).delete(null);
     Gio.File.new_for_path(configPath).delete(null);
@@ -106,7 +106,7 @@ new GLib.MainLoop(null, false).run();
     for (const base of [validBase, `${directory}/${old}`, `${directory}/${pending}`, `${directory}/${unexpected}`])
         Gio.File.new_for_path(base).set_attribute_uint64('time::modified', now - 172800, Gio.FileQueryInfoFlags.NONE, null);
     Gio.File.new_for_path(`${directory}/tls-55555555-5555-5555-5555-555555555555`).make_symbolic_link(`${root}/expired`, null);
-    cleanupOldCertificates(directory, now);
+    await cleanupOldCertificates(directory, now);
     check(!exists(`${directory}/${old}`), 'Unreferenced old generation was not removed');
     check(exists(valid.certificatePath) && exists(`${directory}/${recent}/private-key.pem`) && exists(`${directory}/${pending}/private-key.pem`),
         'Cleanup removed selected, recent or in-progress credentials');

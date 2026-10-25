@@ -1,10 +1,14 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import {readText, directoryEntries, deleteFile} from './file-io.js';
 
-export function certificateOptions(base, address, port, now = GLib.DateTime.new_now_utc()) {
+export async function certificateOptions(base, address, port, now = null, cancellable = null) {
     const certificatePath = `${base}/certificate.pem`;
     const privateKeyPath = `${base}/private-key.pem`;
-    const certificate = Gio.TlsCertificate.new_from_files(certificatePath, privateKeyPath);
+    const [pem, key] = await Promise.all([readText(certificatePath, cancellable), readText(privateKeyPath, cancellable)]);
+    cancellable?.set_error_if_cancelled();
+    const certificate = Gio.TlsCertificate.new_from_pem(`${pem}\n${key}`, -1);
+    now ??= GLib.DateTime.new_now_utc();
     const before = certificate.get_not_valid_before();
     const after = certificate.get_not_valid_after();
     // Do not rely on verify() to report self-signed certificate validity dates.
@@ -31,31 +35,31 @@ export function removeStagedCertificate(base) {
 
 // Call only from Shell after stopping its previous helper, before starting another.
 // Ignore staging directories, recent generations and all legacy/unrecognized files.
-export function cleanupOldCertificates(directory, nowSeconds = Date.now() / 1000) {
+export async function cleanupOldCertificates(directory, nowSeconds = Date.now() / 1000, cancellable = null) {
     try {
-        const [, contents] = GLib.file_get_contents(`${directory}/network.json`);
-        const {credentials} = JSON.parse(new TextDecoder().decode(contents));
+        const {credentials} = JSON.parse(await readText(`${directory}/network.json`, cancellable));
         if (!GENERATED.test(credentials)) return;
-        const entries = Gio.File.new_for_path(directory).enumerate_children(
-            'standard::name,standard::type,time::modified', Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
-        try {
-            for (let info; (info = entries.next_file(null));) {
-                const name = info.get_name();
-                if (name === credentials || !GENERATED.test(name) || info.get_file_type() !== Gio.FileType.DIRECTORY ||
-                    nowSeconds - info.get_attribute_uint64('time::modified') < 86400)
-                    continue;
-                const base = `${directory}/${name}`;
-                const files = Gio.File.new_for_path(base).enumerate_children('standard::name,standard::type',
-                    Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null);
-                let owned = true;
-                try {
-                    for (let file; (file = files.next_file(null));) {
-                        if (!['private-key.pem', 'certificate.pem'].includes(file.get_name()) || file.get_file_type() !== Gio.FileType.REGULAR)
-                            owned = false;
-                    }
-                } finally { files.close(null); }
-                if (owned) removeStagedCertificate(base);
+        for await (const info of directoryEntries(directory, 'standard::name,standard::type,time::modified', cancellable)) {
+            const name = info.get_name();
+            if (name === credentials || !GENERATED.test(name) || info.get_file_type() !== Gio.FileType.DIRECTORY ||
+                nowSeconds - info.get_attribute_uint64('time::modified') < 86400)
+                continue;
+            const base = `${directory}/${name}`;
+            let owned = true;
+            for await (const file of directoryEntries(base, 'standard::name,standard::type', cancellable)) {
+                if (!['private-key.pem', 'certificate.pem'].includes(file.get_name()) || file.get_file_type() !== Gio.FileType.REGULAR)
+                    owned = false;
             }
-        } finally { entries.close(null); }
-    } catch { /* Cleanup is optional; configuration validation reports actual setup errors. */ }
+            if (!owned) continue;
+            for (const file of ['private-key.pem', 'certificate.pem']) {
+                try { await deleteFile(`${base}/${file}`, cancellable); } catch (error) {
+                    if (!error.matches?.(Gio.io_error_quark(), Gio.IOErrorEnum.NOT_FOUND)) throw error;
+                }
+            }
+            await deleteFile(base, cancellable);
+        }
+    } catch (error) {
+        if (cancellable?.is_cancelled()) throw error;
+        // Cleanup is optional; configuration validation reports actual setup errors.
+    }
 }

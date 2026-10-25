@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.5**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.4.6**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -337,3 +337,10 @@ The certificate regression creates real expired and future-dated self-signed cer
 Cancellation during a fake long-running certificate generator and an explicit short command timeout both verify that the direct child has been reaped before returning; partial credentials are removed and the previous configuration remains intact. Cleanup tests retain selected/recent/staged credentials, legacy or unrecognized files, symlinks and directories with extra files while removing eligible unreferenced old generations. Production cleanup runs only before service startup after stopping the previous helper. All checks use temporary files and fake tool discovery; the working desktop/session configuration is unchanged.
 
 Release verification passes all 58 automated tests, the Chromium trusted-browser/helper recovery and revocation suite, and native GTK preferences/About, network setup, and missing-dependency/Refresh checks. The v0.4.5 ZIP is built from the runtime manifest and inspected for version, source URL and exact file contents. No working GNOME session was restarted or locked.
+
+
+## v0.4.6 Static-analysis triage and asynchronous Shell I/O — 2026-10-25
+
+The original v0.4.5 ZIP produces seven findings in shexli 0.2.1. Reproducing with tree-sitter 0.25.2 avoids the observed native crash with 0.26.0. v0.4.6 removes the synchronous-file-I/O warning, leaving six findings documented in SHEXLI.md, without suppressing rules or changing the released ZIP.
+
+All 58 automated tests and Chromium trusted-browser/helper recovery checks pass after making configuration/certificate reads and certificate cleanup asynchronous. Native GTK preferences, setup and error recovery checks pass in the isolated compositor. Native Shell checks verify Stop and disable during pending startup, with no stale helper or setup dialog; all three flagged menu rows emit destroy on disable. Existing certificate approval, helper crash and lock cleanup checks also pass. The working desktop was not restarted or locked.

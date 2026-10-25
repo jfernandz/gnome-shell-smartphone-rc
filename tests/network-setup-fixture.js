@@ -35,5 +35,5 @@ if (new TextDecoder().decode(before) !== new TextDecoder().decode(after)) throw 
 GLib.file_set_contents(`${directory}/certificate.pem`, GLib.file_get_contents(config.certificatePath)[1]);
 GLib.file_set_contents(`${directory}/private-key.pem`, GLib.file_get_contents(config.privateKeyPath)[1]);
 GLib.file_set_contents(`${directory}/network.json`, JSON.stringify({address: config.address}));
-if (readNetworkConfig(directory).port !== 8844) throw new Error('Legacy configuration failed');
+if ((await readNetworkConfig(directory)).port !== 8844) throw new Error('Legacy configuration failed');
 print('PASS: setup, certificate identity, port, private permissions, failure preservation and legacy configuration');

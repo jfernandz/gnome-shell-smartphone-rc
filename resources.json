@@ -26,7 +26,8 @@
     "network-config.js",
     "preferences/network.js",
     "subprocess.js",
-    "certificates.js"
+    "certificates.js",
+    "file-io.js"
   ],
   "web": {
     "/": {

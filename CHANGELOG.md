@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.6 — 2026-10-25
+
+- Use cancellable asynchronous GIO for configuration/certificate reads and old-certificate cleanup in Shell. Cancel pending startup on Stop/disable to prevent stale helpers or dialogs.
+- Document all seven shexli findings, lifecycle ownership evidence and separate worker/web entry points; pin an optional working static-review toolchain.
+
 ## 0.4.5 — 2026-10-25
 
 - Validate certificate validity dates and IP subject alternative names explicitly, sharing validation between reading and generation. Reject expired, not-yet-valid and mismatched certificates before publishing configuration.

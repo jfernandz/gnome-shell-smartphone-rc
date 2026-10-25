@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.4.5 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.4.6 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.
@@ -21,3 +21,7 @@ Readiness checklist for the current v0.4.5 implementation. The initial internal 
 - [ ] Complete accessibility/theme checks, screenshots, current supported-device records, and a final code/readability audit.
 - [ ] Have the maintainer review and understand all submitted code and its security/lifecycle choices.
 - [ ] Request publication separately, then publish to GitHub and submit to extensions.gnome.org.
+
+## Static analysis
+
+See [SHEXLI.md](SHEXLI.md) for reproducible tooling and the disposition of all seven v0.4.5 findings. v0.4.6 addresses synchronous Shell file reads/cleanup; six findings remain for documented version/schema limitations, separate entry points, lifecycle ownership and manual clipboard review. No analyzer rule is suppressed, and the released v0.4.5 ZIP is unchanged.

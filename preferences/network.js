@@ -32,10 +32,16 @@ export function createNetworkGroup() {
         status.subtitle = `Certificate expires ${config.expires}. Start remote control from the top-bar menu.`;
         fingerprint.subtitle = config.fingerprint;
     }
-    try { showConfig(readNetworkConfig()); } catch (error) {
-        status.subtitle = GLib.file_test(`${configDirectory()}/network.json`, GLib.FileTest.EXISTS)
-            ? error.message
-            : 'OpenSSL and iproute2 are required. Configure networking here before starting remote control.';
+    async function loadConfig() {
+        try {
+            const config = await readNetworkConfig(configDirectory(), cancellable);
+            if (!disposed && !busy) showConfig(config);
+        } catch (error) {
+            if (disposed || busy) return;
+            status.subtitle = GLib.file_test(`${configDirectory()}/network.json`, GLib.FileTest.EXISTS)
+                ? error.message
+                : 'OpenSSL and iproute2 are required. Configure networking here before starting remote control.';
+        }
     }
     choices.connect('notify::selected', () => {
         if (detected[choices.selected]) address.text = detected[choices.selected].address;
@@ -77,6 +83,6 @@ export function createNetworkGroup() {
             if (!disposed) configure.sensitive = address.sensitive = port.sensitive = choices.sensitive = true;
         }
     });
-    discover();
+    loadConfig().then(() => { if (!disposed) discover(); });
     return {group, destroy() { disposed = true; cancellable.cancel(); }};
 }

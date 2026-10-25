@@ -57,7 +57,7 @@ echo certificate-failed >&2
 exit 1`);
     await rejects(() => configureNetwork(config.address, 9443, null, directory), /Could not generate the local certificate.*certificate-failed/);
     check(snapshot() === before, 'Failed setup overwrote working configuration');
-    check(readNetworkConfig(directory).fingerprint === config.fingerprint, 'Previous certificate was damaged');
+    check((await readNetworkConfig(directory)).fingerprint === config.fingerprint, 'Previous certificate was damaged');
     const entries = Gio.File.new_for_path(directory).enumerate_children('standard::name', Gio.FileQueryInfoFlags.NONE, null);
     let staged = 0;
     for (let info; (info = entries.next_file(null));) if (info.get_name().startsWith('tls-')) staged++;

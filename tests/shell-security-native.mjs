@@ -45,6 +45,7 @@ try {
             await extension._start();
             return extension._server !== null;
         })()`);
+        await wait(`typeof ${base}._url === 'string'`);
         const url = new URL(readFileSync(join(runtimeDirectory, 'smartphone-rc-session'), 'utf8'));
         const request = https.request(`${url.origin}/control`, {ca: certificate, headers: {
             Origin: url.origin, Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13',
@@ -114,6 +115,45 @@ try {
     assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     console.log('PASS: menu actions reflect stopped, pending, connected and post-lock states');
     console.log('PASS: lock mode closes certificate approval and helper, without automatic restart after unlock');
+    evaluate(`(()=>{
+        const extension = ${base};
+        global._remotePendingRead = false;
+        extension._networkOptions = () => {
+            global._remotePendingRead = true;
+            return new Promise(resolve => {
+                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+                    resolve(${JSON.stringify(options)});
+                    return GLib.SOURCE_REMOVE;
+                });
+            });
+        };
+        extension._start();
+        return true;
+    })()`);
+    await wait('global._remotePendingRead === true');
+    evaluate(`${base}._stop()`);
+    await new Promise(resolve => setTimeout(resolve, 350));
+    assert.ok(evaluate(`${base}._server === null && ${base}._startAction.visible && ${base}._dialogs._certificate === null`).includes("'true'"));
+    console.log('PASS: Stop cancels pending asynchronous startup without a helper or setup dialog');
+
+    evaluate(`(()=>{
+        const extension = ${base};
+        global._remotePendingRead = false;
+        global._remoteDisabledExtension = extension;
+        global._remoteDestroyedRows = 0;
+        for (const row of [extension._status, extension._address, extension._remember])
+            row.connect('destroy', () => global._remoteDestroyedRows++);
+        extension._start();
+        return true;
+    })()`);
+    await wait('global._remotePendingRead === true');
+    evaluate('Main.extensionManager.disableExtension("smartphone-rc@jfaparicio.github.io")');
+    await new Promise(resolve => setTimeout(resolve, 350));
+    assert.ok(evaluate('global._remoteDestroyedRows === 3 && global._remoteDisabledExtension._server === null && global._remoteDisabledExtension._indicator === null').includes("'true'"));
+    evaluate('Main.extensionManager.enableExtension("smartphone-rc@jfaparicio.github.io")');
+    await wait(`${base}._indicator !== null`);
+    console.log('PASS: disable during asynchronous startup destroys all three menu rows and cannot start a stale helper');
+
 } finally {
     socket?.destroy();
     evaluate(`${base}._stop()`);
