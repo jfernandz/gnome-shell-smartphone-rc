@@ -1,6 +1,6 @@
 # Private D-Bus service boundary
 
-The development implementation replaces ipc.js and the inherited JSON pipes with a private peer-to-peer D-Bus connection. It keeps the extension, network helper and browser assets in one package. This is not a session-bus service, does not install an activation file and does not start automatically at login or unlock.
+v0.5.0 replaces ipc.js and the inherited JSON pipes with a private peer-to-peer D-Bus connection. It keeps the extension, network helper and browser assets in one package. This is not a session-bus service, does not install an activation file and does not start automatically at login or unlock.
 
 ## Process layout
 

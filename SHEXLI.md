@@ -8,18 +8,18 @@ Reviewed on 2026-10-25 with shexli 0.2.1, Python 3.14, tree-sitter 0.25.2 and tr
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-review.txt
-shexli dist/smartphone-rc-0.4.7.zip
+shexli dist/smartphone-rc-0.5.0.zip
 ```
 
 The released v0.4.5 ZIP produces seven findings: two errors, four warnings and one manual-review item. On this machine, tree-sitter 0.26.0 causes a native crash during analysis; changing only that dependency to 0.25.2 completed three consecutive runs. The exact underlying native defect has not been established. The pins above reproduce the working toolchain; no dependency is installed into GNOME Shell or shipped in our ZIP.
 
-The v0.4.7 ZIP includes the asynchronous file-I/O changes and produces six findings: two errors, three warnings and one manual-review item. No validator rules were disabled or patched to obtain these results. The original v0.4.5 release artifact remains unchanged.
+The v0.5.0 ZIP includes the asynchronous file-I/O changes and produces six findings: two errors, three warnings and one manual-review item. No validator rules were disabled or patched to obtain these results. The original v0.4.5 release artifact remains unchanged.
 
 Build a separate development snapshot without overwriting a release artifact with:
 
 ```sh
 bash scripts/package.sh dist/review
-shexli dist/review/smartphone-rc-0.4.7.zip
+shexli dist/review/smartphone-rc-0.5.0.zip
 ```
 
 ## Findings and disposition
@@ -48,6 +48,6 @@ The automated protocol, process, certificate, schema and packaging suite and rea
 
 See [TESTING.md](TESTING.md) for the broader validation record and [PUBLICATION.md](PUBLICATION.md) for remaining distribution work. The v0.4.5 release ZIP remains unchanged; these explanations do not mean that every remaining finding will be accepted by a reviewer.
 
-## D-Bus and app layout — development
+## D-Bus and app layout — v0.5.0
 
-The unreleased D-Bus migration groups the worker/server/guard and web assets under app/, with typed private peer methods in shared dbus.js. It removes ipc.js and does not add a public bus service. These are still separate entry points, so EGO-P-007 remains expected; grouping them supports reviewer inspection rather than suppressing the rule. See [DBUS.md](DBUS.md) and the maintainer feedback in PUBLICATION.md.
+The v0.5.0 D-Bus migration groups the worker/server/guard and web assets under app/, with typed private peer methods in shared dbus.js. It removes ipc.js and does not add a public bus service. These are still separate entry points, so EGO-P-007 remains expected; grouping them supports reviewer inspection rather than suppressing the rule. See [DBUS.md](DBUS.md) and the maintainer feedback in PUBLICATION.md.

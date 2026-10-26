@@ -41,11 +41,11 @@ Development reload builds a fresh source snapshot and replaces only this extensi
 
 Record what was actually tested, distinguish remaining checks from failures, and require physical-phone acceptance for significant interaction changes before closing a release.
 
-## Current development — private D-Bus and app layout
+## v0.5.0 — private D-Bus and app layout
 
 - [x] Replace inherited JSON pipes with typed, authenticated private peer D-Bus while retaining bounded application calls and lifecycle cleanup.
 - [x] Group the worker/server/guard and mobile assets under app/, preserving a single runtime package.
 - [x] Test peer identity, typed values, application limits, invalid state/input, cancellation, crash and parent loss; enforce import/process boundaries.
-- [ ] Obtain physical-phone acceptance of the migrated helper before closing a new release.
+- [x] User confirmed the migrated implementation works before closing v0.5.0. The final tagged ZIP remains a separate manual acceptance check.
 
 See [DBUS.md](DBUS.md) for contract, security limits and implementation evidence; maintainer guidance does not imply final publication approval.

@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-The latest local release is **v0.4.7**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
+The latest local release is **v0.5.0**, targeting GNOME Shell 51 and tested on 51.1 with Wayland. The v0.3.1 release validation recorded 54 automated tests, Chromium recovery/trust checks through the real network helper, and isolated native preferences, certificate-approval, helper-failure, and lock/unlock checks. The physical Android phone confirmed LAN control, scrolling, typing, remembered-browser recovery, Settings, and the corrected lifecycle menu.
 
 The later script cleanup was checked with five packaging/schema/process integration cases, isolated setup/install/reload smoke checks, and Chromium helper recovery/revocation checks. These focused checks do not represent a new full-suite run.
 
@@ -364,18 +364,18 @@ Native GTK preferences pass with GTK's test accessibility backend, checking labe
 See ACCESSIBILITY.md for exact commands and limits. Screen-reader announcements on real TalkBack/Orca, physical scaling, keyboard occlusion under enlarged text, high-contrast modes and other browsers remain manual follow-ups.
 
 
-## Private D-Bus and app process layout — unreleased, 2026-10-26
+## v0.5.0 Private D-Bus and app process layout — 2026-10-26
 
-Current development removes ipc.js, moves the network worker/server/guard and mobile web assets under app/, and uses typed acknowledged calls on an authenticated private Unix D-Bus connection. Existing released artifacts and tags remain unchanged. See DBUS.md for contract and security limits, including the distinction between application payload checks and native GDBus allocation.
+v0.5.0 removes ipc.js, moves the network worker/server/guard and mobile web assets under app/, and uses typed acknowledged calls on an authenticated private Unix D-Bus connection. Existing released artifacts and tags remain unchanged. See DBUS.md for contract and security limits, including the distinction between application payload checks and native GDBus allocation.
 
 New regressions cover typed Unicode/nested values, parent identity, unrelated same-user attachment before the helper, size/rate/queue bounds, cancelled startup, premature connected state and rejected invalid input. Process tests retain child resource-limit, helper-crash, parent-death/socket-directory cleanup, mode-0700 directory and occupied-port/retry coverage. Packaging checks enforce the runtime manifest and the separation of app code from Shell/preferences imports.
 
-Chromium helper accessibility/recovery/trust checks pass through the real D-Bus child. The isolated native GNOME 51.1 run passes guided certificate approval, crash, lock shutdown, menu states and Stop/disable during pending startup. A new temporary compositor, driver and D-Bus session were used because earlier temporary fixtures no longer existed; the working desktop was not restarted, locked or changed. Physical-phone acceptance remains pending.
+Chromium helper accessibility/recovery/trust checks pass through the real D-Bus child. The isolated native GNOME 51.1 run passes guided certificate approval, crash, lock shutdown, menu states and Stop/disable during pending startup. A new temporary compositor, driver and D-Bus session were used because earlier temporary fixtures no longer existed; the working desktop was not restarted, locked or changed. The user confirmed the migrated implementation works. The exact loading method was not specified, so this does not establish acceptance of the final tagged v0.5.0 ZIP.
 
 All 68 automated tests and ESLint pass. The generated development ZIP matches the runtime manifest exactly, contains app/ and shared dbus.js, and excludes ipc.js, tests and developer tooling. Static review retains the same six documented shexli findings; the new process layout does not suppress any rule.
 
 
-## Install-and-reload packaged builds — unreleased, 2026-10-26
+## v0.5.0 Install-and-reload packaged builds — 2026-10-26
 
 scripts/install-zip.js installs the explicitly selected ZIP using the official gnome-extensions installer. Fresh symlink import aliases refer to the normal installed directory, not project runtime source or a copied build. A GJS import experiment verifies that different alias URLs load changed relative dependencies rather than reusing cached modules.
 
@@ -384,3 +384,8 @@ The isolated native harness tests two fixture ZIPs with different dependency mar
 The existing native TLS approval, helper-crash, lock/menu and pending-startup cancellation checks also pass with the real project loaded from those ZIP-installed files. Developer scripts and native harnesses remain outside the packaged runtime. The working desktop was not updated, restarted or locked during these checks.
 
 The ZIP command generator is checked with explicit filenames containing spaces/quotes, private mode-0600 selection records, generated JavaScript syntax and preservation of the previous selection when a new selection fails. The isolated native ZIP harness reuses an identical generated Looking Glass command for different archives, including failed-load rollback and subsequent real-project installation. Selection does not rebuild source or install anything until the console command runs.
+
+
+## v0.5.0 release verification — 2026-10-26
+
+Release metadata and package/lockfile versions agree at 0.5.0. The final ZIP is built and inspected against the runtime manifest; lint, packaging/schema/process-boundary regressions and shexli are checked on the release artifact. Existing 68-test, Chromium/helper and isolated native validation is recorded above; no working desktop session is restarted for this release.

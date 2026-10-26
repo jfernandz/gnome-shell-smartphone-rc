@@ -1,6 +1,6 @@
 # Publication readiness
 
-Readiness checklist for the current v0.4.7 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
+Readiness checklist for the current v0.5.0 implementation. The initial internal review on 2026-10-25 consulted the [GNOME Shell Extensions Review Guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [Preferences documentation](https://gjs.guide/extensions/development/preferences.html). The checklist has since been updated for the implemented security changes. It is not approval from extensions.gnome.org; recheck the current guidelines before submission.
 
 - [x] Keep GTK/Adwaita imports in preferences and Shell imports in the extension process.
 - [x] Use a correctly named GSettings schema under the GNOME extension namespace and ship its XML.
@@ -31,8 +31,8 @@ Readiness checklist for the current v0.4.7 implementation. The initial internal 
 See [SHEXLI.md](SHEXLI.md) for reproducible tooling and the disposition of all seven v0.4.5 findings. v0.4.6 addresses synchronous Shell file reads/cleanup; six findings remain for documented version/schema limitations, separate entry points, lifecycle ownership and manual clipboard review. No analyzer rule is suppressed, and the released v0.4.5 ZIP is unchanged.
 
 
-## Maintainer feedback and process layout — development
+## Maintainer feedback and process layout — v0.5.0
 
 The [maintainer response](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4) on 2026-10-26 prefers distributing the core separately, recommends D-Bus, and says that separately executed files should live in a dedicated directory if they remain bundled. This is guidance, not formal acceptance of the ZIP.
 
-Current development keeps a single package, replaces ipc.js with private authenticated D-Bus, and puts the network child/server/guard and browser assets in app/. Shared safe modules stay at the root; neither extension.js nor prefs.js statically imports the application core. Application code does not import Shell/desktop UI libraries. Regression checks enforce these boundaries. Separate installation remains a possible future distribution decision, not a new requirement for users of this implementation.
+v0.5.0 keeps a single package, replaces ipc.js with private authenticated D-Bus, and puts the network child/server/guard and browser assets in app/. Shared safe modules stay at the root; neither extension.js nor prefs.js statically imports the application core. Application code does not import Shell/desktop UI libraries. Regression checks enforce these boundaries. Separate installation remains a possible future distribution decision, not a new requirement for users of this implementation.
