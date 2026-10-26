@@ -2,16 +2,16 @@
 
 ## Current evidence
 
-**v0.5.1, 2026-10-26:** all 75 automated tests and ESLint pass. The release ZIP was built and its metadata inspected. Target: GNOME Shell 51, with native observations on 51.1/Wayland.
+**v0.5.1, 2026-10-26:** all 75 automated tests and ESLint pass. The release ZIP matches all 37 manifest files byte-for-byte. See the [pre-publication review](docs/publication-review.md) for current native/browser/load results and the post-tag development-installer fixes. Target: GNOME Shell 51, with native observations on 51.1/Wayland.
 
 | Layer | Recorded coverage | Limit |
 | --- | --- | --- |
 | Automated Node/GJS | Protocol/input validation, browser state, real HTTP/TLS server, authorization/revocation, certificates, subprocess timeout/cancellation/reaping, process failure, D-Bus bounds/identity, schemas and packaging. | Loopback fixtures do not establish physical input or exhaustive resource-exhaustion resilience. |
-| v0.5.1 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Simulated Shell manager and real temporary files; the native ZIP harness has not been rerun for v0.5.1. |
+| v0.5.1 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Native checks now pass using the corrected post-tag helper; the tagged helper has a GJS API defect. |
 | v0.5.1 service | Real helper startup/shutdown with a comma in TMPDIR. | Focused D-Bus path regression. |
-| v0.5.0 Chromium | Recovery, remembered trust, browser/service restart, revocation and accessibility through the real D-Bus helper. | These browser checks were not rerun for v0.5.1. |
-| v0.5.0 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation and active-copy rollback. | Separate compositor, settings and D-Bus session; not final v0.5.1 ZIP acceptance. |
-| Native preferences | Setup/error recovery, sensitivity, trust, About and focused theme/accessibility checks. | Earlier recorded runs; not rerun for v0.5.1. |
+| v0.5.1 Chromium | Recovery, remembered trust, browser/service restart, revocation and accessibility through the real D-Bus helper. | Synthetic Chromium, not final physical-phone acceptance. |
+| v0.5.1 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation, active/disabled/first-install rollback and original ZIP replacement. | Real v0.5.1 ZIP with the corrected post-tag development installer; working desktop untouched. |
+| Native preferences | Setup/error recovery, sensitivity, trust, About and focused theme/accessibility checks. | Rerun in isolated light/dark/enlarged-font sessions. Network windows emit a GTK focus-out warning; assertions pass. |
 | Physical phone | Android/Chrome LAN control, scrolling, typing, remembered recovery, Settings and lifecycle menu; user confirmed the D-Bus migration works. | Exact migration loading method unspecified; not acceptance of the final v0.5.1 ZIP. |
 
 Detailed observations, including the original compositor-crash investigation and mitigations, are retained in the [historical journal](docs/testing-history.md). Historical commands and pending items may be superseded; use the instructions below for current checks.
@@ -38,7 +38,23 @@ npm run test:accessibility
 
 Browser fixtures use temporary profiles and trust only their generated test certificate's public-key pin. Automatic approval is test-only. They do not alter your normal browser profile or certificate policy. Accessibility assertions and their limits are described in [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
+## Optional load check
+
+```sh
+SMARTPHONE_RC_SOAK_SECONDS=120 node tests/network-soak.mjs
+```
+
+The duration defaults to 30 seconds (allowed 10–300), followed by 16 seconds of recovery. This Linux-only test stages a disposable real TLS helper, mixes incomplete handshakes with HTTPS, samples `/proc` RSS/descriptors, and verifies recovery and descriptor release. It never injects desktop input. The recorded two-minute run is in the review report; it is not an exhaustive denial-of-service test.
+
 ## Native checks
+
+Run the self-contained launcher from the repository root:
+
+```sh
+node tests/run-isolated-native.mjs dist/smartphone-rc-0.5.1.zip
+```
+
+It creates its own software-rendered headless Shell, private bus, XDG directories and test-only evaluation driver, verifies their identity, then runs ZIP, lifecycle and preferences checks. It terminates only its own process group and attempts private-profile cleanup; failures retain logs. Preferences screenshots go to dist/publication/. It needs the native/browser dependencies, Python 3, `gdbus`, `dbus-run-session`, `gnome-shell`, unzip/coreutils and `fusermount3` for private FUSE cleanup. Network setup additionally needs an active private LAN address.
 
 Use an isolated compositor with separate D-Bus, settings, configuration, data, cache and runtime directories. Never lock/restart the working desktop, enable its unsafe mode, or point these harnesses at its bus. The Shell harnesses require evaluation support configured only inside the isolated instance; the environment flag alone does not provide isolation.
 
@@ -50,11 +66,11 @@ Use an isolated compositor with separate D-Bus, settings, configuration, data, c
 | `tests/shell-security-native.mjs` | `SMARTPHONE_RC_ISOLATED_SHELL=1 node tests/shell-security-native.mjs /path/to/bus-file /path/to/runtime-directory`; project extension must already be active in the isolated Shell. Exercises lock and helper failure. |
 | `tests/install-zip-native.mjs` | `SMARTPHONE_RC_ISOLATED_SHELL=1 node tests/install-zip-native.mjs /path/to/bus-file /path/to/project.zip`; requires the isolated test-driver extension. Replaces only the isolated installation. |
 
-Bus files contain the isolated bus address, not a bus name. The custom test-driver/compositor setup is not a self-contained launcher in this repository; provision and verify isolation before running either Shell harness.
+Bus files contain the isolated bus address, not a bus name. The launcher provisions the test driver and verifies isolation. Invoke individual Shell harnesses only inside an equivalently verified disposable session.
 
 ## Remaining coverage
 
-- Rerun the native ZIP harness for v0.5.1, especially disabled-state and first-install rollback; confirm the final ZIP on the physical setup.
+- Review the corrected development installer and confirm the final ZIP on the physical setup.
 - Expand ordinary application, Xwayland, IME, Unicode fallback and long-editing checks.
 - Test current Android/browser versions, iOS Safari, network interruptions and long sessions.
 - Verify multiple monitors, scaling, orientation, real mobile keyboard occlusion and assistive technology; see [ACCESSIBILITY.md](ACCESSIBILITY.md).

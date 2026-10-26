@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fix development ZIP installation on GJS by using bounded `mktemp -d` instead of unavailable `GLib.mkdtemp()`. Settle Shell enablement changes before restoring a disabled copy.
+- Add a self-contained isolated native test launcher, real first-install/disabled rollback and ZIP replacement checks, and an optional bounded TLS load/recovery test.
+- Record pre-publication checks and prepare unsent reviewer/release drafts.
+
 ## 0.5.1 — 2026-10-26
 
 - Restore the previous enabled/disabled settings and installed files when ZIP installation fails, including failed first installations and source-loaded copies.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtempSync, readFileSync, rmSync, statSync, existsSync, symlinkSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, statSync, existsSync, symlinkSync, mkdirSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
@@ -19,12 +19,9 @@ const base = `Main.extensionManager.lookup(${JSON.stringify(uuid)})`;
 function evaluate(expression) {
     const code = `(async()=>{const value=await (${expression});GLib.file_set_contents(${JSON.stringify(output)},JSON.stringify(value));return true;})()`;
     const result = execFileSync('gdbus', ['call', '--address', bus, '--dest', 'org.gnome.Shell', '--object-path',
-        '/org/gnome/Shell', '--method', 'org.gnome.Shell.Eval', code], {encoding: 'utf8'});
+        '/org/gnome/Shell', '--method', 'org.gnome.Shell.Eval', code], {encoding: 'utf8', timeout: 45000});
     assert.ok(result.startsWith('(true,'), result);
     return JSON.parse(readFileSync(output, 'utf8'));
-}
-function install(archive) {
-    return evaluate(`(await import(${JSON.stringify(installer)})).installZip(${JSON.stringify(archive)})`);
 }
 function select(archive) {
     const text = evaluate(`new Promise((resolve,reject)=>{
@@ -53,7 +50,25 @@ for name,version in [('first',1),('second',2),('broken',3),('wrong',4)]:
   archive.writestr('schemas/org.gnome.shell.extensions.smartphone-rc.gschema.xml',"""<schemalist><schema id="org.gnome.shell.extensions.smartphone-rc" path="/org/gnome/shell/extensions/smartphone-rc/"><key name="fixture" type="s"><default>'fixture'</default></key></schema></schemalist>""")
 `, directory]);
     const installedPath = evaluate(`GLib.get_user_data_dir()+'/gnome-shell/extensions/'+${JSON.stringify(uuid)}`);
-    const first = install(join(directory, 'first.zip'));
+    const settingsExpression = `['enabled-extensions','disabled-extensions'].map(key=>global.settings.get_strv(key))`;
+    const initialSettings = evaluate(settingsExpression);
+    assert.equal(existsSync(installedPath), false, 'Start with no project installation in the isolated profile');
+    const firstFailure = evaluate(`(await import(${JSON.stringify(installer)})).installZip(${JSON.stringify(join(directory, 'broken.zip'))}).then(()=>null,error=>error.message)`);
+    assert.match(firstFailure, /Previous installation restored/);
+    assert.equal(existsSync(installedPath), false);
+    assert.deepEqual(evaluate(settingsExpression), initialSettings);
+    console.log('PASS: failed first installation leaves no installed directory or enabled/disabled settings changes');
+    const wrappers = join(directory, 'wrappers');
+    mkdirSync(wrappers);
+    const quote = value => `'${value.replaceAll("'", "'\\''")}'`;
+    const unzip = execFileSync('which', ['unzip'], {encoding: 'utf8'}).trim();
+    writeFileSync(join(wrappers, 'unzip'), `#!/bin/sh\ncp -- ${quote(join(directory, 'wrong.zip'))} ${quote(join(directory, 'first.zip'))}\nexec ${quote(unzip)} "$@"\n`, {mode: 0o700});
+    const first = evaluate(`(async()=>{const old=GLib.getenv('PATH');
+        GLib.setenv('PATH',${JSON.stringify(wrappers)}+':'+old,true);
+        try{return await (await import(${JSON.stringify(installer)})).installZip(${JSON.stringify(join(directory, 'first.zip'))});}
+        finally{GLib.setenv('PATH',old,true);}})()`);
+    assert.notEqual(JSON.parse(execFileSync(unzip, ['-p', join(directory, 'first.zip'), 'metadata.json'], {encoding: 'utf8'})).uuid, uuid);
+    console.log('PASS: replacing the original ZIP during real validation cannot change the installed snapshot');
     assert.match(first, /Installed and loaded 1\.0\.1/);
     const firstPath = evaluate(`${base}.path`);
     assert.equal(evaluate(`${base}.stateObj.marker`), 1);
@@ -81,6 +96,18 @@ for name,version in [('first',1),('second',2),('broken',3),('wrong',4)]:
     assert.equal(evaluate(`${base}.metadata.version`), 2);
     assert.equal(JSON.parse(readFileSync(join(installedPath, 'metadata.json'), 'utf8')).version, 2);
     console.log('PASS: import failure restores and reloads the previous installed ZIP');
+    evaluate(`(async()=>{Main.extensionManager.disableExtension(${JSON.stringify(uuid)});
+        for(let i=0;i<250&&${base}.state!==2;i++) await new Promise(resolve=>GLib.timeout_add(GLib.PRIORITY_DEFAULT,20,()=>{resolve();return GLib.SOURCE_REMOVE;}));
+        return ${base}.state;})()`);
+    assert.equal(evaluate(`${base}.state`), 2);
+    const disabledSettings = evaluate(settingsExpression);
+    const disabledFailure = evaluate(`(async()=>${rememberedCommand})().then(()=>null,error=>error.message)`);
+    assert.match(disabledFailure, /Previous installation restored/);
+    assert.deepEqual(evaluate(settingsExpression), disabledSettings);
+    assert.ok([2, 6].includes(evaluate(`${base}.state`)), 'Restored copy must remain inactive or initialized');
+    assert.equal(evaluate(`${base}.metadata.version`), 2);
+    assert.equal(JSON.parse(readFileSync(join(installedPath, 'metadata.json'), 'utf8')).version, 2);
+    console.log('PASS: failed update restores the installed ZIP and keeps a previously disabled extension disabled');
     assert.equal(select(actualArchive), rememberedCommand);
     evaluate(rememberedCommand);
     console.log('PASS: generated Looking Glass command stays identical while the selected ZIP changes');

@@ -8,15 +8,15 @@ Reviewed on 2026-10-25 with shexli 0.2.1, Python 3.14, tree-sitter 0.25.2 and tr
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-review.txt
-# Reproduce the recorded release analysis:
-shexli dist/smartphone-rc-0.5.0.zip
+# Reproduce the current release analysis:
+shexli dist/smartphone-rc-0.5.1.zip
 ```
 
 The released v0.4.5 ZIP produces seven findings: two errors, four warnings and one manual-review item. On this machine, tree-sitter 0.26.0 causes a native crash during analysis; changing only that dependency to 0.25.2 completed three consecutive runs. The exact underlying native defect has not been established. The pins above reproduce the working toolchain; no dependency is installed into GNOME Shell or shipped in our ZIP.
 
-The v0.5.0 ZIP includes the asynchronous file-I/O changes and produces six findings: two errors, three warnings and one manual-review item. No validator rules were disabled or patched to obtain these results. The original v0.4.5 release artifact remains unchanged.
+The v0.5.0 ZIP includes the asynchronous file-I/O changes. Rechecking the unchanged v0.5.1 runtime ZIP on 2026-10-26 produces the same six findings: two errors, three warnings and one manual-review item. No validator rules were disabled or patched to obtain these results. The original v0.4.5 release artifact remains unchanged.
 
-For the current v0.5.1 source, build a separate snapshot without overwriting a release artifact. The recorded six-finding result above is for v0.5.0; analysis has not been rerun for v0.5.1:
+To check a separate source snapshot without overwriting the release artifact:
 
 ```sh
 bash scripts/package.sh dist/review

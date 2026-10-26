@@ -23,7 +23,7 @@ Reload replaces only this extension and stops its service; start control manuall
 bash scripts/prepare-zip-install.sh /path/to/extension.zip
 ```
 
-The selector verifies the UUID, writes a private selection record, and prints a stable Looking Glass command. It does not build or install anything. For later archives, rerun the selector and recall the same console command with Up and Enter. Selection uses Node.js and unzip; the installer also needs unzip and `gnome-extensions`.
+The selector verifies the UUID, writes a private selection record, and prints a stable Looking Glass command. It does not build or install anything. For later archives, rerun the selector and recall the same console command with Up and Enter. Selection uses Node.js and unzip; the installer also needs unzip, `gnome-extensions` and coreutils (`mktemp`, `cp`, `mv`).
 
 Explicit calls are supported:
 
@@ -38,7 +38,7 @@ Close Settings before updating and reopen it afterwards. `install-zip.js`:
 3. Loads the installed files through a fresh symlink import alias to avoid cached dependency URLs. No project runtime source is built or loaded. Successful installation enables the extension.
 4. On failure after unloading, attempts to restore the old files and enabled/disabled settings, including for a failed first installation. A previously loaded source copy can also be restored. Rollback failure reports the backup location.
 
-Settings, certificates and remembered devices are outside the replaced directory. The GNOME 51 loader clears only this UUID's private numeric-version reload guard. It does not invalidate the global module cache. The normal installed directory is still used at the next login.
+Settings, certificates and remembered devices are outside the replaced directory. The GNOME 51 loader clears only this UUID's private numeric-version reload guard. It does not invalidate the global module cache. The normal installed directory is still used at the next login. The helper module itself is also cached: after editing its source, use a fresh import URI or a new isolated Shell session to test the changes.
 
 External installer commands use the shared GIO subprocess helper with a 30-second timeout per command and direct-child reaping. Pass `installZip(path, {cancellable})` with a `Gio.Cancellable` to cancel copying/commands; cancellation is also checked before and after loading. Rollback ignores the cancelled token and has its own command timeouts. These are per-step bounds, not a deadline for the entire transaction.
 

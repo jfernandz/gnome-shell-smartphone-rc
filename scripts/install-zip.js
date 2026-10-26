@@ -76,7 +76,9 @@ export async function installZip(archivePath = null, {cancellable = null} = {}) 
     let transaction, installedPath, hadInstallation = false, previous = null;
     let replacing = false;
     let archiveCopy = null;
-    const wasEnabled = Main.extensionManager._enabledExtensions.includes(UUID);
+    const wasEnabled = global.settings.get_strv('enabled-extensions').includes(UUID) &&
+        !global.settings.get_strv('disabled-extensions').includes(UUID) &&
+        !global.settings.get_boolean('disable-user-extensions');
     const priorSettings = ['enabled-extensions', 'disabled-extensions'].map(key =>
         [key, global.settings.get_strv(key).includes(UUID)]);
     const restoreSettings = () => {
@@ -89,7 +91,7 @@ export async function installZip(archivePath = null, {cancellable = null} = {}) 
     try {
         const cache = `${GLib.get_user_cache_dir()}/smartphone-rc`;
         GLib.mkdir_with_parents(cache, 0o700);
-        transaction = GLib.mkdtemp(`${cache}/zip-install-XXXXXX`);
+        transaction = await command(['mktemp', '-d', `${cache}/zip-install-XXXXXX`], cancellable);
         archiveCopy = Gio.File.new_for_path(`${transaction}/archive.zip`);
         await new Promise((resolve, reject) => Gio.File.new_for_path(archivePath).copy_async(
             archiveCopy, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, cancellable, null, (source, result) => {
@@ -120,6 +122,10 @@ export async function installZip(archivePath = null, {cancellable = null} = {}) 
         if (!replacing) throw error;
         try {
             await unload();
+            restoreSettings();
+            // Settings changes are queued by Shell. Settle them before loading a
+            // disabled copy, otherwise loadExtension() can see stale enablement.
+            await Main.extensionManager._onEnabledExtensionsChanged();
             // Keep a failed installation for diagnosis; restore the old directory
             // including compiled schemas. Configuration outside it is untouched.
             if (Gio.File.new_for_path(installedPath).query_exists(null))

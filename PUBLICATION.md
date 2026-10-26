@@ -12,15 +12,18 @@ Current implementation: **v0.5.1**. A local ZIP/tag is not approval from extensi
 
 Evidence and limitations: [TESTING.md](TESTING.md), [SECURITY.md](SECURITY.md), [ACCESSIBILITY.md](ACCESSIBILITY.md) and [SHEXLI.md](SHEXLI.md).
 
+Local technical review, load measurements and draft release/reviewer text: [publication review](docs/publication-review.md). The corrected development installer has source fixes after the tag; the runtime ZIP is unchanged.
+
 ## Before public submission
 
 - [ ] Clarify reviewability of the bundled HTML/browser JavaScript and separate network core with reviewers.
 - [ ] Complete first-use mobile certificate-warning checks and final packaged-build acceptance.
-- [ ] Assess sustained resource exhaustion and additional OS isolation.
+- [x] Run a bounded load/recovery check and assess isolation options; broader resource-exhaustion resilience and an OS sandbox remain unestablished.
 - [ ] Complete real assistive-technology, high-contrast and physical display-scaling checks.
 - [ ] Record current supported devices/browsers and prepare publication screenshots.
 - [ ] Complete the maintainer's code/readability review and understanding of security/lifecycle choices.
-- [ ] Recheck current review guidelines, then publish/submit only when requested.
+- [x] Recheck current review guidelines (2026-10-26); bundled-web reviewability remains open.
+- [ ] Publish/submit only when requested.
 
 ## Recorded reviewer guidance
 
@@ -28,4 +31,4 @@ The [maintainer response](https://discourse.gnome.org/t/ego-submission-bundled-m
 
 The project retains one package with a private D-Bus child and browser assets under `app/`; Shell/preferences do not import that application core. See [DBUS.md](DBUS.md). Separate distribution remains a possible design change.
 
-The initial 2026-10-25 review consulted the [extension review guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [preferences documentation](https://gjs.guide/extensions/development/preferences.html). The links record that review's sources, not a fresh policy verification.
+The initial 2026-10-25 review consulted the [extension review guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [preferences documentation](https://gjs.guide/extensions/development/preferences.html). The current review rechecked the extension guidelines; that does not constitute approval.

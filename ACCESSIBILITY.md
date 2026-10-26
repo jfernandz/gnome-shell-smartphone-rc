@@ -2,6 +2,8 @@
 
 Validated for v0.4.7 on 2026-10-25. This is a focused validation record, not a claim of complete WCAG compliance or screen-reader certification. Target mobile support remains Chrome on Android. Checks use a synthetic local browser session and isolated native preferences, never the working desktop's remote connection.
 
+The same browser checks and native light/Sans 11, dark/Sans 11 and dark/Sans 22 checks were rerun during the v0.5.1 [pre-publication review](docs/publication-review.md). Synthetic candidates are under dist/publication/. Normal-size light/dark captures use Sans 11; `preferences-dark-large-text.png` uses Sans 22 for enlarged-text testing; real assistive-technology and physical-device limits below still apply.
+
 ## Mobile interface
 
 - Native buttons, a labelled sensitivity range and a labelled text input retain standard keyboard behavior.

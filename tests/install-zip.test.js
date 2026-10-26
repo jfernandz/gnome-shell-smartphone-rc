@@ -33,14 +33,16 @@ for (const scenario of ['active', 'disabled', 'first', 'snapshot', 'cancel', 'ca
                     fs.copyFileSync(path, destination.get_path()); callback({copy_finish() {}}, {});
                 }, delete: () => fs.unlinkSync(path)};
         }
-        const manager = {lookup: () => extension, _enabledExtensions: enabled ? [uuid] : [], _unloadedExtensions: new Set(),
+        const manager = {lookup: () => extension, _enabledExtensions: scenario === 'disabled' || enabled ? [uuid] : [], _unloadedExtensions: new Set(),
             unloadExtension: async () => { extension = null; },
+            _onEnabledExtensionsChanged: async () => { manager._enabledExtensions = settings['enabled-extensions'].filter(id => !settings['disabled-extensions'].includes(id)); },
             createExtensionObject: (_uuid, dir) => (extension = {dir, metadata: {version: 1}, state: 1}),
-            enableExtension: () => { settings['enabled-extensions'] = [uuid, 'other']; settings['disabled-extensions'] = []; },
+            enableExtension: () => { manager._enabledExtensions = [uuid]; settings['enabled-extensions'] = [uuid, 'other']; settings['disabled-extensions'] = []; },
             disableExtension: () => { settings['enabled-extensions'] = ['other']; settings['disabled-extensions'] = [uuid]; },
-            loadExtension: async object => { if (scenario !== 'snapshot' && object.dir.get_path().includes('/installed/')) throw Error('broken import'); }};
+            loadExtension: async object => { object.state = manager._enabledExtensions.includes(uuid) ? 1 : 6; if (scenario !== 'snapshot' && object.dir.get_path().includes('/installed/')) throw Error('broken import'); }};
         const runCommand = async (argv, options) => {
             assert.equal(options.timeoutMs, 30000);
+            if (argv[0] === 'mktemp') return fs.mkdtempSync(argv[2].replace('XXXXXX', ''));
             if (argv[0] === 'unzip') {
                 snapshot ??= argv[2];
                 assert.equal(argv[2], snapshot);
@@ -64,13 +66,12 @@ for (const scenario of ['active', 'disabled', 'first', 'snapshot', 'cancel', 'ca
             return '';
         };
         const GLib = {get_user_cache_dir: () => root, get_user_data_dir: () => root,
-            path_is_absolute: path => path.startsWith('/'), mkdir_with_parents: path => fs.mkdirSync(path, {recursive: true}),
-            mkdtemp: template => fs.mkdtempSync(template.replace('XXXXXX', ''))};
+            path_is_absolute: path => path.startsWith('/'), mkdir_with_parents: path => fs.mkdirSync(path, {recursive: true})};
         const Gio = {File: {new_for_path: file}, FileCopyFlags: {NONE: 0}, FileQueryInfoFlags: {NONE: 0, NOFOLLOW_SYMLINKS: 1}, FileType: {DIRECTORY: 1}};
         const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
         const install = await new AsyncFunction('Gio', 'GLib', 'Main', 'ExtensionState', 'ExtensionType', 'runCommand', 'global', `${source}\nreturn installZip;`)(
             Gio, GLib, {extensionManager: manager}, {ACTIVE: 1}, {PER_USER: 2}, runCommand,
-            {settings: {get_strv: key => [...settings[key]], set_strv: (key, value) => { settings[key] = value; }}});
+            {settings: {get_boolean: () => false, get_strv: key => [...settings[key]], set_strv: (key, value) => { settings[key] = value; }}});
         if (scenario === 'snapshot') {
             assert.match(await install(archive), /Installed and loaded/);
             assert.equal(fs.existsSync(snapshot), false);
@@ -78,6 +79,7 @@ for (const scenario of ['active', 'disabled', 'first', 'snapshot', 'cancel', 'ca
         }
         await assert.rejects(install(archive), scenario === 'cancel' ? /cancelled/ : /Previous installation restored/);
         assert.deepEqual(settings, originalSettings);
+        if (scenario === 'disabled') assert.equal(extension.state, 6);
         assert.equal(fs.existsSync(installed), hadInstallation);
         if (hadInstallation) assert.equal(fs.readFileSync(`${installed}/marker`, 'utf8'), 'old');
         assert.equal(fs.existsSync(snapshot), false);
