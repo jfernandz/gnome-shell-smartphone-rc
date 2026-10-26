@@ -32,9 +32,12 @@ async function start() {
     }, input => print(JSON.stringify({input})), options,
     message => print(JSON.stringify({failure: message})));
     try {
-        const result = await service.start();
+        const startup = service.start();
+        if (service._dbusServer) print(JSON.stringify({startingAddress: service._dbusServer.get_client_address()}));
+        const result = await startup;
         options.port = Number(result.url.split('/')[2].split(':')[1]);
-        print(JSON.stringify({url: result.url, pid: Number(service._process.get_identifier())}));
+        print(JSON.stringify({url: result.url, pid: Number(service._process.get_identifier()),
+            address: service._dbusServer.get_client_address(), peerDirectory: service._peerDirectory}));
     } catch (error) {
         print(JSON.stringify({failure: error.message}));
     }

@@ -73,4 +73,5 @@ test('network application entry points are outside the Shell and preferences imp
     for (const url of graph('app/service-worker.js'))
         assert.doesNotMatch(readFileSync(new URL(url), 'utf8'), /from ['"](?:resource:\/\/\/org\/gnome\/shell\/|gi:\/\/(?:St|Meta|Clutter|Gtk|Adw)(?:['"?]))/);
     assert.ok(manifest.runtime.includes('app/service-worker.js'));
+    assert.equal(manifest.runtime.includes('ipc.js'), false);
 });

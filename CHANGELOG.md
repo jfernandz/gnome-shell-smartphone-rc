@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Group the separately executed network worker, server, guard and mobile client under app/, preserving runtime routes and shared modules. Add import-graph checks for process boundaries.
+- Replace the custom JSON-pipe IPC with typed, acknowledged private D-Bus methods, Unix UID/PID checks on both peers, bounded application messages/queues/rates, startup and call deadlines, and cleanup on stop/crash/parent disappearance. No session-bus service or extra application installation is required.
+- Group the separately executed network helper, server, connection guard and mobile web client under app/. Remove ipc.js and verify process/module boundaries in packaging tests.
 
 ## 0.4.7 — 2026-10-25
 

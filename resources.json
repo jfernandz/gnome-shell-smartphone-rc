@@ -19,7 +19,6 @@
     "preferences/sensitivity.js",
     "preferences/devices.js",
     "app/network-guard.js",
-    "ipc.js",
     "service.js",
     "app/service-worker.js",
     "preferences/security.js",
@@ -27,7 +26,8 @@
     "preferences/network.js",
     "subprocess.js",
     "certificates.js",
-    "file-io.js"
+    "file-io.js",
+    "dbus.js"
   ],
   "web": {
     "/": {

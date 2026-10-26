@@ -362,3 +362,14 @@ All 58 automated tests and lint pass. The new npm run test:accessibility mode ex
 Native GTK preferences pass with GTK's test accessibility backend, checking labelled browser actions and the rename entry alongside existing preferences behavior. Isolated runs force light/Sans 11 and dark/Sans 22, render previews, and verify the requested theme. Synthetic browser/native previews were inspected; they are development artifacts, not publication screenshots. No working session theme, font, configuration or remote connection was changed.
 
 See ACCESSIBILITY.md for exact commands and limits. Screen-reader announcements on real TalkBack/Orca, physical scaling, keyboard occlusion under enlarged text, high-contrast modes and other browsers remain manual follow-ups.
+
+
+## Private D-Bus and app process layout — unreleased, 2026-10-26
+
+Current development removes ipc.js, moves the network worker/server/guard and mobile web assets under app/, and uses typed acknowledged calls on an authenticated private Unix D-Bus connection. Existing released artifacts and tags remain unchanged. See DBUS.md for contract and security limits, including the distinction between application payload checks and native GDBus allocation.
+
+New regressions cover typed Unicode/nested values, parent identity, unrelated same-user attachment before the helper, size/rate/queue bounds, cancelled startup, premature connected state and rejected invalid input. Process tests retain child resource-limit, helper-crash, parent-death/socket-directory cleanup, mode-0700 directory and occupied-port/retry coverage. Packaging checks enforce the runtime manifest and the separation of app code from Shell/preferences imports.
+
+Chromium helper accessibility/recovery/trust checks pass through the real D-Bus child. The isolated native GNOME 51.1 run passes guided certificate approval, crash, lock shutdown, menu states and Stop/disable during pending startup. A new temporary compositor, driver and D-Bus session were used because earlier temporary fixtures no longer existed; the working desktop was not restarted, locked or changed. Physical-phone acceptance remains pending.
+
+All 68 automated tests and ESLint pass. The generated development ZIP matches the runtime manifest exactly, contains app/ and shared dbus.js, and excludes ipc.js, tests and developer tooling. Static review retains the same six documented shexli findings; the new process layout does not suppress any rule.

@@ -1,6 +1,6 @@
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
-import {JsonPipe} from './ipc.js';
+import {DBusPeer, isExpectedPeer, cleanupPeerDirectory} from './dbus.js';
 import {RateLimit, validateInput} from './protocol.js';
 import {isPrivateIPv4} from './network.js';
 import {isSensitivityRange} from './limits.js';
@@ -15,7 +15,10 @@ export class RemoteService {
         this._onFailure = onFailure;
         this._options = options;
         this._process = null;
-        this._pipe = null;
+        this._peer = null;
+        this._dbusServer = null;
+        this._peerDirectory = null;
+        this._ready = false;
         this._startup = 0;
         this._state = 'off';
         this._rate = new RateLimit();
@@ -31,14 +34,27 @@ export class RemoteService {
                 return;
             }
             try {
-                const launcher = new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.STDIN_PIPE |
-                    Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE});
+                this._peerDirectory = GLib.dir_make_tmp('smartphone-rc-peer-XXXXXX');
+                const path = `${this._peerDirectory}/peer`;
+                this._dbusServer = Gio.DBusServer.new_sync(`unix:path=${path}`,
+                    Gio.DBusServerFlags.AUTHENTICATION_REQUIRE_SAME_USER, Gio.dbus_generate_guid(), null, null);
+                this._connectionId = this._dbusServer.connect('new-connection', (_server, connection) => {
+                    if (!this._process || this._peer || !isExpectedPeer(connection, Number(this._process.get_identifier()))) {
+                        connection.close(null, null);
+                        return false;
+                    }
+                    this._peer = new DBusPeer(connection, 'controller', message => this._message(message),
+                        () => this._failed('The network service connection ended.'));
+                    this._dbusServer.stop();
+                    return true;
+                });
+                this._dbusServer.start();
+                const launcher = new Gio.SubprocessLauncher({flags: Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE});
                 launcher.unsetenv('G_MESSAGES_DEBUG');
                 const process = launcher.spawnv([limiter, '--nofile=128:128', '--core=0:0', '--data=536870912:536870912', '--',
-                    'gjs', '-m', `${this._directory}/app/service-worker.js`]);
+                    'gjs', '-m', `${this._directory}/app/service-worker.js`, this._dbusServer.get_client_address(),
+                    String(Gio.Credentials.new().get_unix_pid()), this._peerDirectory]);
                 this._process = process;
-                this._pipe = new JsonPipe(process.get_stdout_pipe(), process.get_stdin_pipe(),
-                    message => this._message(message), () => this._failed('The network service connection ended.'));
                 this._startup = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 8000, () => {
                     this._startup = 0;
                     this._failed('The network service did not start in time.');
@@ -49,7 +65,6 @@ export class RemoteService {
                     if (this._process === process)
                         this._failed('The network service stopped unexpectedly.');
                 });
-                this._pipe.send({type: 'start', options: this._options});
             } catch {
                 this._failed('Could not launch the network service.');
             }
@@ -57,10 +72,13 @@ export class RemoteService {
     }
 
     _message(message) {
-        if (message.type === 'started') {
+        if (message.type === 'ready' && this._resolve && !this._ready) {
+            this._ready = true;
+            this._peer.send({type: 'start', options: this._options});
+        } else if (message.type === 'started') {
             const match = /^(https?):\/\/([0-9.]+):(\d+)\/#([a-f0-9]{64})$/.exec(message.url);
             if (!match || Number(match[3]) < 1 || Number(match[3]) > 65535 || match[2] !== this._options.address || (this._options.port && Number(match[3]) !== this._options.port) || (match[1] === 'http' ? match[2] !== '127.0.0.1' : (match[2] !== '127.0.0.1' && !isPrivateIPv4(match[2]))) ||
-                (match[1] === 'https' && !/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(message.fingerprint)) || !this._resolve)
+                (match[1] === 'https' && !/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(message.fingerprint)) || !this._resolve || !this._ready || this._state !== 'listening')
                 return this._failed('Invalid network service startup response.');
             if (this._startup) GLib.Source.remove(this._startup);
             this._startup = 0;
@@ -70,6 +88,8 @@ export class RemoteService {
         } else if (message.type === 'state' && STATES.has(message.state) &&
             (message.peer === null || (typeof message.peer === 'string' && message.peer.length <= 64)) &&
             (message.browserName === null || (typeof message.browserName === 'string' && message.browserName.length <= 80))) {
+            if (!this._ready || (this._resolve && message.state !== 'listening'))
+                return this._failed('Invalid network service startup state.');
             this._state = message.state;
             this.peer = message.peer;
             this.browserName = message.browserName;
@@ -96,23 +116,36 @@ export class RemoteService {
         else if (running) this._onFailure(message);
     }
 
-    send(message) { this._pipe?.send({type: 'send', message}); }
+    send(message) { this._peer?.send({type: 'send', message}); }
     approve(remember = false) {
         if (this._state === 'pending' && typeof remember === 'boolean')
-            this._pipe?.send({type: 'approve', remember});
+            this._peer?.send({type: 'approve', remember});
     }
-    disconnect() { this._pipe?.send({type: 'disconnect'}); }
+    disconnect() { this._peer?.send({type: 'disconnect'}); }
     setSensitivity(sensitivity) {
-        if (isSensitivityRange(sensitivity))
-            this._pipe?.send({type: 'settings', sensitivity});
+        if (isSensitivityRange(sensitivity)) {
+            // Preserve changes made while the child is still authenticating.
+            this._options.sensitivity = sensitivity;
+            this._peer?.send({type: 'settings', sensitivity});
+        }
     }
 
     stop() {
         this._state = 'off';
         if (this._startup) GLib.Source.remove(this._startup);
         this._startup = 0;
-        this._pipe?.close();
-        this._pipe = null;
+        this._peer?.close();
+        this._peer = null;
+        this._ready = false;
+        if (this._dbusServer) {
+            this._dbusServer.disconnect(this._connectionId);
+            this._dbusServer.stop();
+            this._dbusServer = null;
+        }
+        if (this._peerDirectory) {
+            cleanupPeerDirectory(this._peerDirectory);
+            this._peerDirectory = null;
+        }
         const process = this._process;
         this._process = null;
         process?.force_exit();

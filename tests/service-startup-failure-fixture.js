@@ -9,7 +9,7 @@ try {
     if (!error.message.includes(`Port ${options.port} is already in use`) || !error.message.includes('Settings → Network'))
         throw error;
 }
-if (service._process !== null || service._pipe !== null || service._startup !== 0 || service._state !== 'off')
+if (service._process !== null || service._peer !== null || service._startup !== 0 || service._state !== 'off')
     throw Error('Failed startup left resources or active state');
 options.port = 0;
 try {

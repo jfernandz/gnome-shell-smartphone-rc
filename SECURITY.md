@@ -20,7 +20,7 @@ The PC stores credential verifiers, not raw remembered credentials. Individual r
 
 ## Network and process boundaries
 
-Network parsing and session serving run in a separate GJS child. GNOME Shell communicates through inherited private pipes, accepts bounded JSON envelopes, validates input again, and applies input only in the connected state. EOF, protocol failure, child crash, lock, and disable stop control. There is no automatic restart after a helper failure or unlock.
+Network parsing and session serving run in a separate GJS child. GNOME Shell communicates through a private peer-to-peer D-Bus connection over a Unix socket in a mode-0700 temporary directory. The controller accepts only the spawned child's UID/PID; the child independently checks the parent's Unix socket credentials. The listener stops accepting after the expected child connects. Typed, acknowledged methods carry bounded values; there is no public session-bus name, broadcast signal or D-Bus activation. Shell validates input again and applies it only after startup and in the connected state. Connection loss, invalid/excessive messages, child crash, lock and disable stop control. There is no automatic restart after a helper failure or unlock.
 
 The child has a 512 MiB data-allocation limit, 128 file descriptors, and disabled core dumps through util-linux prlimit. It shares the user's OS identity; this is process fault isolation, not an OS sandbox or a boundary against malicious software already running as that user. The data limit is not a claim that all kinds of process memory are capped at 512 MiB.
 
@@ -32,7 +32,10 @@ Current application limits:
 - No HTTP request bodies, transfer-encoded bodies, or query strings; header and URI limits.
 - Four unauthenticated WebSockets, with five seconds to send an authentication message of at most 256 bytes.
 - 2 KiB per WebSocket frame and complete message, enforced by libsoup 3.8 or later before application parsing.
-- Bounded validated input, per-connection input rate limits, bounded private-pipe queues/messages, and an independent Shell-side input limiter.
+- D-Bus application payloads up to 4096 serialized bytes, at most 64 queued outgoing calls plus one in flight, 512 incoming application calls per second, and a five-second call deadline. A separate eight-second startup deadline bounds helper setup.
+- Bounded validated input, per-connection input rate limits, and an independent Shell-side input limiter.
+
+The D-Bus application-size check runs after GDBus has received/deserialized the native message. It is not a pre-allocation byte cap like the old pipe reader. The private endpoint and UID/PID checks restrict application access to the spawned peer; this is still not a sandbox against compromised same-user code or an exhaustive native D-Bus parser audit. See [DBUS.md](DBUS.md).
 
 Addresses are informational labels, never proof of device identity. Binding to a private address does not replace firewall policy or prevent a separately configured router/VPN from forwarding traffic.
 

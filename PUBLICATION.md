@@ -9,7 +9,7 @@ Readiness checklist for the current v0.4.7 implementation. The initial internal 
 - [x] Declare clipboard use in metadata and require a user action to copy a pairing link.
 - [x] Stop control on disable/lock and remove notifications, listeners, signals, and timers.
 - [ ] Confirm reviewability of the embedded browser interface. The guidelines limit review of HTML/web JavaScript dependencies; acceptance of this architecture needs reviewer clarification.
-- [x] Move network serving out of the Shell process, bound private IPC, and test crash/parent-exit cleanup.
+- [x] Move network serving out of the Shell process, bound private D-Bus application messages, and test crash/parent-exit cleanup.
 - [x] Add bounded hostile-transport regressions and connection/resource limits.
 - [ ] Complete sustained resource-exhaustion testing and assess OS sandboxing; current checks do not establish resilience against every native/network attack.
 - [x] Provide network address/port selection and local certificate generation/renewal in Settings, with a first-start setup prompt.
@@ -29,3 +29,10 @@ Readiness checklist for the current v0.4.7 implementation. The initial internal 
 ## Static analysis
 
 See [SHEXLI.md](SHEXLI.md) for reproducible tooling and the disposition of all seven v0.4.5 findings. v0.4.6 addresses synchronous Shell file reads/cleanup; six findings remain for documented version/schema limitations, separate entry points, lifecycle ownership and manual clipboard review. No analyzer rule is suppressed, and the released v0.4.5 ZIP is unchanged.
+
+
+## Maintainer feedback and process layout — development
+
+The [maintainer response](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4) on 2026-10-26 prefers distributing the core separately, recommends D-Bus, and says that separately executed files should live in a dedicated directory if they remain bundled. This is guidance, not formal acceptance of the ZIP.
+
+Current development keeps a single package, replaces ipc.js with private authenticated D-Bus, and puts the network child/server/guard and browser assets in app/. Shared safe modules stay at the root; neither extension.js nor prefs.js statically imports the application core. Application code does not import Shell/desktop UI libraries. Regression checks enforce these boundaries. Separate installation remains a possible future distribution decision, not a new requirement for users of this implementation.

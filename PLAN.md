@@ -40,3 +40,12 @@ Keep changes small and reviewable. Validate protocol and authorization changes w
 Development reload builds a fresh source snapshot and replaces only this extension; it stops existing remote connections. Preserve the stable `scripts/reload.js` entry point so the user's Looking Glass history continues to work. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Record what was actually tested, distinguish remaining checks from failures, and require physical-phone acceptance for significant interaction changes before closing a release.
+
+## Current development — private D-Bus and app layout
+
+- [x] Replace inherited JSON pipes with typed, authenticated private peer D-Bus while retaining bounded application calls and lifecycle cleanup.
+- [x] Group the worker/server/guard and mobile assets under app/, preserving a single runtime package.
+- [x] Test peer identity, typed values, application limits, invalid state/input, cancellation, crash and parent loss; enforce import/process boundaries.
+- [ ] Obtain physical-phone acceptance of the migrated helper before closing a new release.
+
+See [DBUS.md](DBUS.md) for contract, security limits and implementation evidence; maintainer guidance does not imply final publication approval.

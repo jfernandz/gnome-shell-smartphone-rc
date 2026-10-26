@@ -4,6 +4,8 @@ Control a GNOME desktop from a smartphone browser over the local network. The ph
 
 **Status: v0.4.7 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
+Unreleased development source uses private D-Bus and groups the helper/browser code under `app/`; these changes are not part of the v0.4.7 ZIP. See [DBUS.md](DBUS.md).
+
 ## Features
 
 - A top-bar menu to start, approve, reject, disconnect, and stop the service, with subtle action colors.
@@ -90,11 +92,13 @@ Focus detection uses GNOME's input method, IBus notifications, and editable Shel
 
 Text insertion uses GNOME's input method when the application acknowledges text updates. Deletion uses native Backspace events, never surrounding-text deletion offsets. Edits are serialized using application acknowledgements; an unacknowledged edit pauses typing after one second while leaving pointer control connected. Click the PC text field again to resume typing. Applications without surrounding-text support use a layout-dependent virtual-keyboard fallback. Arbitrary Unicode in fallback applications, dragging, and modifier shortcuts are not promised. The user has confirmed scroll and basic typing work on their desktop. See [TESTING.md](TESTING.md) for detailed validation and remaining checks.
 
-The libsoup server runs in a separate GJS child with private bounded IPC and resource/network limits. This isolates network-process failures from GNOME Shell; it is not an OS sandbox. See [SECURITY.md](SECURITY.md) for the trust model and limits, and [PUBLICATION.md](PUBLICATION.md) for remaining public-distribution work.
+The libsoup server runs in a separate GJS child with a private, bounded D-Bus peer connection and resource/network limits. This isolates network-process failures from GNOME Shell; it is not an OS sandbox. See [SECURITY.md](SECURITY.md) for the trust model and limits, and [PUBLICATION.md](PUBLICATION.md) for remaining public-distribution work.
 
 ## Development
 
-The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `app/service-worker.js`; `app/server.js` handles HTTP/WebSocket sessions and `app/network-guard.js` bounds incoming connections. Browser startup lives in `app/web/app.js`; `app/web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups, including initial network configuration, live in `preferences/`.
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a D-Bus network-process client in `service.js`. The child entry point is `app/service-worker.js`; `app/server.js` handles HTTP/WebSocket sessions and `app/network-guard.js` bounds incoming connections. Browser startup lives in `app/web/app.js`; `app/web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups, including initial network configuration, live in `preferences/`. Files executed exclusively by the child or phone browser are grouped under `app/`; shared modules remain outside it.
+
+`dbus.js` defines typed control/event methods over a private Unix-socket D-Bus connection. Both peers check the expected UID/PID, and the listener stops accepting connections once the child is authenticated. No public session-bus name, broadcast signal, D-Bus activation file or separately installed application is required. The child still starts and stops with the extension's explicit service lifecycle. See [DBUS.md](DBUS.md) for the interface and limits.
 
 `limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/lib/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
 

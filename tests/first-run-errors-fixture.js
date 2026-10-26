@@ -68,7 +68,7 @@ exit 1`);
     const service = new RemoteService('.', () => {}, () => { throw Error('Unexpected input'); },
         {address: '127.0.0.1', port: 0}, () => { throw Error('Unexpected running failure'); });
     await rejects(() => service.start(), /util-linux prlimit.*Install util-linux/);
-    check(service._process === null && service._pipe === null && service._startup === 0 && service._state === 'off',
+    check(service._process === null && service._peer === null && service._startup === 0 && service._state === 'off',
         'Missing prlimit left service resources or state');
     print('PASS: absent prlimit refuses startup without a child process or active control');
 } finally { GLib.setenv('PATH', originalPath, true); }

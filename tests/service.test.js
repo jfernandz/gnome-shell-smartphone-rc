@@ -3,14 +3,21 @@ import test from 'node:test';
 import {spawn, execFileSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {once} from 'node:events';
-import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync, copyFileSync, statSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import http from 'node:http';
 
-async function start(t) {
+async function start(t, {beforeReady = null} = {}) {
     const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-service-'));
     execFileSync('bash', ['scripts/lib/stage.sh', directory]);
+    if (beforeReady) {
+        copyFileSync(`${directory}/app/service-worker.js`, `${directory}/app/worker-implementation.js`);
+        writeFileSync(`${directory}/app/service-worker.js`, `import GLib from 'gi://GLib';
+await new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => { resolve(); return GLib.SOURCE_REMOVE; }));
+await import('./worker-implementation.js');
+`);
+    }
     const child = spawn('gjs', ['-m', 'tests/service-fixture.js', directory], {env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
     const events = [];
     let errors = '';
@@ -30,6 +37,10 @@ async function start(t) {
         }
         assert.fail(`Helper condition timed out: ${errors}`);
     };
+    if (beforeReady) {
+        await wait(() => events.some(event => event.startingAddress));
+        await beforeReady(events.find(event => event.startingAddress).startingAddress, child.pid);
+    }
     await wait(() => events.some(event => event.url));
     const info = events.find(event => event.url);
     return {child, events, wait, ...info};
@@ -45,6 +56,7 @@ function get(url) {
 
 test('network service runs in a bounded child process and a crash fails closed', {timeout: 10000}, async t => {
     const fixture = await start(t);
+    assert.equal(statSync(fixture.peerDirectory).mode & 0o777, 0o700);
     assert.notEqual(fixture.pid, fixture.child.pid);
     const limits = readFileSync(`/proc/${fixture.pid}/limits`, 'utf8');
     assert.match(limits, /Max open files\s+128\s+128/);
@@ -67,6 +79,7 @@ test('network service exits when its parent disappears and closes its listener',
         catch { return true; }
     });
     await assert.rejects(get(fixture.url), /ECONNREFUSED|ECONNRESET/);
+    await fixture.wait(() => !existsSync(fixture.peerDirectory));
 });
 
 test('occupied port fails safely through the real helper and permits retry', {timeout: 10000}, async t => {
@@ -83,4 +96,15 @@ test('occupied port fails safely through the real helper and permits retry', {ti
     const output = execFileSync('gjs', ['-m', 'tests/service-startup-failure-fixture.js', directory,
         String(listener.address().port)], {encoding: 'utf8', timeout: 8000, env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
     assert.match(output, /^PASS: occupied port/);
+});
+
+
+test('an unrelated same-user process cannot attach before the real helper', {timeout: 10000}, async t => {
+    const fixture = await start(t, {beforeReady(address, parentPid) {
+        const output = execFileSync('gjs', ['-m', 'tests/dbus-intruder-fixture.js', address, String(parentPid)],
+            {encoding: 'utf8', timeout: 3000});
+        assert.match(output, /^PASS: unrelated/);
+    }});
+    assert.equal(await get(fixture.url), 200);
+    assert.equal(fixture.events.some(event => event.failure), false);
 });
