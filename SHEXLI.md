@@ -8,6 +8,7 @@ Reviewed on 2026-10-25 with shexli 0.2.1, Python 3.14, tree-sitter 0.25.2 and tr
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-review.txt
+# Reproduce the recorded release analysis:
 shexli dist/smartphone-rc-0.5.0.zip
 ```
 
@@ -15,11 +16,11 @@ The released v0.4.5 ZIP produces seven findings: two errors, four warnings and o
 
 The v0.5.0 ZIP includes the asynchronous file-I/O changes and produces six findings: two errors, three warnings and one manual-review item. No validator rules were disabled or patched to obtain these results. The original v0.4.5 release artifact remains unchanged.
 
-Build a separate development snapshot without overwriting a release artifact with:
+For the current v0.5.1 source, build a separate snapshot without overwriting a release artifact. The recorded six-finding result above is for v0.5.0; analysis has not been rerun for v0.5.1:
 
 ```sh
 bash scripts/package.sh dist/review
-shexli dist/review/smartphone-rc-0.5.0.zip
+shexli dist/review/smartphone-rc-0.5.1.zip
 ```
 
 ## Findings and disposition

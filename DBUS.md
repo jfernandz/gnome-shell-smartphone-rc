@@ -1,6 +1,6 @@
 # Private D-Bus service boundary
 
-v0.5.0 replaces ipc.js and the inherited JSON pipes with a private peer-to-peer D-Bus connection. It keeps the extension, network helper and browser assets in one package. This is not a session-bus service, does not install an activation file and does not start automatically at login or unlock.
+Shell and the network child use authenticated private peer-to-peer D-Bus over a Unix socket. Both ship in one package; there is no session-bus service, activation file or automatic startup. Introduced in v0.5.0.
 
 ## Process layout
 
@@ -11,7 +11,7 @@ v0.5.0 replaces ipc.js and the inherited JSON pipes with a private peer-to-peer 
 - dbus.js is a shared GIO-only transport/contract module. Protocol validation, limits, settings and trusted-browser storage remain shared where needed; none of these imports Shell UI into the network child.
 - prefs.js and preferences/ remain the native GTK preferences process.
 
-The runtime manifest declares the new paths. Tests verify that neither the Shell nor preferences import graph loads app/ code and that the worker import graph does not load Shell/input/GTK UI modules. Every shipped browser route remains the same; only its source-file location changes.
+The runtime manifest declares shipped paths. Tests keep app code out of Shell/preferences imports and Shell/input/GTK UI out of the worker.
 
 ## Connection and identity
 
@@ -45,12 +45,12 @@ Shell validates startup ordering, URL/address/certificate details and every inpu
 - Five-second call deadline and eight-second helper-startup deadline.
 - Existing network limits, child data/descriptor limits and Shell-side input limits remain in force.
 
-The size check runs after GDBus receives/deserializes the native message. It does not provide the old pipe reader's pre-allocation framing bound. Only the authenticated private peer reaches application dispatch; no claim is made of exhaustive native D-Bus parser or same-user denial-of-service resilience.
+The size check runs after GDBus receives/deserializes the native message. It is not a pre-allocation byte cap. Only the authenticated private peer reaches application dispatch; no claim is made of exhaustive native D-Bus parser or same-user denial-of-service resilience.
 
 Stop, disable, lock, malformed/excessive requests, connection loss and helper failure stop control. Closing or killing the parent closes the connection; the helper stops its listener and exits. Cancellation during startup closes the listener and removes its socket directory. Normal stop and the parent-disappearance path clean up the temporary socket directory. No automatic restart or privilege elevation is introduced.
 
 ## Validation
 
-Tests cover typed round trips with Unicode/nested settings, introspection, wrong parent identity, unrelated same-user attachment before the real child, application size/rate/queue limits, invalid startup state, invalid input, cancelled startup, child crash, parent disappearance, private-directory permissions and occupied-port retry. Browser tests exercise real helper pairing, recovery, trust, revocation and accessibility through D-Bus. Native isolated Shell tests cover certificate approval, crash/lock cleanup and Stop/disable during pending startup.
+See [TESTING.md](TESTING.md) for automated identity/contract/limits tests, browser coverage and earlier isolated Shell checks. v0.5.1 adds real helper startup with a comma-containing temporary path, escaped using `Gio.dbus_address_escape_value()`.
 
-References: [GJS D-Bus guide](https://gjs.guide/guides/gio/dbus.html), [GIO peer credentials](https://docs.gtk.org/gio/method.DBusConnection.get_peer_credentials.html), and [maintainer feedback](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4). See SECURITY.md for the wider threat model.
+References: [GJS D-Bus guide](https://gjs.guide/guides/gio/dbus.html), [GIO peer credentials](https://docs.gtk.org/gio/method.DBusConnection.get_peer_credentials.html), and [maintainer feedback](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4). See [SECURITY.md](SECURITY.md) for the wider threat model.

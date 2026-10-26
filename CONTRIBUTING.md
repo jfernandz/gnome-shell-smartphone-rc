@@ -1,53 +1,46 @@
 # Contributing
 
-Target GNOME Shell 51 on Wayland. Keep code, UI text, comments, and documentation in English. See [README.md](README.md) for dependencies, installation, pairing, and limitations.
+Target GNOME Shell 51 on Wayland. Keep code, UI text, comments and documentation in English. Dependencies and user instructions are in [README.md](README.md).
 
-## Development workflow
+## Workflow
 
-1. Make a focused change in the project source. Runtime installation requires no npm dependencies; lint tooling is development-only.
-2. Run `npm run lint` and the checks relevant to the change. For protocol, authorization, process, schema, or packaging changes, run `node --test tests/*.test.js`. Browser checks and validation records are in [TESTING.md](TESTING.md).
-3. Run `bash scripts/prepare-reload.sh` and execute its printed command in Looking Glass. Later, recall that same command with Up and Enter to build and load the latest source. Reloading stops current remote connections; it does not require logging out.
-4. Check the interaction on the phone where relevant and document remaining coverage honestly.
+1. Make a focused change; update the runtime manifest if adding shipped files.
+2. Run lint and relevant tests. Protocol, authorization, process, schema or packaging changes require the full `npm test` suite; mobile UI changes also require `npm run test:accessibility` with Chromium.
+3. Validate native behavior only in an isolated compositor and D-Bus session. Never lock/restart the working desktop or enable its unsafe mode for tests. See [TESTING.md](TESTING.md) for harness requirements.
+4. Record what actually passed and what remains untested. Significant interaction changes also need physical-phone acceptance.
 
-Run native GNOME integration checks only in an isolated compositor and D-Bus session. Never use lock/unlock or compositor termination against the working desktop. Automated server tests use loopback fixtures and do not inject desktop input.
+[Source reload](scripts/README.md#reload-source) builds project files; [ZIP install/reload](scripts/README.md#install-and-reload-a-zip) tests a selected package. Both stop existing remote connections. Preserve the stable loader entry points for Looking Glass history.
 
 ## Lint
 
-Use Node.js 22.13+ on the 22.x line, or Node.js 24+; the current development environment uses Node.js 26. Install the pinned development dependencies and run ESLint:
+Use Node.js 22.13+ on 22.x, or 24+:
 
 ```sh
 npm ci --ignore-scripts
 npm run lint
 ```
 
-The lockfile makes installation reproducible. ESLint checks GJS, browser code and Node tests with separate globals; it applies recommended correctness rules, strict equality and implicit-coercion checks, without a formatting preset. Ignore dist, node_modules and .venv. The command fails on errors or warnings. A single local exception permits the deliberate control-character rejection in the input validator; unused exceptions are errors.
+Pinned ESLint dependencies are development-only. Checks cover GJS, browser and Node code with separate globals, recommended correctness rules, strict equality and implicit coercion. Warnings and unused suppression directives fail lint; no formatting preset is imposed. Lint does not replace runtime tests or [manual static-review triage](SHEXLI.md).
 
-If npm is unavailable but node_modules is already installed, run the identical lint check directly:
+If dependencies are installed but npm is unavailable, use `node node_modules/eslint/bin/eslint.js . --max-warnings 0`.
 
-```sh
-node node_modules/eslint/bin/eslint.js . --max-warnings 0
-```
+## Module ownership
 
-ESLint, its configuration and dependencies are excluded from extension ZIPs. Lint does not replace GJS/Chromium/native tests or the manual review described in [SHEXLI.md](SHEXLI.md).
+| Area | Files |
+| --- | --- |
+| Shell UI and input | `extension.js`, `dialogs.js`, `focus.js`, `input.js` |
+| Process owner and shared D-Bus contract | `service.js`, `dbus.js` |
+| Network child | `app/service-worker.js`, `app/server.js`, `app/network-guard.js` |
+| Mobile client | `app/web/` |
+| Settings and trust | `settings.js`, `trusted.js`, `preferences/`, `prefs.js` |
+| Shared bounds and packaging | `limits.js`, `resources.json`, `scripts/lib/stage.sh` |
 
-## Project boundaries
-
-- `extension.js`, `dialogs.js`, `focus.js`, and `input.js` own Shell integration and desktop input.
-- `service.js` and shared `dbus.js` manage the separate network process and authenticated private D-Bus connection. `app/service-worker.js` is the child entry point; `app/network-guard.js` and `app/server.js` handle bounded transport and sessions.
-- `trusted.js`, `settings.js`, and `preferences/` implement trust storage and native settings.
-- `app/web/` contains the mobile client; `limits.js` shares validated bounds.
-- `resources.json` declares shipped files and web routes. Update it when adding runtime files; installation and packaging use this manifest.
-
-Preserve peer identity and typed-message checks on both sides of D-Bus, immediate revocation, and stop-on-lock/disable/failure behavior. The network child is not an OS sandbox. Review [SECURITY.md](SECURITY.md) before changing pairing, cookies, input, or process boundaries.
-
-For mobile UI changes, run `npm run test:accessibility` with Chromium installed. Native theme/font and accessible-name checks require an isolated compositor; see [ACCESSIBILITY.md](ACCESSIBILITY.md).
-
-For packaged-build acceptance, use [Install and reload a ZIP](scripts/README.md#install-and-reload-a-zip), rather than the source reload command. The native `tests/install-zip-native.mjs` harness requires SMARTPHONE_RC_ISOLATED_SHELL=1, an isolated bus-address file and a real ZIP path; never point it at the working desktop.
+Keep app code out of Shell/preferences imports and Shell/GTK UI out of the child. Preserve peer identity checks, validated typed messages, immediate revocation and stop-on-lock/disable/failure. Review [SECURITY.md](SECURITY.md) before changing authorization, cookies, input or process boundaries.
 
 ## Packaging and documentation
 
-Build a development ZIP with `bash scripts/package.sh /path/to/output` to avoid overwriting an existing release artifact. Scripts, tests, local credentials, and development loaders are excluded from runtime packages. See [scripts/README.md](scripts/README.md) for entry points.
+Use `bash scripts/package.sh /path/to/output` to preserve existing release ZIPs. Scripts, tests, credentials and development dependencies are excluded from runtime packages.
 
-Update user instructions when behavior changes, [CHANGELOG.md](CHANGELOG.md) for release changes, and [IDEAS.md](IDEAS.md) for proposed features. Keep historical observations in TESTING.md distinct from current instructions. A local ZIP or tag does not imply public publication; distribution work is tracked in [PUBLICATION.md](PUBLICATION.md).
+Update user instructions when behavior changes and [CHANGELOG.md](CHANGELOG.md) for releases. Keep proposals in [IDEAS.md](IDEAS.md), current evidence in [TESTING.md](TESTING.md), and historical observations in its linked archive. Local tags/ZIPs do not imply [publication approval](PUBLICATION.md).
 
-For bug reports, include GNOME and phone/browser versions, relevant actions, expected behavior, and redacted logs. Never include pairing secrets, cookies, private keys, or typed text. Report suspected authorization or credential-disclosure issues privately to the maintainer.
+Bug reports should include GNOME/phone/browser versions, steps, expected behavior and redacted logs. Never include pairing links, cookies, private keys or typed text. Report suspected authorization or credential disclosure privately to the maintainer.
