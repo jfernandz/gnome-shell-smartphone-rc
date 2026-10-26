@@ -373,3 +373,14 @@ New regressions cover typed Unicode/nested values, parent identity, unrelated sa
 Chromium helper accessibility/recovery/trust checks pass through the real D-Bus child. The isolated native GNOME 51.1 run passes guided certificate approval, crash, lock shutdown, menu states and Stop/disable during pending startup. A new temporary compositor, driver and D-Bus session were used because earlier temporary fixtures no longer existed; the working desktop was not restarted, locked or changed. Physical-phone acceptance remains pending.
 
 All 68 automated tests and ESLint pass. The generated development ZIP matches the runtime manifest exactly, contains app/ and shared dbus.js, and excludes ipc.js, tests and developer tooling. Static review retains the same six documented shexli findings; the new process layout does not suppress any rule.
+
+
+## Install-and-reload packaged builds — unreleased, 2026-10-26
+
+scripts/install-zip.js installs the explicitly selected ZIP using the official gnome-extensions installer. Fresh symlink import aliases refer to the normal installed directory, not project runtime source or a copied build. A GJS import experiment verifies that different alias URLs load changed relative dependencies rather than reusing cached modules.
+
+The isolated native harness tests two fixture ZIPs with different dependency markers and numeric submission versions, asserting both the loaded value and the on-disk metadata. It verifies compiled schemas and identical filesystem inodes through the active alias and installed directory. A wrong UUID is rejected before unloading; a broken import restores and reloads the previous installation. It then installs the real project ZIP and checks that it is active and the test-driver extension remains active.
+
+The existing native TLS approval, helper-crash, lock/menu and pending-startup cancellation checks also pass with the real project loaded from those ZIP-installed files. Developer scripts and native harnesses remain outside the packaged runtime. The working desktop was not updated, restarted or locked during these checks.
+
+The ZIP command generator is checked with explicit filenames containing spaces/quotes, private mode-0600 selection records, generated JavaScript syntax and preservation of the previous selection when a new selection fails. The isolated native ZIP harness reuses an identical generated Looking Glass command for different archives, including failed-load rollback and subsequent real-project installation. Selection does not rebuild source or install anything until the console command runs.

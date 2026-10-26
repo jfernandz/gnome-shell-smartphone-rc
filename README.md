@@ -121,6 +121,8 @@ SMARTPHONE_RC_TEST_TRUST_DAYS=7 node tests/cookie-browser.mjs --trusted --helper
 
 This test uses a fresh temporary browser profile and trusts only its generated test certificate's public-key pin. It does not change your normal Chrome profile or certificate policy. The server fixture's automatic approval callback is test-only.
 
+To install a selected ZIP and reload its actual installed files without logging out, run `bash scripts/prepare-zip-install.sh` and paste its generated Looking Glass command. Repeat the script for later ZIPs, then recall the same console command with Up and Enter. Details are documented in [scripts/README.md](scripts/README.md#install-and-reload-a-zip). This is separate from the source-building reload command above.
+
 See [scripts/README.md](scripts/README.md) for the installation, packaging, and development entry points. Optional static review uses [requirements-review.txt](requirements-review.txt); [SHEXLI.md](SHEXLI.md) records toolchain compatibility and the findings requiring human interpretation.
 
 See [TESTING.md](TESTING.md) for validation evidence and remaining coverage, and [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add a ZIP-command generator that selects the newest built ZIP or an explicit path and updates a private selection record, allowing the same Looking Glass command to install later archives without filename edits.
+
+- Add a Looking Glass ZIP installer/reloader that uses the official installer and fresh import aliases of the actual installed files, with UUID preflight checks and restoration on failed loading. Keep source reload and ZIP acceptance workflows separate.
+
 - Replace the custom JSON-pipe IPC with typed, acknowledged private D-Bus methods, Unix UID/PID checks on both peers, bounded application messages/queues/rates, startup and call deadlines, and cleanup on stop/crash/parent disappearance. No session-bus service or extra application installation is required.
 - Group the separately executed network helper, server, connection guard and mobile web client under app/. Remove ipc.js and verify process/module boundaries in packaging tests.
 

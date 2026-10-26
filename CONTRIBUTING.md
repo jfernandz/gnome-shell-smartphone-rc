@@ -42,6 +42,8 @@ Preserve peer identity and typed-message checks on both sides of D-Bus, immediat
 
 For mobile UI changes, run `npm run test:accessibility` with Chromium installed. Native theme/font and accessible-name checks require an isolated compositor; see [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
+For packaged-build acceptance, use [Install and reload a ZIP](scripts/README.md#install-and-reload-a-zip), rather than the source reload command. The native `tests/install-zip-native.mjs` harness requires SMARTPHONE_RC_ISOLATED_SHELL=1, an isolated bus-address file and a real ZIP path; never point it at the working desktop.
+
 ## Packaging and documentation
 
 Build a development ZIP with `bash scripts/package.sh /path/to/output` to avoid overwriting an existing release artifact. Scripts, tests, local credentials, and development loaders are excluded from runtime packages. See [scripts/README.md](scripts/README.md) for entry points.
