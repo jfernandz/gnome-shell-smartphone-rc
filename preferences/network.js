@@ -4,7 +4,9 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import {configDirectory, localAddresses, readNetworkConfig, configureNetwork} from '../network-config.js';
 
-export function createNetworkGroup(onConfigChanged = null) {
+export function createNetworkGroup(onConfigChanged = null, {
+    readConfig = readNetworkConfig, detectAddresses = localAddresses, applyConfig = configureNetwork,
+} = {}) {
     const group = new Adw.PreferencesGroup({title: 'Network',
         description: 'Choose the PC address reachable by your phone. Configuration does not start remote control or change the firewall.'});
     const address = new Adw.EntryRow({title: 'LAN IPv4 address'});
@@ -23,20 +25,29 @@ export function createNetworkGroup(onConfigChanged = null) {
     let disposed = false;
     let busy = false;
     let detected = [];
+    let configurationRevision = 0;
+    let discoveryRequest = 0;
+    let updatingChoices = false;
     const cancellable = new Gio.Cancellable();
-    function showConfig(config) {
-        address.text = config.address;
-        port.value = config.port;
+    function showConfig(config, updateForm = true) {
+        if (updateForm) {
+            address.text = config.address;
+            port.value = config.port;
+        }
         status.title = `Configured: https://${config.address}:${config.port}`;
         status.subtitle = 'Start remote control from the top-bar menu. Certificate details are in Security.';
         onConfigChanged?.(config);
     }
     async function loadConfig() {
+        const revision = configurationRevision;
+        const initialAddress = address.text;
+        const initialPort = port.value;
         try {
-            const config = await readNetworkConfig(configDirectory(), cancellable);
-            if (!disposed && !busy) showConfig(config);
+            const config = await readConfig(configDirectory(), cancellable);
+            if (!disposed && revision === configurationRevision)
+                showConfig(config, address.text === initialAddress && port.value === initialPort);
         } catch (error) {
-            if (disposed || busy) return;
+            if (disposed || revision !== configurationRevision) return;
             const configured = GLib.file_test(`${configDirectory()}/network.json`, GLib.FileTest.EXISTS);
             onConfigChanged?.(null, configured ? error.message : null);
             status.subtitle = configured ? error.message
@@ -44,17 +55,28 @@ export function createNetworkGroup(onConfigChanged = null) {
         }
     }
     choices.connect('notify::selected', () => {
-        if (detected[choices.selected]) address.text = detected[choices.selected].address;
+        if (!updatingChoices && detected[choices.selected]) address.text = detected[choices.selected].address;
     });
     async function discover() {
+        if (disposed || busy) return;
+        const request = ++discoveryRequest;
+        const revision = configurationRevision;
+        const initialAddress = address.text;
+        const current = () => !disposed && request === discoveryRequest && revision === configurationRevision;
         refresh.sensitive = false;
         try {
-            const result = await localAddresses(cancellable);
-            if (disposed) return;
-            const previous = address.text;
+            const result = await detectAddresses(cancellable);
+            if (!current()) return;
+            const untouched = address.text === initialAddress;
             detected = result;
-            choices.model = Gtk.StringList.new(result.map(item => `${item.address} (${item.name})`));
-            if (previous) address.text = previous;
+            updatingChoices = true;
+            try {
+                choices.model = Gtk.StringList.new(result.map(item => `${item.address} (${item.name})`));
+            } finally {
+                updatingChoices = false;
+            }
+            if (!address.text && untouched && result.length)
+                address.text = result[0].address;
             if (result.length && ['Address detection failed', 'No private LAN IPv4 address found'].includes(status.title)) {
                 status.title = 'Addresses refreshed';
                 status.subtitle = 'Choose an address, then press Apply to save it. Existing configuration remains unchanged until then.';
@@ -64,26 +86,29 @@ export function createNetworkGroup(onConfigChanged = null) {
                 status.subtitle = 'Connect the PC to your local network, then press Refresh.';
             }
         } catch (error) {
-            if (!disposed) { status.title = 'Address detection failed'; status.subtitle = error.message; }
-        } finally { if (!disposed) refresh.sensitive = !busy; }
+            if (current()) { status.title = 'Address detection failed'; status.subtitle = error.message; }
+        } finally { if (current()) refresh.sensitive = true; }
     }
     refresh.connect('clicked', () => discover());
     configure.connect('clicked', async () => {
-        if (busy) return;
+        if (disposed || busy) return;
         busy = true;
-        configure.sensitive = address.sensitive = port.sensitive = choices.sensitive = false;
+        // Applying invalidates startup reads and in-flight discovery, including their errors.
+        configurationRevision++;
+        discoveryRequest++;
+        configure.sensitive = address.sensitive = port.sensitive = choices.sensitive = refresh.sensitive = false;
         status.title = 'Configuring networking…';
         try {
-            const config = await configureNetwork(address.text.trim(), Math.round(port.value), cancellable);
+            const config = await applyConfig(address.text.trim(), Math.round(port.value), cancellable);
             if (!disposed) showConfig(config);
         } catch (error) {
             if (!disposed) { status.title = 'Configuration failed'; status.subtitle = error.message; }
         } finally {
             busy = false;
-            if (!disposed) configure.sensitive = address.sensitive = port.sensitive = choices.sensitive = true;
+            if (!disposed) configure.sensitive = address.sensitive = port.sensitive = choices.sensitive = refresh.sensitive = true;
         }
     });
-    loadConfig().then(() => { if (!disposed) discover(); });
+    loadConfig().then(() => { if (!disposed && configurationRevision === 0) discover(); });
     return {
         group,
         focusAddress() { address.grab_focus(); },

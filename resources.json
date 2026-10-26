@@ -32,7 +32,8 @@
     "app/session-authorization.js",
     "icons/remote-touchpad-symbolic.svg",
     "icons/github-symbolic.svg",
-    "icons/octicons-LICENSE"
+    "icons/octicons-LICENSE",
+    "preferences/about.js"
   ],
   "web": {
     "/": {

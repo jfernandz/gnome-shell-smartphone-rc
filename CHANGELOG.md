@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.5 — 2026-10-27
+
+- Prevent delayed Network startup/discovery results from overwriting Apply, newer discovery results or unsaved edits; ignore completions after preferences close.
+- Extract the About group and declare each Settings page's groups directly, preserving the existing UI and cleanup ownership.
+- Keep temporary authorization state private and replace server field assignments with explicit enrollment, trust-binding and exchange-cancellation methods.
+- Add deterministic delayed-operation native regressions and GJS authorization ownership/revocation tests.
+
 ## 0.5.4 — 2026-10-27
 
 - Organize Settings into native Network, Pointer, Security, Devices and About tabs with adaptive navigation.

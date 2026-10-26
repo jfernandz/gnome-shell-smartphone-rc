@@ -30,10 +30,12 @@ If dependencies are installed but npm is unavailable, use `node node_modules/esl
 | --- | --- |
 | Shell UI and input | `extension.js`, `dialogs.js`, `focus.js`, `input.js` |
 | Process owner and shared D-Bus contract | `service.js`, `dbus.js` |
-| Network child | `app/service-worker.js`, `app/server.js`, `app/network-guard.js` |
+| Network child | `app/service-worker.js`, `app/server.js`, `app/network-guard.js`, `app/session-authorization.js` |
 | Mobile client | `app/web/` |
 | Settings and trust | `settings.js`, `trusted.js`, `preferences/`, `prefs.js` |
 | Shared bounds and packaging | `limits.js`, `resources.json`, `scripts/lib/stage.sh` |
+
+`prefs.js` composes pages from explicit group lists; `preferences/about.js` owns installed/session metadata presentation. Network preference tests inject only the read, discovery and apply operations while using real GTK widgets in the isolated launcher. Temporary authorization owns its private credentials and timer; the server retains HTTP, cookies and WebSocket ownership.
 
 Keep app code out of Shell/preferences imports and Shell/GTK UI out of the child. Preserve peer identity checks, validated typed messages, immediate revocation and stop-on-lock/disable/failure. Review [SECURITY.md](SECURITY.md) before changing authorization, cookies, input or process boundaries.
 

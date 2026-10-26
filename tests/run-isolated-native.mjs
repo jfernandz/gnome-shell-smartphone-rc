@@ -6,7 +6,7 @@ import {join, resolve} from 'node:path';
 import {once} from 'node:events';
 
 // Own the compositor and bus; never accept an address supplied by the desktop.
-const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.4.zip');
+const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.5.zip');
 assert.ok(existsSync(archive), 'Pass a built project ZIP');
 const root = mkdtempSync(join(homedir(), '.cache/smartphone-rc-native-'));
 for (const name of ['data', 'config', 'cache', 'runtime', 'tmp']) mkdirSync(join(root, name), {mode: 0o700});
@@ -75,7 +75,7 @@ try {
             {...guiEnv, SMARTPHONE_RC_TEST_COLOR_SCHEME: scheme, SMARTPHONE_RC_TEST_FONT: font,
                 SMARTPHONE_RC_TEST_SCREENSHOT: join(output, `preferences-${label}.png`)});
     }
-    for (const name of ['network-preferences', 'network-errors']) {
+    for (const name of ['network-preferences', 'network-errors', 'network-races']) {
         const config = join(root, `${name}-config`); mkdirSync(config, {mode: 0o700});
         await run('gjs', ['-m', `tests/${name}-native.mjs`], {...guiEnv, XDG_CONFIG_HOME: config, SMARTPHONE_RC_NETWORK_TEST: '1'});
     }

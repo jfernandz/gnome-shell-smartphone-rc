@@ -226,7 +226,7 @@ export class RemoteServer {
         this._closedId = connection.connect('closed', () => this._clearClient(true));
         if (resuming) {
             if (trusted) {
-                this._authorization.trustedId = trusted.id;
+                this._authorization.bindTrustedBrowser(trusted.id);
                 this._trusted.touch(trusted.id);
             }
             this._consumePairing();
@@ -333,7 +333,7 @@ export class RemoteServer {
     approve(remember = false) {
         if (!this._client || this._approved || GLib.get_monotonic_time() > this._deadline)
             return;
-        this._authorization.rememberRequested = Boolean(remember && this._trusted);
+        this._authorization.requestRemember(remember);
         this._consumePairing();
         this._authorize();
     }
@@ -428,12 +428,11 @@ export class RemoteServer {
         if (exchange)
             this._authorization.consumeExchange(this._approved);
         let rememberError = null;
-        if (exchange && this._authorization.rememberRequested) {
-            this._authorization.rememberRequested = false;
+        if (exchange && this._authorization.consumeRememberRequest()) {
             try {
                 const secret = this._newSecret();
                 const record = this._trusted.remember(secret);
-                this._authorization.trustedId = record.id;
+                this._authorization.bindTrustedBrowser(record.id);
                 const age = Math.max(1, record.expires - Math.floor(GLib.get_real_time() / 1000000));
                 this._setCookie(message, TRUST_COOKIE, secret, age);
             } catch (error) {
@@ -447,7 +446,7 @@ export class RemoteServer {
     }
 
     _clearClient(allowResume = false) {
-        const resumable = allowResume && this._approved && this._authorization.sessionSecret && this._authorization.active();
+        const resumable = allowResume && this._approved && this._authorization.canResume;
         if (this._expiry) {
             GLib.Source.remove(this._expiry);
             this._expiry = 0;
@@ -462,7 +461,7 @@ export class RemoteServer {
             this._pairingExpiry = 0;
         }
         this._peer = null;
-        this._authorization.exchangeToken = null;
+        this._authorization.cancelExchange();
         if (resumable) {
             this._onState('reconnecting');
         } else {

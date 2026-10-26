@@ -6,62 +6,96 @@ const MICROSECONDS_PER_MILLISECOND = 1000;
 
 // Own temporary credentials and expiry; HTTP, sockets and enrollment stay in the server.
 export class SessionAuthorization {
+    #sessionSeconds;
+    #sessionSecret;
+    #sessionExpiry;
+    #exchangeToken;
+    #exchangeDeadline;
+    #sessionDeadline;
+    #trustedId;
+    #rememberRequested;
+
     constructor(trusted, sessionSeconds, newSecret, onExpired) {
         this._trusted = trusted;
-        this.sessionSeconds = sessionSeconds;
+        this.#sessionSeconds = sessionSeconds;
         this._newSecret = newSecret;
         this._onExpired = onExpired;
-        this.sessionSecret = null;
-        this.sessionExpiry = 0;
-        this.exchangeToken = null;
-        this.trustedId = null;
+        this.#sessionSecret = null;
+        this.#sessionExpiry = 0;
+        this.#exchangeToken = null;
+        this.#trustedId = null;
+    }
+
+    get sessionSecret() { return this.#sessionSecret; }
+    get trustedId() { return this.#trustedId; }
+
+    get canResume() {
+        return Boolean(this.#sessionSecret && this.active());
+    }
+
+    bindTrustedBrowser(id) {
+        this.#trustedId = id;
+    }
+
+    requestRemember(remember) {
+        this.#rememberRequested = Boolean(remember && this._trusted);
+    }
+
+    consumeRememberRequest() {
+        const requested = Boolean(this.#rememberRequested);
+        this.#rememberRequested = false;
+        return requested;
+    }
+
+    cancelExchange() {
+        this.#exchangeToken = null;
     }
 
     issueExchange() {
-        this.exchangeToken = this._newSecret();
-        this.exchangeDeadline = GLib.get_monotonic_time() + EXCHANGE_LIFETIME_US;
-        return this.exchangeToken;
+        this.#exchangeToken = this._newSecret();
+        this.#exchangeDeadline = GLib.get_monotonic_time() + EXCHANGE_LIFETIME_US;
+        return this.#exchangeToken;
     }
 
     hasSession(secret) {
-        return Boolean(this.sessionSecret && secret === this.sessionSecret && this.active());
+        return Boolean(this.#sessionSecret && secret === this.#sessionSecret && this.active());
     }
 
     validExchange(authorization) {
-        return Boolean(this.exchangeToken && this.active() &&
-            GLib.get_monotonic_time() < this.exchangeDeadline && authorization === `Bearer ${this.exchangeToken}`);
+        return Boolean(this.#exchangeToken && this.active() &&
+            GLib.get_monotonic_time() < this.#exchangeDeadline && authorization === `Bearer ${this.#exchangeToken}`);
     }
 
     consumeExchange(approved) {
-        this.exchangeToken = null;
-        if (!this.sessionSecret) {
-            this.sessionSecret = this._newSecret();
+        this.#exchangeToken = null;
+        if (!this.#sessionSecret) {
+            this.#sessionSecret = this._newSecret();
             this.touch(approved);
         }
     }
 
     get cookieAgeSeconds() {
-        return Math.max(1, Math.ceil((this.sessionDeadline - GLib.get_monotonic_time()) / MICROSECONDS_PER_SECOND));
+        return Math.max(1, Math.ceil((this.#sessionDeadline - GLib.get_monotonic_time()) / MICROSECONDS_PER_SECOND));
     }
 
     active() {
-        return GLib.get_monotonic_time() < this.sessionDeadline &&
-            (!this.trustedId || this._trusted.contains(this.trustedId));
+        return GLib.get_monotonic_time() < this.#sessionDeadline &&
+            (!this.#trustedId || this._trusted.contains(this.#trustedId));
     }
 
     touch(approved) {
-        this.sessionDeadline = GLib.get_monotonic_time() + this.sessionSeconds * MICROSECONDS_PER_SECOND;
-        if (this.trustedId)
-            this._trusted.touch(this.trustedId);
-        if ((this.sessionSecret || approved) && !this.sessionExpiry)
+        this.#sessionDeadline = GLib.get_monotonic_time() + this.#sessionSeconds * MICROSECONDS_PER_SECOND;
+        if (this.#trustedId)
+            this._trusted.touch(this.#trustedId);
+        if ((this.#sessionSecret || approved) && !this.#sessionExpiry)
             this._armExpiry();
     }
 
     _armExpiry() {
-        const remaining = Math.max(1, Math.ceil((this.sessionDeadline - GLib.get_monotonic_time()) / MICROSECONDS_PER_MILLISECOND));
-        this.sessionExpiry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, remaining, () => {
-            this.sessionExpiry = 0;
-            if (GLib.get_monotonic_time() >= this.sessionDeadline) {
+        const remaining = Math.max(1, Math.ceil((this.#sessionDeadline - GLib.get_monotonic_time()) / MICROSECONDS_PER_MILLISECOND));
+        this.#sessionExpiry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, remaining, () => {
+            this.#sessionExpiry = 0;
+            if (GLib.get_monotonic_time() >= this.#sessionDeadline) {
                 this._onExpired();
             } else {
                 this._armExpiry();
@@ -71,13 +105,13 @@ export class SessionAuthorization {
     }
 
     clear() {
-        if (this.sessionExpiry) {
-            GLib.Source.remove(this.sessionExpiry);
-            this.sessionExpiry = 0;
+        if (this.#sessionExpiry) {
+            GLib.Source.remove(this.#sessionExpiry);
+            this.#sessionExpiry = 0;
         }
-        this.sessionSecret = null;
-        this.exchangeToken = null;
-        this.trustedId = null;
-        this.rememberRequested = false;
+        this.#sessionSecret = null;
+        this.#exchangeToken = null;
+        this.#trustedId = null;
+        this.#rememberRequested = false;
     }
 }

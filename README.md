@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.5.4 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.5.5 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -21,7 +21,7 @@ Install a built ZIP, or install from the project source:
 
 ```sh
 # Choose one installation method:
-gnome-extensions install --force /path/to/smartphone-rc-0.5.4.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.5.5.zip
 # Or, from the project directory:
 bash scripts/install.sh
 ```
