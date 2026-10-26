@@ -24,7 +24,10 @@ export default class SmartphoneRemoteControl extends Extension {
         this._focus = null;
         this._dialogs = new RemoteDialogs();
         this._indicator = new PanelMenu.Button(0.0, 'Smartphone Remote Control');
-        this._indicator.add_child(new St.Icon({icon_name: 'input-touchpad-symbolic', style_class: 'system-status-icon'}));
+        this._indicator.add_child(new St.Icon({
+            gicon: new Gio.FileIcon({file: this.dir.get_child('icons/remote-touchpad-symbolic.svg')}),
+            style_class: 'system-status-icon',
+        }));
         // The indicator owns its menu; destroying it destroys every menu item.
         this._status = new PopupMenu.PopupMenuItem('Remote control is off', {reactive: false});
         this._indicator.menu.addMenuItem(this._status);

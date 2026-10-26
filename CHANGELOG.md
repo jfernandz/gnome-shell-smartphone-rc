@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3 — 2026-10-27
+
+- Use an outline symbolic panel icon combining a touchpad with wireless waves pointing to the right. Expand strokes into filled paths so GNOME symbolic recoloring preserves the hollow design. Keep a standard 16-by-16 grid and theme-controlled panel sizing.
+
 ## 0.5.2 — 2026-10-26
 
 - Ignore stale session HTTP/JSON responses across browser connection changes and explicit Disconnect; cancel superseded requests and ignore malformed WebSocket messages. Disable phone input immediately on Disconnect.

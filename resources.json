@@ -29,7 +29,8 @@
     "file-io.js",
     "dbus.js",
     "service-validation.js",
-    "app/session-authorization.js"
+    "app/session-authorization.js",
+    "icons/remote-touchpad-symbolic.svg"
   ],
   "web": {
     "/": {

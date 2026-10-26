@@ -6,7 +6,7 @@ import {join, resolve} from 'node:path';
 import {once} from 'node:events';
 
 // Own the compositor and bus; never accept an address supplied by the desktop.
-const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.2.zip');
+const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.3.zip');
 assert.ok(existsSync(archive), 'Pass a built project ZIP');
 const root = mkdtempSync(join(homedir(), '.cache/smartphone-rc-native-'));
 for (const name of ['data', 'config', 'cache', 'runtime', 'tmp']) mkdirSync(join(root, name), {mode: 0o700});
