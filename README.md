@@ -2,7 +2,7 @@
 
 Control a GNOME desktop from a smartphone browser over the local network. The phone acts as a touchpad and keyboard, with no mobile app required.
 
-**Status: v0.5.0 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
+**Status: v0.5.1 for GNOME Shell 51 (tested on 51.1, Wayland).** LAN connections use HTTPS/WSS, an expiring pairing secret, and explicit desktop approval for new browsers. Pairing uses a locally generated QR code; mobile typing is streamed live, with desktop text-focus detection; see [PLAN.md](PLAN.md).
 
 v0.5.0 uses private D-Bus and groups the helper/browser code under `app/`, keeping installation self-contained. See [DBUS.md](DBUS.md).
 
@@ -72,7 +72,7 @@ Remembering is opt-in on the PC during approval. A remembered device represents 
 
 Choose 7, 30, or 90 days in **Settings → Security** for newly remembered browsers (default 90). Existing browsers keep their recorded expiry; forget and pair again to change it. Trust does not renew on use. The browser stores a separate Secure/HttpOnly/SameSite=Strict cookie; GNOME settings retain only its SHA-256 verifier and display metadata, never the raw credential. Forget and pair again to rotate the credential. Up to 32 browsers may be remembered, but only one may control the desktop at a time. Another trusted browser cannot replace an active connection belonging to a different browser.
 
-Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.5.0.
+Trust survives extension/service restarts and desktop login, but the service still requires manual startup. Desktop lock stops it; start it again from the menu after unlocking. Then open the plain PC address on the trusted browser to reconnect without a QR or approval. This grants control of an unlocked desktop to anyone with access to that authorized browser while the service is running. There is no login-screen or lock-screen control, automatic service startup, or automatic service restart after unlock in v0.5.1.
 
 Settings reports missing OpenSSL or iproute2 with installation guidance. If starting fails because prlimit is absent, install util-linux. A port-in-use error means another service already uses that address/port: stop it or choose a different port in Settings → Network. Failed certificate generation preserves the previous configuration. Before starting the service, old unreferenced generated certificate directories older than 24 hours are cleaned up after stopping the previous helper; selected/recent certificates, in-progress setup, and legacy files are retained.
 

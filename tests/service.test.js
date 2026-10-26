@@ -9,7 +9,7 @@ import {join} from 'node:path';
 import http from 'node:http';
 
 async function start(t, {beforeReady = null} = {}) {
-    const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-service-'));
+    const directory = mkdtempSync(join(tmpdir(), 'smartphone-rc-service,comma-'));
     execFileSync('bash', ['scripts/lib/stage.sh', directory]);
     if (beforeReady) {
         copyFileSync(`${directory}/app/service-worker.js`, `${directory}/app/worker-implementation.js`);
@@ -18,7 +18,7 @@ await new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () =>
 await import('./worker-implementation.js');
 `);
     }
-    const child = spawn('gjs', ['-m', 'tests/service-fixture.js', directory], {env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
+    const child = spawn('gjs', ['-m', 'tests/service-fixture.js', directory], {env: {...process.env, GSETTINGS_BACKEND: 'memory', TMPDIR: directory}});
     const events = [];
     let errors = '';
     child.stderr.on('data', data => errors += data);
@@ -94,7 +94,7 @@ test('occupied port fails safely through the real helper and permits retry', {ti
     t.after(() => rmSync(directory, {recursive: true, force: true}));
     execFileSync('bash', ['scripts/lib/stage.sh', directory]);
     const output = execFileSync('gjs', ['-m', 'tests/service-startup-failure-fixture.js', directory,
-        String(listener.address().port)], {encoding: 'utf8', timeout: 8000, env: {...process.env, GSETTINGS_BACKEND: 'memory'}});
+        String(listener.address().port)], {encoding: 'utf8', timeout: 8000, env: {...process.env, GSETTINGS_BACKEND: 'memory', TMPDIR: directory}});
     assert.match(output, /^PASS: occupied port/);
 });
 

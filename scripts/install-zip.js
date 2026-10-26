@@ -6,13 +6,24 @@ import {ExtensionState, ExtensionType} from 'resource:///org/gnome/shell/misc/ex
 const UUID = 'smartphone-rc@jfaparicio.github.io';
 let installing = false;
 
-async function command(argv) {
-    const process = Gio.Subprocess.new(argv, Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE);
-    const [, output, errors] = await new Promise((resolve, reject) => process.communicate_utf8_async(null, null, (source, result) => {
-        try { resolve(source.communicate_utf8_finish(result)); } catch (error) { reject(error); }
-    }));
-    if (!process.get_successful()) throw Error(errors.trim() || `${argv[0]} failed.`);
-    return output.trim();
+// Looking Glass may import this module through the stable cache symlink.
+let sourcePath = Gio.File.new_for_uri(import.meta.url).get_path();
+try { sourcePath = GLib.file_read_link(sourcePath); } catch { /* Direct project import. */ }
+let sourceDirectory = Gio.File.new_for_path(sourcePath).get_parent();
+try {
+    const target = GLib.file_read_link(sourceDirectory.get_path());
+    sourceDirectory = sourceDirectory.get_parent().resolve_relative_path(target);
+} catch { /* The scripts directory is not a symlink. */ }
+const {runCommand} = await import(sourceDirectory.get_parent().get_child('subprocess.js').get_uri());
+
+async function command(argv, cancellable = null) {
+    return (await runCommand(argv, {cancellable, timeoutMs: 30000})).trim();
+}
+
+function restoreEnabled(enabled) {
+    const manager = Main.extensionManager;
+    if (enabled) manager.enableExtension(UUID);
+    else manager.disableExtension(UUID);
 }
 
 async function unload() {
@@ -20,7 +31,7 @@ async function unload() {
     if (extension) await Main.extensionManager.unloadExtension(extension);
 }
 
-async function loadInstalled(installedPath, transaction, label) {
+async function loadInstalled(installedPath, transaction, label, enabled = true) {
     // GJS preserves this symlink URI for the entire relative import graph.
     // The files themselves stay in the normal ZIP installation directory.
     const alias = Gio.File.new_for_path(`${transaction}/${label}/${UUID}`);
@@ -31,8 +42,10 @@ async function loadInstalled(installedPath, transaction, label) {
     // too. Other extensions and their cached-version guards are untouched.
     manager._unloadedExtensions.delete(UUID);
     const extension = manager.createExtensionObject(UUID, alias, ExtensionType.PER_USER);
-    manager.enableExtension(UUID);
+    restoreEnabled(enabled);
     await manager.loadExtension(extension);
+    if (extension.error) throw Error(extension.error);
+    if (!enabled) return extension;
     for (let i = 0; i < 250 && !extension.error &&
         ![ExtensionState.ACTIVE, ExtensionState.ERROR, ExtensionState.OUT_OF_DATE].includes(extension.state); i++)
         await new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => { resolve(); return GLib.SOURCE_REMOVE; }));
@@ -43,7 +56,7 @@ async function loadInstalled(installedPath, transaction, label) {
 
 // Install only the explicitly selected ZIP, then load those installed files.
 // This never calls the source builder or copies project runtime files.
-export async function installZip(archivePath = null) {
+export async function installZip(archivePath = null, {cancellable = null} = {}) {
     if (archivePath === null) {
         const selected = Gio.File.new_for_path(`${GLib.get_user_cache_dir()}/smartphone-rc/selected-zip.json`);
         let bytes;
@@ -62,30 +75,46 @@ export async function installZip(archivePath = null) {
     installing = true;
     let transaction, installedPath, hadInstallation = false, previous = null;
     let replacing = false;
+    let archiveCopy = null;
+    const wasEnabled = Main.extensionManager._enabledExtensions.includes(UUID);
+    const priorSettings = ['enabled-extensions', 'disabled-extensions'].map(key =>
+        [key, global.settings.get_strv(key).includes(UUID)]);
+    const restoreSettings = () => {
+        for (const [key, included] of priorSettings) {
+            const current = global.settings.get_strv(key);
+            if (current.includes(UUID) !== included)
+                global.settings.set_strv(key, included ? [...current, UUID] : current.filter(uuid => uuid !== UUID));
+        }
+    };
     try {
-        const metadata = JSON.parse(await command(['unzip', '-p', archivePath, 'metadata.json']));
+        const cache = `${GLib.get_user_cache_dir()}/smartphone-rc`;
+        GLib.mkdir_with_parents(cache, 0o700);
+        transaction = GLib.mkdtemp(`${cache}/zip-install-XXXXXX`);
+        archiveCopy = Gio.File.new_for_path(`${transaction}/archive.zip`);
+        await new Promise((resolve, reject) => Gio.File.new_for_path(archivePath).copy_async(
+            archiveCopy, Gio.FileCopyFlags.NONE, GLib.PRIORITY_DEFAULT, cancellable, null, (source, result) => {
+                try { source.copy_finish(result); resolve(); } catch (error) { reject(error); }
+            }));
+        archiveCopy.set_attribute_uint32('unix::mode', 0o600, Gio.FileQueryInfoFlags.NONE, null);
+        const snapshot = archiveCopy.get_path();
+        const metadata = JSON.parse(await command(['unzip', '-p', snapshot, 'metadata.json'], cancellable));
         if (metadata.uuid !== UUID) throw Error(`This installer only accepts ${UUID}.`);
-        // Let the official installer validate/unpack the archive. Check our entry
-        // point first so an obviously incomplete ZIP cannot stop the active copy.
-        await command(['unzip', '-p', archivePath, 'extension.js']);
+        await command(['unzip', '-p', snapshot, 'extension.js'], cancellable);
         const installed = Gio.File.new_for_path(`${GLib.get_user_data_dir()}/gnome-shell/extensions/${UUID}`);
         installedPath = installed.get_path();
         hadInstallation = installed.query_exists(null);
         if (hadInstallation && installed.query_file_type(Gio.FileQueryInfoFlags.NOFOLLOW_SYMLINKS, null) !== Gio.FileType.DIRECTORY)
             throw Error('The installed extension path must be a regular directory, not a symlink or file.');
-        const cache = `${GLib.get_user_cache_dir()}/smartphone-rc`;
-        GLib.mkdir_with_parents(cache, 0o700);
-        transaction = `${cache}/zip-install-${GLib.uuid_string_random()}`;
-        const transactionDir = Gio.File.new_for_path(transaction);
-        transactionDir.make_directory(null);
-        transactionDir.set_attribute_uint32('unix::mode', 0o700, Gio.FileQueryInfoFlags.NONE, null);
-        if (hadInstallation) await command(['cp', '-a', '--', installedPath, `${transaction}/previous`]);
+        if (hadInstallation) await command(['cp', '-a', '--', installedPath, `${transaction}/previous`], cancellable);
         previous = Main.extensionManager.lookup(UUID);
-        await unload();
+        cancellable?.set_error_if_cancelled();
         replacing = true;
-        const installedUuid = await command(['gnome-extensions', 'install', '--force', '--print-uuid', archivePath]);
+        await unload();
+        const installedUuid = await command(['gnome-extensions', 'install', '--force', '--print-uuid', snapshot], cancellable);
         if (installedUuid !== UUID) throw Error('The ZIP installer returned an unexpected extension UUID.');
+        cancellable?.set_error_if_cancelled();
         const extension = await loadInstalled(installedPath, transaction, 'installed');
+        cancellable?.set_error_if_cancelled();
         return `Installed and loaded ${extension.metadata['version-name'] ?? extension.metadata.version ?? 'unknown version'} from ${archivePath}. Files: ${installedPath}`;
     } catch (error) {
         if (!replacing) throw error;
@@ -97,19 +126,25 @@ export async function installZip(archivePath = null) {
                 await command(['mv', '--', installedPath, `${transaction}/failed`]);
             if (hadInstallation) {
                 await command(['cp', '-a', '--', `${transaction}/previous`, installedPath]);
-                if (previous) await loadInstalled(installedPath, transaction, 'restored');
+                if (previous) await loadInstalled(installedPath, transaction, 'restored', wasEnabled);
             } else if (previous) {
                 // The active copy may have been a source snapshot with no normal install.
                 const manager = Main.extensionManager;
                 manager._unloadedExtensions.delete(UUID);
                 const restored = manager.createExtensionObject(UUID, previous.dir, previous.type);
-                manager.enableExtension(UUID);
+                restoreEnabled(wasEnabled);
                 await manager.loadExtension(restored);
                 if (restored.error) throw new Error(restored.error, {cause: error});
             }
+            restoreSettings();
         } catch (rollback) {
+            restoreSettings();
             throw new Error(`${error.message} Restore also failed: ${rollback.message}. Backup: ${transaction}/previous`, {cause: rollback});
         }
         throw new Error(`${error.message} Previous installation restored.`, {cause: error});
-    } finally { installing = false; }
+    } finally {
+        try {
+            if (archiveCopy?.query_exists(null)) archiveCopy.delete(null);
+        } finally { installing = false; }
+    }
 }

@@ -27,7 +27,7 @@ export default [
         languageOptions: {globals: gjsGlobals},
     },
     {
-        files: ['extension.js', 'focus.js', 'input.js', 'scripts/reload.js'],
+        files: ['extension.js', 'focus.js', 'input.js', 'scripts/reload.js', 'scripts/install-zip.js'],
         languageOptions: {globals: {global: 'readonly'}},
     },
     {files: ['app/web/**/*.js'], languageOptions: {globals: globals.browser}},

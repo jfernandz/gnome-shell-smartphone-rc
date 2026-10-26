@@ -389,3 +389,9 @@ The ZIP command generator is checked with explicit filenames containing spaces/q
 ## v0.5.0 release verification — 2026-10-26
 
 Release metadata and package/lockfile versions agree at 0.5.0. The final ZIP is built and inspected against the runtime manifest; lint, packaging/schema/process-boundary regressions and shexli are checked on the release artifact. Existing 68-test, Chromium/helper and isolated native validation is recorded above; no working desktop session is restarted for this release.
+
+## Post-v0.5.0 installer hardening — 2026-10-26
+
+Installer behavior tests use a simulated Shell manager and real disposable filesystem directories. They cover rollback from active and disabled installations, a failed first installation, a source-loaded copy without a normal installation, cancellation during validation and after partial installation, and successful installation after replacing the original archive during validation. They check prior enabled/disabled settings membership, restored files, use of one private archive for both checks and installation, archive permissions, and removal of that copy. These tests do not establish native Shell manager integration; the isolated native ZIP harness has not been rerun for this change.
+
+Real GJS service tests now use a TMPDIR containing a comma, exercising escaped D-Bus addresses through helper startup and shutdown. The existing certificate-safety GJS tests verify the shared subprocess helper's timeout, cancellation and direct-child reaping behavior. Lint and the automated suite pass. No working GNOME session, extension installation or unsafe-mode setting was changed.

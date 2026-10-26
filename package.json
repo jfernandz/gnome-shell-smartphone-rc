@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings 0",
     "test:accessibility": "node tests/cookie-browser.mjs --trusted --helper --accessibility"
   },
-  "version": "0.5.0",
+  "version": "0.5.1",
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "eslint": "10.13.0",

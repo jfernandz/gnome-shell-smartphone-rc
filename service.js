@@ -36,7 +36,7 @@ export class RemoteService {
             try {
                 this._peerDirectory = GLib.dir_make_tmp('smartphone-rc-peer-XXXXXX');
                 const path = `${this._peerDirectory}/peer`;
-                this._dbusServer = Gio.DBusServer.new_sync(`unix:path=${path}`,
+                this._dbusServer = Gio.DBusServer.new_sync(`unix:path=${Gio.dbus_address_escape_value(path)}`,
                     Gio.DBusServerFlags.AUTHENTICATION_REQUIRE_SAME_USER, Gio.dbus_generate_guid(), null, null);
                 this._connectionId = this._dbusServer.connect('new-connection', (_server, connection) => {
                     if (!this._process || this._peer || !isExpectedPeer(connection, Number(this._process.get_identifier()))) {

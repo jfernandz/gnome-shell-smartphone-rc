@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1 — 2026-10-26
+
+- Restore the previous enabled/disabled settings and installed files when ZIP installation fails, including failed first installations and source-loaded copies.
+- Validate and install from one private ZIP snapshot, then remove the snapshot when the operation finishes.
+- Bound installer commands with 30-second timeouts, support cancellation, and reap direct child processes before rollback using the shared subprocess helper.
+- Escape private D-Bus socket paths so temporary directories containing commas work correctly.
+- Add installer behavior regressions and real GJS service checks with comma-containing temporary paths. Document safe manual cleanup of retained backups, import aliases and source snapshots after session shutdown.
+
 ## 0.5.0 — 2026-10-26
 
 - Add a ZIP-command generator that selects the newest built ZIP or an explicit path and updates a private selection record, allowing the same Looking Glass command to install later archives without filename edits.
