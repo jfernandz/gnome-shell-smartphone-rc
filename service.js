@@ -2,8 +2,8 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import {DBusPeer, isExpectedPeer, cleanupPeerDirectory} from './dbus.js';
 import {RateLimit, validateInput} from './protocol.js';
-import {isPrivateIPv4} from './network.js';
 import {isSensitivityRange} from './limits.js';
+import {isStartupResponse} from './service-validation.js';
 
 const STATES = new Set(['listening', 'pending', 'connected', 'disconnected', 'expired', 'suspended', 'reconnecting']);
 
@@ -76,9 +76,7 @@ export class RemoteService {
             this._ready = true;
             this._peer.send({type: 'start', options: this._options});
         } else if (message.type === 'started') {
-            const match = /^(https?):\/\/([0-9.]+):(\d+)\/#([a-f0-9]{64})$/.exec(message.url);
-            if (!match || Number(match[3]) < 1 || Number(match[3]) > 65535 || match[2] !== this._options.address || (this._options.port && Number(match[3]) !== this._options.port) || (match[1] === 'http' ? match[2] !== '127.0.0.1' : (match[2] !== '127.0.0.1' && !isPrivateIPv4(match[2]))) ||
-                (match[1] === 'https' && !/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(message.fingerprint)) || !this._resolve || !this._ready || this._state !== 'listening')
+            if (!isStartupResponse(message, this._options) || !this._resolve || !this._ready || this._state !== 'listening')
                 return this._failed('Invalid network service startup response.');
             if (this._startup) GLib.Source.remove(this._startup);
             this._startup = 0;

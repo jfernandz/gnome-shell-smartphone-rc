@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.5.2 — 2026-10-26
+
+- Ignore stale session HTTP/JSON responses across browser connection changes and explicit Disconnect; cancel superseded requests and ignore malformed WebSocket messages. Disable phone input immediately on Disconnect.
+- Separate Shell menu rendering from transition effects; preserve focus, keyboard and pending approval resources on repeated states.
+- Isolate temporary helper authorization and expiry, name transport limits separately, and test Shell startup-response validation independently. Add delayed-response and isolated native regressions.
 
 - Fix development ZIP installation on GJS by using bounded `mktemp -d` instead of unavailable `GLib.mkdtemp()`. Settle Shell enablement changes before restoring a disabled copy.
 - Add a self-contained isolated native test launcher, real first-install/disabled rollback and ZIP replacement checks, and an optional bounded TLS load/recovery test.

@@ -6,10 +6,18 @@ import {RateLimit, validateInput} from '../protocol.js';
 import {isPrivateIPv4} from '../network.js';
 import {NetworkGuard} from './network-guard.js';
 import {DEFAULT_SENSITIVITY} from '../limits.js';
+import {SessionAuthorization} from './session-authorization.js';
 
 export const PORT = 8844;
 const SESSION_COOKIE = '__Host-smartphone_rc';
 const TRUST_COOKIE = '__Host-smartphone_rc_trust';
+
+const PAIRING_LIFETIME_SECONDS = 120;
+const MAX_HTTP_HEADER_BYTES = 8192;
+const MAX_WEBSOCKET_FRAME_BYTES = 2048;
+const MAX_WEBSOCKET_MESSAGE_BYTES = 2048;
+const MAX_AUTHENTICATION_MESSAGE_BYTES = 256;
+const MAX_HTTP_PATH_CHARACTERS = 256;
 
 export class RemoteServer {
     constructor(directory, onState, onInput, options = {}) {
@@ -32,13 +40,13 @@ export class RemoteServer {
         this._client = null;
         this._expiry = 0;
         this._pairingExpiry = 0;
-        this._sessionSecret = null;
-        this._sessionExpiry = 0;
         this._authenticationMillis = options.authenticationMillis ?? 5000;
-        this._sessionSeconds = options.sessionSeconds ?? 1800;
-        this._exchangeToken = null;
         this._trusted = options.trusted ?? null;
-        this._trustedId = null;
+        this._authorization = new SessionAuthorization(this._trusted, options.sessionSeconds ?? 1800,
+            () => this._newSecret(), () => {
+                this.disconnect();
+                this._onState('expired');
+            });
         this._sensitivity = options.sensitivity ?? {...DEFAULT_SENSITIVITY};
     }
 
@@ -56,7 +64,7 @@ export class RemoteServer {
 
     start() {
         this._token = this._newSecret();
-        this._deadline = GLib.get_monotonic_time() + 120 * 1000000;
+        this._deadline = GLib.get_monotonic_time() + PAIRING_LIFETIME_SECONDS * 1000000;
         this._server = new Soup.Server();
         try {
             this._guard = new NetworkGuard(this._server, this._certificate, this._guardOptions);
@@ -80,7 +88,7 @@ export class RemoteServer {
         });
         this._server.add_websocket_handler('/control', this._origin, null, (_server, message, _path, connection) =>
             this._acceptConnection(message, connection));
-        this._pairingExpiry = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 120, () => {
+        this._pairingExpiry = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, PAIRING_LIFETIME_SECONDS, () => {
             this._pairingExpiry = 0;
             this._token = null;
             this.disconnect();
@@ -103,14 +111,14 @@ export class RemoteServer {
         };
         let headerBytes = 0;
         headers.foreach((name, value) => {
-            if (headerBytes <= 8192)
-                headerBytes += value.length > 8192 ? value.length : new TextEncoder().encode(`${name}: ${value}\r\n`).length;
+            if (headerBytes <= MAX_HTTP_HEADER_BYTES)
+                headerBytes += value.length > MAX_HTTP_HEADER_BYTES ? value.length : new TextEncoder().encode(`${name}: ${value}\r\n`).length;
         });
-        if (headerBytes > 8192) {
+        if (headerBytes > MAX_HTTP_HEADER_BYTES) {
             reject(431);
             return;
         }
-        if (path.length > 256) {
+        if (path.length > MAX_HTTP_PATH_CHARACTERS) {
             reject(414);
             return;
         }
@@ -142,8 +150,8 @@ export class RemoteServer {
     }
 
     _acceptConnection(message, connection) {
-        connection.set_max_incoming_payload_size(2048);
-        connection.set_max_total_message_size(2048);
+        connection.set_max_incoming_payload_size(MAX_WEBSOCKET_FRAME_BYTES);
+        connection.set_max_total_message_size(MAX_WEBSOCKET_MESSAGE_BYTES);
         connection.set_keepalive_interval(15);
         connection.set_keepalive_pong_timeout(5);
         this._guard.websocket(message, connection);
@@ -178,7 +186,7 @@ export class RemoteServer {
         pending.message = connection.connect('message', (_connection, type, bytes) => {
             let authentication = null;
             try {
-                if (type === Soup.WebsocketDataType.TEXT && bytes.get_size() <= 256)
+                if (type === Soup.WebsocketDataType.TEXT && bytes.get_size() <= MAX_AUTHENTICATION_MESSAGE_BYTES)
                     authentication = JSON.parse(new TextDecoder().decode(bytes.get_data()));
             } catch { /* Reject malformed authentication. */ }
             clear();
@@ -195,7 +203,7 @@ export class RemoteServer {
 
     _attachConnection(peer, connection, trusted, session) {
         const resuming = session || Boolean(trusted);
-        if (trusted && this._client && (!this._approved || this._trustedId !== trusted.id)) {
+        if (trusted && this._client && (!this._approved || this._authorization.trustedId !== trusted.id)) {
             connection.close(1008, 'Another browser is connected');
             return;
         }
@@ -205,11 +213,11 @@ export class RemoteServer {
             previous.close(1000, 'Connection replaced');
         }
         if (trusted && !session)
-            this._clearSession();
+            this._authorization.clear();
         this._cookieAuthenticated = Boolean(resuming);
         this._firstMessage = true;
         this._peer = peer;
-        connection.set_max_incoming_payload_size(2048);
+        connection.set_max_incoming_payload_size(MAX_WEBSOCKET_FRAME_BYTES);
         this._client = connection;
         this._approved = false;
         this._suspended = false;
@@ -218,7 +226,7 @@ export class RemoteServer {
         this._closedId = connection.connect('closed', () => this._clearClient(true));
         if (resuming) {
             if (trusted) {
-                this._trustedId = trusted.id;
+                this._authorization.trustedId = trusted.id;
                 this._trusted.touch(trusted.id);
             }
             this._consumePairing();
@@ -237,11 +245,11 @@ export class RemoteServer {
     _handleMessage(type, bytes) {
         const first = this._firstMessage;
         this._firstMessage = false;
-        if (this._approved && !this._sessionActive()) {
+        if (this._approved && !this._authorization.active()) {
             this.disconnect();
             return;
         }
-        if (bytes.get_size() > 2048 || type !== Soup.WebsocketDataType.TEXT || !this._rate.accept(GLib.get_monotonic_time() / 1000)) {
+        if (bytes.get_size() > MAX_WEBSOCKET_MESSAGE_BYTES || type !== Soup.WebsocketDataType.TEXT || !this._rate.accept(GLib.get_monotonic_time() / 1000)) {
             this.disconnect();
             return;
         }
@@ -251,7 +259,7 @@ export class RemoteServer {
         try {
             const packet = JSON.parse(new TextDecoder().decode(bytes.get_data()));
             // A scanned link may arrive with an already valid recovery cookie.
-            if (first && this._cookieAuthenticated && bytes.get_size() <= 256 &&
+            if (first && this._cookieAuthenticated && bytes.get_size() <= MAX_AUTHENTICATION_MESSAGE_BYTES &&
                 packet?.type === 'authenticate' && typeof packet.token === 'string' && /^[a-f0-9]{64}$/.test(packet.token))
                 return;
             input = validateInput(packet);
@@ -264,7 +272,7 @@ export class RemoteServer {
             return;
         }
         if (!['suspend', 'disconnect'].includes(input.type))
-            this._touchSession();
+            this._authorization.touch(this._approved);
         if (input.type === 'disconnect') {
             this.disconnect();
         } else if (input.type === 'suspend') {
@@ -273,7 +281,7 @@ export class RemoteServer {
             this._onState('suspended');
         } else if (input.type === 'resume') {
             this._suspended = false;
-            this.send({type: 'resumed', exchangeToken: this._issueExchange()});
+            this.send({type: 'resumed', exchangeToken: this._authorization.issueExchange()});
             this._onState('connected');
         } else if (!this._suspended) {
             this._onInput(input);
@@ -285,7 +293,7 @@ export class RemoteServer {
     }
 
     get browserName() {
-        return this._trustedId ? this._trusted.get(this._trustedId)?.name : null;
+        return this._authorization.trustedId ? this._trusted.get(this._authorization.trustedId)?.name : null;
     }
 
     _isOwnHost(message) {
@@ -315,7 +323,7 @@ export class RemoteServer {
     send(message) {
         if (!this._client || !this._approved)
             return;
-        if (!this._sessionActive()) {
+        if (!this._authorization.active()) {
             this.disconnect();
             return;
         }
@@ -325,7 +333,7 @@ export class RemoteServer {
     approve(remember = false) {
         if (!this._client || this._approved || GLib.get_monotonic_time() > this._deadline)
             return;
-        this._rememberRequested = Boolean(remember && this._trusted);
+        this._authorization.rememberRequested = Boolean(remember && this._trusted);
         this._consumePairing();
         this._authorize();
     }
@@ -346,22 +354,16 @@ export class RemoteServer {
     }
 
     checkTrust() {
-        if (this._trustedId && !this._trusted.contains(this._trustedId))
+        if (this._authorization.trustedId && !this._trusted.contains(this._authorization.trustedId))
             this.disconnect();
     }
 
     _authorize() {
         this._approved = true;
         this._suspended = false;
-        this._touchSession();
-        this._client.send_text(JSON.stringify({type: 'approved', exchangeToken: this._issueExchange(), sensitivity: this._sensitivity}));
+        this._authorization.touch(this._approved);
+        this._client.send_text(JSON.stringify({type: 'approved', exchangeToken: this._authorization.issueExchange(), sensitivity: this._sensitivity}));
         this._onState('connected');
-    }
-
-    _issueExchange() {
-        this._exchangeToken = this._newSecret();
-        this._exchangeDeadline = GLib.get_monotonic_time() + 30 * 1000000;
-        return this._exchangeToken;
     }
 
     _cookie(message, name = SESSION_COOKIE) {
@@ -374,45 +376,7 @@ export class RemoteServer {
     }
 
     _hasSession(message) {
-        return Boolean(this._sessionSecret && this._cookie(message) === this._sessionSecret && this._sessionActive());
-    }
-
-    _sessionActive() {
-        return GLib.get_monotonic_time() < this._sessionDeadline &&
-            (!this._trustedId || this._trusted.contains(this._trustedId));
-    }
-
-    _touchSession() {
-        this._sessionDeadline = GLib.get_monotonic_time() + this._sessionSeconds * 1000000;
-        if (this._trustedId)
-            this._trusted.touch(this._trustedId);
-        if ((this._sessionSecret || this._approved) && !this._sessionExpiry)
-            this._armSessionExpiry();
-    }
-
-    _armSessionExpiry() {
-        const remaining = Math.max(1, Math.ceil((this._sessionDeadline - GLib.get_monotonic_time()) / 1000));
-        this._sessionExpiry = GLib.timeout_add(GLib.PRIORITY_DEFAULT, remaining, () => {
-            this._sessionExpiry = 0;
-            if (GLib.get_monotonic_time() >= this._sessionDeadline) {
-                this.disconnect();
-                this._onState('expired');
-            } else {
-                this._armSessionExpiry();
-            }
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-
-    _clearSession() {
-        if (this._sessionExpiry) {
-            GLib.Source.remove(this._sessionExpiry);
-            this._sessionExpiry = 0;
-        }
-        this._sessionSecret = null;
-        this._exchangeToken = null;
-        this._trustedId = null;
-        this._rememberRequested = false;
+        return this._authorization.hasSession(this._cookie(message));
     }
 
     _sessionRequest(message) {
@@ -448,9 +412,8 @@ export class RemoteServer {
     }
 
     _validExchange(message) {
-        return Boolean(this._client && this._approved && this._exchangeToken && this._sessionActive() &&
-            GLib.get_monotonic_time() < this._exchangeDeadline &&
-            message.get_request_headers().get_one('Authorization') === `Bearer ${this._exchangeToken}`);
+        return Boolean(this._client && this._approved &&
+            this._authorization.validExchange(message.get_request_headers().get_one('Authorization')));
     }
 
     _setCookie(message, name, secret, age) {
@@ -462,20 +425,15 @@ export class RemoteServer {
         const exchange = this._validExchange(message);
         if (!this._hasSession(message) && !exchange)
             return null;
-        if (exchange) {
-            this._exchangeToken = null;
-            if (!this._sessionSecret) {
-                this._sessionSecret = this._newSecret();
-                this._touchSession();
-            }
-        }
+        if (exchange)
+            this._authorization.consumeExchange(this._approved);
         let rememberError = null;
-        if (exchange && this._rememberRequested) {
-            this._rememberRequested = false;
+        if (exchange && this._authorization.rememberRequested) {
+            this._authorization.rememberRequested = false;
             try {
                 const secret = this._newSecret();
                 const record = this._trusted.remember(secret);
-                this._trustedId = record.id;
+                this._authorization.trustedId = record.id;
                 const age = Math.max(1, record.expires - Math.floor(GLib.get_real_time() / 1000000));
                 this._setCookie(message, TRUST_COOKIE, secret, age);
             } catch (error) {
@@ -484,13 +442,12 @@ export class RemoteServer {
                 this.send({type: 'trust-error', message: error.message});
             }
         }
-        const age = Math.max(1, Math.ceil((this._sessionDeadline - GLib.get_monotonic_time()) / 1000000));
-        this._setCookie(message, SESSION_COOKIE, this._sessionSecret, age);
+        this._setCookie(message, SESSION_COOKIE, this._authorization.sessionSecret, this._authorization.cookieAgeSeconds);
         return {rememberError};
     }
 
     _clearClient(allowResume = false) {
-        const resumable = allowResume && this._approved && this._sessionSecret && this._sessionActive();
+        const resumable = allowResume && this._approved && this._authorization.sessionSecret && this._authorization.active();
         if (this._expiry) {
             GLib.Source.remove(this._expiry);
             this._expiry = 0;
@@ -505,17 +462,17 @@ export class RemoteServer {
             this._pairingExpiry = 0;
         }
         this._peer = null;
-        this._exchangeToken = null;
+        this._authorization.exchangeToken = null;
         if (resumable) {
             this._onState('reconnecting');
         } else {
-            this._clearSession();
+            this._authorization.clear();
             this._onState('disconnected');
         }
     }
 
     disconnect() {
-        this._clearSession();
+        this._authorization.clear();
         if (!this._client)
             return;
         const client = this._client;

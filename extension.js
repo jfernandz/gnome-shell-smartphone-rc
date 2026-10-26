@@ -60,6 +60,7 @@ export default class SmartphoneRemoteControl extends Extension {
                 this._server?.setSensitivity(sensitivityRange(this._settings));
         });
         this._pairing.add_style_class_name('smartphone-rc-connect');
+        this._sessionState = 'off';
         this._updateServiceActions('off');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
@@ -127,15 +128,38 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _onSessionState(state) {
+        this._updateSessionMenu(state);
+        if (state !== this._sessionState) {
+            this._applySessionTransition(state);
+            this._sessionState = state;
+        }
+    }
+
+    _updateSessionMenu(state) {
         this._updateServiceActions(state);
-        if (state === 'reconnecting')
-            console.info('Smartphone Remote Control: phone transport interrupted; waiting for reconnection.');
         this._status.label.text = {
             listening: 'Waiting for phone', pending: `Control requested from ${this._server.peer}`,
             connected: `Connected: ${this._server.browserName ?? this._server.peer}`, disconnected: 'Disconnected',
             expired: 'Invitation or session expired',
             suspended: 'Phone paused in background', reconnecting: 'Waiting for phone to reconnect',
         }[state];
+        this._approve.visible = state === 'pending';
+        this._remember.visible = state === 'pending';
+        this._pairing.visible = state !== 'pending';
+        this._pairing.label.text = state === 'listening' ? 'Show pairing QR' : 'New pairing QR';
+        if (['connected', 'disconnected', 'expired'].includes(state))
+            this._copy.visible = false;
+    }
+
+    _applySessionTransition(state) {
+        if (state === 'reconnecting')
+            console.info('Smartphone Remote Control: phone transport interrupted; waiting for reconnection.');
+        if (['connected', 'disconnected', 'expired'].includes(state)) {
+            this._url = null;
+            this._removeSessionFile();
+        }
+        if (state === 'pending')
+            this._remember.setToggleState(false);
         if (this._focus) {
             this._focus.destroy();
             this._focus = null;
@@ -149,20 +173,8 @@ export default class SmartphoneRemoteControl extends Extension {
         }
         this._clearNotification();
         this._dialogs.closeVerification();
-        this._approve.visible = state === 'pending';
-        this._remember.visible = state === 'pending';
-        if (state === 'pending')
-            this._remember.setToggleState(false);
-        if (state !== 'listening') {
+        if (state !== 'listening')
             this._dialogs.closePairing();
-        }
-        this._pairing.visible = state !== 'pending';
-        this._pairing.label.text = state === 'listening' ? 'Show pairing QR' : 'New pairing QR';
-        if (['connected', 'disconnected', 'expired'].includes(state)) {
-            this._copy.visible = false;
-            this._url = null;
-            this._removeSessionFile();
-        }
         if (state === 'pending')
             this._notifyRequest();
     }
@@ -279,6 +291,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._approve.visible = false;
         this._remember.visible = false;
         this._status.label.text = 'Remote control is off';
+        this._sessionState = 'off';
         this._updateServiceActions('off');
     }
 

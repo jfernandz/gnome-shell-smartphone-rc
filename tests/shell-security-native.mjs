@@ -65,6 +65,13 @@ try {
     assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     await connect();
     assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.visible && ${base}._disconnectAction.label.text === 'Reject request'`).includes("'true'"));
+    assert.ok(evaluate(`(()=>{
+        const extension = ${base};
+        const notification = extension._notification;
+        extension._remember.setToggleState(true);
+        extension._onSessionState('pending');
+        return extension._notification === notification && extension._remember.state;
+    })()`).includes("'true'"));
     evaluate(`${base}._notification._actions[0].activate()`);
     await wait(`${base}._dialogs._verification !== null`);
     evaluate(`(()=>{
@@ -86,6 +93,20 @@ try {
     await wait(`${base}._server?._state === 'connected'`);
     assert.ok(evaluate(`${base}._focus !== null`).includes("'true'"));
     assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.label.text === 'Disconnect phone'`).includes("'true'"));
+    assert.ok(evaluate(`(()=>{
+        const extension = ${base};
+        const focus = extension._focus;
+        const cancelKeyboard = extension._input.cancelKeyboard;
+        let cancellations = 0;
+        extension._input.cancelKeyboard = () => cancellations++;
+        try {
+            extension._onSessionState('connected');
+            return extension._focus === focus && cancellations === 0;
+        } finally {
+            extension._input.cancelKeyboard = cancelKeyboard;
+        }
+    })()`).includes("'true'"));
+    console.log('PASS: repeated states preserve pending approval, notification, focus and keyboard');
     console.log('PASS: TLS native approval requires fingerprint acknowledgement before input becomes available');
 
     evaluate(`${base}._server._process.force_exit()`);

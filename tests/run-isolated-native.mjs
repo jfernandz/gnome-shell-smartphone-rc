@@ -6,7 +6,7 @@ import {join, resolve} from 'node:path';
 import {once} from 'node:events';
 
 // Own the compositor and bus; never accept an address supplied by the desktop.
-const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.1.zip');
+const archive = resolve(process.argv[2] ?? 'dist/smartphone-rc-0.5.2.zip');
 assert.ok(existsSync(archive), 'Pass a built project ZIP');
 const root = mkdtempSync(join(homedir(), '.cache/smartphone-rc-native-'));
 for (const name of ['data', 'config', 'cache', 'runtime', 'tmp']) mkdirSync(join(root, name), {mode: 0o700});
@@ -66,7 +66,7 @@ try {
     await run('node', ['tests/shell-security-native.mjs', join(root, 'bus'), join(root, 'runtime')], nativeEnv);
     const guiEnv = {DBUS_SESSION_BUS_ADDRESS: readFileSync(join(root, 'bus'), 'utf8'), WAYLAND_DISPLAY: 'smartphone-rc-test',
         GSETTINGS_BACKEND: 'memory', GTK_A11Y: 'none'};
-    const output = resolve('dist/publication');
+    const output = resolve(process.argv[3] ?? 'dist/publication');
     mkdirSync(output, {recursive: true});
     for (const [scheme, font, label] of [['light', 'Sans 11', 'light'], ['dark', 'Sans 11', 'dark'],
         ['dark', 'Sans 22', 'dark-large-text']]) {

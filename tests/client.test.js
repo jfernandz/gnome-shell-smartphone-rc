@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createClient} from '../app/web/client.js';
 
-function page({hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
+function page({fetchSession = null, hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
     const elements = new Map();
     function element(id) {
         if (!elements.has(id)) {
@@ -73,6 +73,7 @@ function page({hash = '', storage = new Map(), preferences = new Map(), blockedS
             setItem(key, value) { if (blockedStorage) throw new Error('Unavailable'); preferences.set(key, value); },
         },
         async fetch(_url, options = {}) {
+            if (fetchSession) return fetchSession(options);
             if (options.method === 'POST' && options.headers?.Authorization)
                 cookieJar.authenticated = true;
             return {ok: options.method !== 'POST' || cookieJar.authenticated, async json() { return {authenticated: cookieJar.authenticated}; }};
@@ -485,4 +486,119 @@ test('Disconnect keeps Connect disabled when temporary approval has been revoked
     await browser.settle();
     assert.equal(browser.element('connect').disabled, true);
     assert.equal(browser.sockets.length, 1);
+});
+
+function deferred() {
+    let resolve;
+    const promise = new Promise(done => resolve = done);
+    return {promise, resolve};
+}
+
+for (const delayedBody of [false, true]) {
+    test(`late session ${delayedBody ? 'JSON' : 'headers'} cannot undo explicit disconnect`, async () => {
+        const delayed = deferred();
+        const requests = [];
+        const browser = connectedPage({fetchSession(options) {
+            requests.push(options);
+            if (options.method !== 'POST')
+                return {ok: true, json: async () => ({authenticated: false})};
+            return delayedBody ? {ok: true, json: () => delayed.promise} : delayed.promise;
+        }});
+        browser.sockets[0].emit('message', {data: JSON.stringify({type: 'resumed', exchangeToken: 'exchange'})});
+        await browser.settle();
+        browser.element('disconnect').handlers.click();
+        delayed.resolve(delayedBody ? {authenticated: true} : {ok: true, json: async () => ({authenticated: true})});
+        await browser.settle();
+        assert.equal(requests[0].signal.aborted, true);
+        assert.equal(browser.element('connect').disabled, true);
+        assert.equal(browser.timeouts.size, 0);
+        assert.equal(browser.sockets.length, 1);
+    });
+
+    test(`old session ${delayedBody ? 'JSON' : 'headers'} cannot change a replacement connection`, async () => {
+        const delayed = deferred();
+        let calls = 0;
+        const browser = connectedPage({fetchSession() {
+            if (++calls === 1)
+                return {ok: true, json: async () => ({authenticated: true})};
+            return delayedBody ? {ok: true, json: () => delayed.promise} : delayed.promise;
+        }});
+        const first = browser.sockets[0];
+        first.emit('message', {data: JSON.stringify({type: 'resumed', exchangeToken: 'first'})});
+        await browser.settle();
+        first.emit('message', {data: JSON.stringify({type: 'resumed', exchangeToken: 'old'})});
+        await browser.settle();
+        first.emit('close', {code: 1006});
+        // Run the recovery timer, then establish the new socket without another exchange.
+        for (const callback of [...browser.timeouts.values()]) callback();
+        assert.equal(browser.sockets.length, 2);
+        const replacement = browser.sockets[1];
+        replacement.emit('message', {data: JSON.stringify({type: 'approved'})});
+        delayed.resolve(delayedBody ? {authenticated: false} : {ok: true, json: async () => ({authenticated: false})});
+        await browser.settle();
+        assert.equal(browser.element('status').textContent, 'Connected');
+        replacement.emit('close', {code: 1006});
+        assert.match(browser.element('status').textContent, /Reconnecting/);
+    });
+}
+
+test('malformed socket messages are ignored and valid messages still work', () => {
+    const browser = connectedPage();
+    for (const data of ['{', 'null', '[]', '42', '"approved"', '{}',
+        JSON.stringify({type: 'focus', context: {}, active: true})])
+        assert.doesNotThrow(() => browser.sockets[0].emit('message', {data}));
+    assert.equal(browser.element('status').textContent, 'Connected');
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'typing-paused'})});
+    assert.match(browser.element('status').textContent, /Typing paused/);
+});
+
+for (const delayedBody of [false, true]) {
+    test(`startup recovery ${delayedBody ? 'JSON' : 'headers'} cannot survive a disconnected null socket epoch`, async () => {
+        const delayed = deferred();
+        let calls = 0;
+        const browser = page({fetchSession() {
+            if (++calls > 1)
+                return {ok: true, json: async () => ({authenticated: false})};
+            return delayedBody ? {ok: true, json: () => delayed.promise} : delayed.promise;
+        }});
+        await browser.settle();
+        browser.element('disconnect').handlers.click();
+        delayed.resolve(delayedBody ? {authenticated: true} : {ok: true, json: async () => ({authenticated: true})});
+        await browser.settle();
+        assert.equal(browser.element('connect').disabled, true);
+        assert.equal(browser.sockets.length, 0);
+        assert.equal(browser.timeouts.size, 0);
+    });
+}
+
+test('a superseded session refresh cannot overwrite the newest response', async () => {
+    const old = deferred();
+    let calls = 0;
+    const browser = connectedPage({fetchSession() {
+        return ++calls === 1 ? {ok: true, json: () => old.promise} :
+            {ok: true, json: async () => ({authenticated: true})};
+    }});
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'resumed', exchangeToken: 'old'})});
+    await browser.settle();
+    browser.sockets[0].emit('message', {data: JSON.stringify({type: 'resumed', exchangeToken: 'new'})});
+    await browser.settle();
+    old.resolve({authenticated: false});
+    await browser.settle();
+    browser.sockets[0].emit('close', {code: 1006});
+    assert.match(browser.element('status').textContent, /Reconnecting/);
+});
+
+test('Disconnect disables input immediately while the WebSocket close event is delayed', () => {
+    const browser = connectedPage();
+    const connection = browser.sockets[0];
+    connection.close = () => {};
+    browser.element('disconnect').handlers.click();
+    assert.equal(browser.element('keyboard').disabled, true);
+    assert.equal(browser.element('typing').hidden, true);
+    connection.emit('message', {data: JSON.stringify({type: 'approved', exchangeToken: 'late'})});
+    assert.equal(browser.element('keyboard').disabled, true);
+    browser.element('text').value = 'ignored';
+    browser.element('text').handlers.input({isComposing: false});
+    assert.deepEqual(connection.sent, [{type: 'disconnect'}]);
+    connection.emit('close', {code: 1000});
 });

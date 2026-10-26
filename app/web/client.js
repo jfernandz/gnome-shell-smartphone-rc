@@ -2,6 +2,11 @@ import {createKeyboard} from './keyboard.js';
 import {createTouchpad} from './touchpad.js';
 import {trackViewport} from './viewport.js';
 
+const COOKIE_REFRESH_MS = 5 * 60 * 1000;
+const RECOVERY_WINDOW_MS = 30 * 60 * 1000;
+const CONNECT_TIMEOUT_MS = 10000;
+const RESUME_TIMEOUT_MS = 3000;
+
 export function createClient(environment = globalThis) {
     const {document, location, history, WebSocket, fetch, setTimeout, clearTimeout} = environment;
     const $ = id => document.getElementById(id);
@@ -26,6 +31,19 @@ export function createClient(environment = globalThis) {
         }
     }
     let socket = null;
+    let connectionEpoch = 0;
+    let sessionRequest = 0;
+    let sessionAbort = null;
+    function invalidateConnection() {
+        connectionEpoch++;
+        sessionAbort?.abort();
+        sessionAbort = null;
+    }
+    function beginSessionRequest() {
+        sessionAbort?.abort();
+        sessionAbort = new (environment.AbortController ?? globalThis.AbortController)();
+        return sessionAbort.signal;
+    }
     let state = 'disconnected';
     let typingPaused = false;
     let cookieSession = false;
@@ -48,35 +66,37 @@ export function createClient(environment = globalThis) {
         }
     }
     async function rememberSession(exchangeToken = null) {
-        const connection = socket;
+        const epoch = connectionEpoch;
+        const request = ++sessionRequest;
+        const signal = beginSessionRequest();
         try {
             const response = await fetch('/session', {
-                method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                signal, method: 'POST', credentials: 'same-origin', cache: 'no-store',
                 headers: exchangeToken ? {Authorization: `Bearer ${exchangeToken}`} : {},
             });
-            if (!response.ok || userDisconnected)
+            if (!response.ok)
                 return;
-            if (connection !== socket) {
-                if (!socket)
-                    restoreSession();
+            const session = await response.json();
+            if (epoch !== connectionEpoch || request !== sessionRequest || userDisconnected)
                 return;
-            }
-            cookieSession = Boolean((await response.json()).authenticated);
+            cookieSession = session?.authenticated === true;
             clearCookieTimer();
             if (cookieSession && state === 'connected' && !document.hidden)
-                cookieTimer = setTimeout(() => rememberSession(), 5 * 60 * 1000);
+                cookieTimer = setTimeout(() => rememberSession(), COOKIE_REFRESH_MS);
         } catch {
             // An interrupted refresh can be retried on return to the page.
         }
     }
     async function restoreSession(automatic = true) {
-        const connection = socket;
+        const epoch = connectionEpoch;
+        const request = ++sessionRequest;
+        const signal = beginSessionRequest();
         try {
-            const response = await fetch('/session', {credentials: 'same-origin', cache: 'no-store'});
+            const response = await fetch('/session', {signal, credentials: 'same-origin', cache: 'no-store'});
             if (!response.ok)
                 return;
-            const authenticated = Boolean((await response.json()).authenticated);
-            if (socket !== connection)
+            const authenticated = (await response.json())?.authenticated === true;
+            if (epoch !== connectionEpoch || request !== sessionRequest)
                 return;
             cookieSession = authenticated;
             if (automatic && cookieSession && !socket && !userDisconnected && !document.hidden)
@@ -102,7 +122,7 @@ export function createClient(environment = globalThis) {
         if (!cookieSession)
             return;
         if (!retryDeadline)
-            retryDeadline = Date.now() + 30 * 60 * 1000;
+            retryDeadline = Date.now() + RECOVERY_WINDOW_MS;
         if (Date.now() >= retryDeadline) {
             cookieSession = false;
             transition('disconnected', 'Session expired. Start a new session on the PC and scan its QR code.');
@@ -146,7 +166,7 @@ export function createClient(environment = globalThis) {
             retryCount = 0;
             retryDeadline = 0;
         }
-        if (message.exchangeToken)
+        if (typeof message.exchangeToken === 'string' && message.exchangeToken)
             rememberSession(message.exchangeToken);
         if (document.hidden) {
             connection.send(JSON.stringify({type: 'suspend'}));
@@ -154,6 +174,36 @@ export function createClient(environment = globalThis) {
         } else {
             transition('connected', 'Connected');
         }
+    }
+
+    function handleMessage(connection, message) {
+        if (message.type === 'focus' && (!Number.isSafeInteger(message.context) || message.context < 0 ||
+            typeof message.active !== 'boolean' || (message.sensitive !== undefined && typeof message.sensitive !== 'boolean')))
+            return;
+        if (message.type === 'focus' && state === 'connected' && !document.hidden) {
+            keyboard.focus(message);
+            if (typingPaused) {
+                typingPaused = false;
+                transition('connected', 'Connected');
+            }
+        }
+        if (message.type === 'trust-error')
+            $('status').textContent = `Connected for this session only. ${message.message}`;
+        if (message.type === 'typing-paused' && state === 'connected') {
+            typingPaused = true;
+            $('keyboard').disabled = true;
+            keyboard.hide();
+            keyboard.reset();
+            $('status').textContent = 'Typing paused. Tap the PC text field again to resume.';
+        }
+        if (message.type === 'settings' || message.type === 'approved')
+            touchpad.setRange(message.sensitivity);
+        if (message.type === 'pending')
+            transition('pending', 'On the PC, verify the browser certificate and approve.');
+        if (message.type === 'approved' || message.type === 'resumed')
+            activateConnection(connection, message);
+        if (message.type === 'suspended')
+            transition('suspended', 'Paused. Return to Chrome to resume.');
     }
 
     function connect(resuming = false) {
@@ -167,17 +217,19 @@ export function createClient(environment = globalThis) {
         const pairing = cookieSession ? null : token;
         const connection = new WebSocket(`${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/control`);
         socket = connection;
+        invalidateConnection();
         retryTimer = setTimeout(() => {
             retryTimer = 0;
             if (socket === connection && connection.readyState === WebSocket.CONNECTING) {
                 socket = null;
+                invalidateConnection();
                 connection.close();
                 if (cookieSession)
                     reconnectLater();
                 else
                     transition('disconnected', 'Could not reach the PC. Check the network and tap Connect again.');
             }
-        }, 10000);
+        }, CONNECT_TIMEOUT_MS);
         connection.addEventListener('open', () => {
             if (socket === connection) {
                 clearRetry();
@@ -187,33 +239,17 @@ export function createClient(environment = globalThis) {
         });
         transition(resuming ? 'reconnecting' : 'connecting', resuming ? 'Reconnecting…' : 'Connecting…');
         connection.addEventListener('message', event => {
-            if (socket !== connection)
+            if (socket !== connection || userDisconnected)
                 return;
-            const message = JSON.parse(event.data);
-            if (message.type === 'focus' && state === 'connected' && !document.hidden) {
-                keyboard.focus(message);
-                if (typingPaused) {
-                    typingPaused = false;
-                    transition('connected', 'Connected');
-                }
+            let message;
+            try {
+                message = JSON.parse(event.data);
+            } catch {
+                return;
             }
-            if (message.type === 'trust-error')
-                $('status').textContent = `Connected for this session only. ${message.message}`;
-            if (message.type === 'typing-paused' && state === 'connected') {
-                typingPaused = true;
-                $('keyboard').disabled = true;
-                keyboard.hide();
-                keyboard.reset();
-                $('status').textContent = 'Typing paused. Tap the PC text field again to resume.';
-            }
-            if (message.type === 'settings' || message.type === 'approved')
-                touchpad.setRange(message.sensitivity);
-            if (message.type === 'pending')
-                transition('pending', 'On the PC, verify the browser certificate and approve.');
-            if (message.type === 'approved' || message.type === 'resumed')
-                activateConnection(connection, message);
-            if (message.type === 'suspended')
-                transition('suspended', 'Paused. Return to Chrome to resume.');
+            if (!message || typeof message !== 'object' || Array.isArray(message))
+                return;
+            handleMessage(connection, message);
         });
         connection.addEventListener('close', event => {
             if (socket !== connection)
@@ -221,6 +257,7 @@ export function createClient(environment = globalThis) {
             clearRetry();
             clearCookieTimer();
             socket = null;
+            invalidateConnection();
             typingPaused = false;
             forgetToken();
             const ended = event?.code === 1000 || event?.code === 1008;
@@ -244,11 +281,13 @@ export function createClient(environment = globalThis) {
     $('connect').addEventListener('click', () => connect(Boolean(cookieSession)));
     $('disconnect').addEventListener('click', () => {
         userDisconnected = true;
+        invalidateConnection();
         clearCookieTimer();
         clearRetry();
         cookieSession = false;
         if (socket?.readyState === WebSocket.OPEN)
             socket.send(JSON.stringify({type: 'disconnect'}));
+        transition('disconnected', 'Disconnected. Start a new session on the PC and scan its QR code.');
         socket?.close(1000, 'Disconnected by phone');
     });
 
@@ -268,13 +307,15 @@ export function createClient(environment = globalThis) {
                     resumeTimer = 0;
                     if (socket === connection) {
                         socket = null;
+                        invalidateConnection();
                         connection.close();
                         connect(true);
                     }
-                }, 3000);
+                }, RESUME_TIMEOUT_MS);
             } else {
                 const previous = socket;
                 socket = null;
+                invalidateConnection();
                 previous?.close();
                 connect(true);
             }

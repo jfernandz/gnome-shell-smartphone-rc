@@ -27,7 +27,9 @@
     "subprocess.js",
     "certificates.js",
     "file-io.js",
-    "dbus.js"
+    "dbus.js",
+    "service-validation.js",
+    "app/session-authorization.js"
   ],
   "web": {
     "/": {
