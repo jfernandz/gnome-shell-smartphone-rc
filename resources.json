@@ -30,7 +30,9 @@
     "dbus.js",
     "service-validation.js",
     "app/session-authorization.js",
-    "icons/remote-touchpad-symbolic.svg"
+    "icons/remote-touchpad-symbolic.svg",
+    "icons/github-symbolic.svg",
+    "icons/octicons-LICENSE"
   ],
   "web": {
     "/": {

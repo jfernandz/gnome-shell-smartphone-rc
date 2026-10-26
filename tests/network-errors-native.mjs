@@ -41,7 +41,7 @@ try {
     find(Gtk.Button, 'Refresh').emit('clicked');
     await wait(() => find(Adw.EntryRow, 'LAN IPv4 address').text === '192.168.5.4');
     if (!find(Adw.ActionRow, 'Addresses refreshed')) throw Error('Refresh left stale discovery error visible');
-    const configure = find(Gtk.Button, 'Configure');
+    const configure = find(Gtk.Button, 'Apply');
     configure.emit('clicked');
     await wait(() => find(Adw.ActionRow, 'Configuration failed') && configure.sensitive);
     if (!find(Adw.ActionRow, 'Configuration failed').subtitle.includes('OpenSSL is required'))

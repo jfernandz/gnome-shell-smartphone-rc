@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.4 — 2026-10-27
+
+- Organize Settings into native Network, Pointer, Security, Devices and About tabs with adaptive navigation.
+- Show certificate status, fingerprint, expiry and verification guidance in Security, updating them after successful network configuration or renewal.
+- Clarify Apply network configuration and add a Renew certificate shortcut that opens Network and focuses the address without applying changes automatically.
+- Add a symbolic GitHub icon beside the Source code link in About, retaining its text and accessible name; include the upstream MIT license.
+- Extend isolated native preferences checks for tab navigation, keyboard focus, narrow layouts and certificate updates, renewal and failure preservation.
+
 ## 0.5.3 — 2026-10-27
 
 - Use an outline symbolic panel icon combining a touchpad with wireless waves pointing to the right. Expand strokes into filled paths so GNOME symbolic recoloring preserves the hollow design. Keep a standard 16-by-16 grid and theme-controlled panel sizing.

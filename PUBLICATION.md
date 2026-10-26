@@ -1,6 +1,6 @@
 # Publication readiness
 
-Current implementation: **v0.5.3**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
+Current implementation: **v0.5.4**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
 
 ## In place
 
@@ -8,7 +8,7 @@ Current implementation: **v0.5.3**. A local ZIP/tag is not approval from extensi
 - Manifest-based packages with license, runtime assets and schema XML; tests, development loaders and credentials excluded.
 - Shell/GTK/child import boundaries, bounded private D-Bus, lifecycle cleanup and transport/authorization regressions.
 - Contribution guidance, reproducible lint and documented static-review findings.
-- Earlier physical acceptance of ZIP installation and Settings, plus confirmation of the D-Bus migration; final v0.5.3 ZIP acceptance remains pending.
+- Earlier physical acceptance of ZIP installation and Settings, plus confirmation of the D-Bus migration; final v0.5.4 ZIP acceptance remains pending.
 
 Evidence and limitations: [TESTING.md](TESTING.md), [SECURITY.md](SECURITY.md), [ACCESSIBILITY.md](ACCESSIBILITY.md) and [SHEXLI.md](SHEXLI.md).
 

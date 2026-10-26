@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.5.3 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.5.4 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -21,7 +21,7 @@ Install a built ZIP, or install from the project source:
 
 ```sh
 # Choose one installation method:
-gnome-extensions install --force /path/to/smartphone-rc-0.5.3.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.5.4.zip
 # Or, from the project directory:
 bash scripts/install.sh
 ```
@@ -32,7 +32,9 @@ Log out and back in to load the installed files, then enable the extension if ne
 gnome-extensions enable smartphone-rc@jfaparicio.github.io
 ```
 
-Open **Settings → Network**, select a private IPv4 address assigned to an active PC interface, choose a port (default **8844**), and press **Configure**. This saves a private key and a 90-day self-signed certificate under `$XDG_CONFIG_HOME/smartphone-rc/` (normally `~/.config/smartphone-rc/`). The page shows its SHA-256 fingerprint and expiry. Setup neither starts the service nor changes the firewall.
+Settings groups controls into **Network**, **Pointer**, **Security**, **Devices** and **About** tabs.
+
+Open **Settings → Network**, select a private IPv4 address assigned to an active PC interface, choose a port (default **8844**), and press **Apply** under **Apply network configuration**. This saves a private key and a 90-day self-signed certificate under `$XDG_CONFIG_HOME/smartphone-rc/` (normally `~/.config/smartphone-rc/`). **Settings → Security** shows its SHA-256 fingerprint, expiry and verification instructions. **Renew certificate…** in Security opens Network to review the address; a new certificate is generated only when you press Apply. Setup neither starts the service nor changes the firewall.
 
 If the address changes or the certificate expires, stop control, configure again, and restart. Failed or cancelled setup preserves the previous configuration. Starting without valid configuration offers **Open Settings**.
 
@@ -56,7 +58,7 @@ Temporary approval can recover across tabs/browser restarts for up to 30 minutes
 
 **Accept and remember** authorizes that browser profile for 7, 30 or 90 days, selected in **Settings → Security** (default 90). The choice applies to new enrollments; use does not renew trust. Clearing cookies or changing browsers requires pairing again.
 
-**Disconnect phone** preserves remembered trust. **Settings → Trusted devices → Forget** revokes it and disconnects an affected browser immediately; **Forget all** revokes every remembered browser. Names are editable labels, not identity checks. Up to 32 browsers may be remembered, but another browser cannot take over an active connection.
+**Disconnect phone** preserves remembered trust. **Settings → Devices → Forget** revokes it and disconnects an affected browser immediately; **Forget all** revokes every remembered browser. Names are editable labels, not identity checks. Up to 32 browsers may be remembered, but another browser cannot take over an active connection.
 
 After lock, login or service restart, start control manually and reopen the plain PC address in a remembered browser. There is no automatic startup, remote unlock or login-screen control. Anyone with access to an authorized browser can control the unlocked desktop while the service runs.
 

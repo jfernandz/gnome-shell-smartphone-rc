@@ -4,7 +4,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import {configDirectory, localAddresses, readNetworkConfig, configureNetwork} from '../network-config.js';
 
-export function createNetworkGroup() {
+export function createNetworkGroup(onConfigChanged = null) {
     const group = new Adw.PreferencesGroup({title: 'Network',
         description: 'Choose the PC address reachable by your phone. Configuration does not start remote control or change the firewall.'});
     const address = new Adw.EntryRow({title: 'LAN IPv4 address'});
@@ -13,14 +13,13 @@ export function createNetworkGroup() {
     choices.add_suffix(refresh);
     const port = new Adw.SpinRow({title: 'Port', subtitle: 'Allow this TCP port in your firewall if needed.',
         adjustment: new Gtk.Adjustment({lower: 1024, upper: 65535, step_increment: 1, page_increment: 100, value: 8844})});
-    const status = new Adw.ActionRow({title: 'Not configured', subtitle: 'Choose an address, then press Configure.'});
-    const fingerprint = new Adw.ActionRow({title: 'Certificate SHA-256', subtitle: 'Not available', subtitle_selectable: true});
-    const configure = new Gtk.Button({label: 'Configure', valign: Gtk.Align.CENTER});
+    const status = new Adw.ActionRow({title: 'Not configured', subtitle: 'Choose an address, then press Apply.'});
+    const configure = new Gtk.Button({label: 'Apply', valign: Gtk.Align.CENTER});
     configure.add_css_class('suggested-action');
-    const action = new Adw.ActionRow({title: 'Create or renew local certificate',
-        subtitle: 'Valid for 90 days. Stop remote control before changing configuration; start it again afterwards. Verify the new certificate on the phone.'});
+    const action = new Adw.ActionRow({title: 'Apply network configuration',
+        subtitle: 'Saves the address and port and creates or renews the certificate for that address. Stop remote control first; restart it afterwards and verify the new certificate in Security.'});
     action.add_suffix(configure);
-    for (const row of [address, choices, port, status, fingerprint, action]) group.add(row);
+    for (const row of [address, choices, port, status, action]) group.add(row);
     let disposed = false;
     let busy = false;
     let detected = [];
@@ -29,8 +28,8 @@ export function createNetworkGroup() {
         address.text = config.address;
         port.value = config.port;
         status.title = `Configured: https://${config.address}:${config.port}`;
-        status.subtitle = `Certificate expires ${config.expires}. Start remote control from the top-bar menu.`;
-        fingerprint.subtitle = config.fingerprint;
+        status.subtitle = 'Start remote control from the top-bar menu. Certificate details are in Security.';
+        onConfigChanged?.(config);
     }
     async function loadConfig() {
         try {
@@ -38,8 +37,9 @@ export function createNetworkGroup() {
             if (!disposed && !busy) showConfig(config);
         } catch (error) {
             if (disposed || busy) return;
-            status.subtitle = GLib.file_test(`${configDirectory()}/network.json`, GLib.FileTest.EXISTS)
-                ? error.message
+            const configured = GLib.file_test(`${configDirectory()}/network.json`, GLib.FileTest.EXISTS);
+            onConfigChanged?.(null, configured ? error.message : null);
+            status.subtitle = configured ? error.message
                 : 'OpenSSL and iproute2 are required. Configure networking here before starting remote control.';
         }
     }
@@ -57,7 +57,7 @@ export function createNetworkGroup() {
             if (previous) address.text = previous;
             if (result.length && ['Address detection failed', 'No private LAN IPv4 address found'].includes(status.title)) {
                 status.title = 'Addresses refreshed';
-                status.subtitle = 'Choose an address, then press Configure to save it. Existing configuration remains unchanged until then.';
+                status.subtitle = 'Choose an address, then press Apply to save it. Existing configuration remains unchanged until then.';
             }
             if (!result.length) {
                 status.title = 'No private LAN IPv4 address found';
@@ -84,5 +84,9 @@ export function createNetworkGroup() {
         }
     });
     loadConfig().then(() => { if (!disposed) discover(); });
-    return {group, destroy() { disposed = true; cancellable.cancel(); }};
+    return {
+        group,
+        focusAddress() { address.grab_focus(); },
+        destroy() { disposed = true; cancellable.cancel(); },
+    };
 }

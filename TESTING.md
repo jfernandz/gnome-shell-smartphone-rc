@@ -2,17 +2,17 @@
 
 ## Current evidence
 
-**v0.5.3, 2026-10-27:** all 85 automated tests and ESLint pass. The ZIP contains exactly 40 manifest files, including the new symbolic panel icon. The final package passes the isolated native ZIP/lifecycle/preferences harness. Chromium authorization and accessibility evidence is from v0.5.2; browser code is unchanged and those checks were not rerun for this icon release. The user accepted the final icon after a source reload; final packaged-build acceptance remains pending. See the [historical journal](docs/testing-history.md) for scope and remaining coverage. Target: GNOME Shell 51, with native observations on 51.1/Wayland.
+**v0.5.4, 2026-10-27:** all 85 automated tests and ESLint pass. The ZIP contains exactly 42 manifest files, including the GitHub icon and its MIT license. The final package passes the isolated native ZIP/lifecycle/preferences harness. Native checks cover the five Settings tabs, keyboard focus, narrow layouts, certificate metadata updates, renewal navigation and failed-configuration preservation. Chromium authorization and accessibility evidence remains from v0.5.2; browser code is unchanged and those checks were not rerun for this preferences release. Final packaged-build acceptance on the physical setup remains pending. See the [historical journal](docs/testing-history.md) for scope and remaining coverage. Target: GNOME Shell 51, with native observations on 51.1/Wayland.
 
 | Layer | Recorded coverage | Limit |
 | --- | --- | --- |
 | Automated Node/GJS | Protocol/input validation, browser state, real HTTP/TLS server, authorization/revocation, certificates, subprocess timeout/cancellation/reaping, process failure, D-Bus bounds/identity, schemas and packaging. | Loopback fixtures do not establish physical input or exhaustive resource-exhaustion resilience. |
-| v0.5.3 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Native checks pass with the corrected development installer. |
-| v0.5.3 service | Real helper startup/shutdown with a comma in TMPDIR. | Focused D-Bus path regression. |
+| v0.5.4 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Native checks pass with the corrected development installer. |
+| v0.5.4 service | Real helper startup/shutdown with a comma in TMPDIR. | Focused D-Bus path regression. |
 | v0.5.2 Chromium | Recovery, remembered trust, browser/service restart, revocation and accessibility through the real D-Bus helper. | Synthetic Chromium, not final physical-phone acceptance. |
-| v0.5.3 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation, active/disabled/first-install rollback and original ZIP replacement. | Real v0.5.3 ZIP; repeated states preserve pending approval, focus and keyboard; working desktop untouched. |
-| Native preferences | Setup/error recovery, sensitivity, trust, About and focused theme/accessibility checks. | Rerun in isolated light/dark/enlarged-font sessions. Network windows emit a GTK focus-out warning; assertions pass. |
-| Physical phone | Android/Chrome LAN control, scrolling, typing, remembered recovery, Settings and lifecycle menu; user confirmed the D-Bus migration works. | Exact migration loading method unspecified; not acceptance of the final v0.5.3 ZIP. |
+| v0.5.4 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation, active/disabled/first-install rollback and original ZIP replacement. | Real v0.5.4 ZIP; repeated states preserve pending approval, focus and keyboard; working desktop untouched. |
+| Native preferences | Five tabs and keyboard focus, 420-pixel layouts, certificate metadata/renewal/failure preservation, sensitivity, trust and About link/icon accessibility. | Isolated light/dark/enlarged-font checks; real assistive technology remains unvalidated. |
+| Physical phone | Android/Chrome LAN control, scrolling, typing, remembered recovery, Settings and lifecycle menu; user confirmed the D-Bus migration works. | Exact migration loading method unspecified; not acceptance of the final v0.5.4 ZIP. |
 
 Detailed observations, including the original compositor-crash investigation and mitigations, are retained in the [historical journal](docs/testing-history.md). Historical commands and pending items may be superseded; use the instructions below for current checks.
 
@@ -51,7 +51,7 @@ The duration defaults to 30 seconds (allowed 10–300), followed by 16 seconds o
 Run the self-contained launcher from the repository root:
 
 ```sh
-node tests/run-isolated-native.mjs dist/smartphone-rc-0.5.3.zip
+node tests/run-isolated-native.mjs dist/smartphone-rc-0.5.4.zip
 ```
 
 It creates its own software-rendered headless Shell, private bus, XDG directories and test-only evaluation driver, verifies their identity, then runs ZIP, lifecycle and preferences checks. It terminates only its own process group and attempts private-profile cleanup; failures retain logs. Preferences screenshots go to dist/publication/. It needs the native/browser dependencies, Python 3, `gdbus`, `dbus-run-session`, `gnome-shell`, unzip/coreutils and `fusermount3` for private FUSE cleanup. Network setup additionally needs an active private LAN address.
