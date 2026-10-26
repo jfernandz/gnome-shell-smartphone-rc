@@ -1,4 +1,4 @@
-import {DEFAULT_SENSITIVITY, SENSITIVITY, MAX_MOTION, isSensitivityRange, snapSensitivity} from '../limits.js';
+import {DEFAULT_SENSITIVITY, SENSITIVITY, MAX_MOTION, isSensitivityRange, snapSensitivity} from '../../limits.js';
 
 export function createTouchpad(send, isApproved, environment = globalThis) {
     const {document, requestAnimationFrame, cancelAnimationFrame, performance} = environment;

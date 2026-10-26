@@ -2,7 +2,7 @@ import GLib from 'gi://GLib';
 import GLibUnix from 'gi://GLibUnix';
 import Gio from 'gi://Gio';
 import {TrustedBrowsers} from '../trusted.js';
-import {RemoteServer} from '../server.js';
+import {RemoteServer} from '../app/server.js';
 
 const options = {authenticationMillis: Number(GLib.getenv('SMARTPHONE_RC_TEST_AUTH_MS') ?? 5000),
     networkLimits: JSON.parse(GLib.getenv('SMARTPHONE_RC_TEST_NETWORK_LIMITS') ?? '{}'), port: Number(GLib.getenv('SMARTPHONE_RC_TEST_PORT') ?? 0), sessionSeconds: Number(GLib.getenv('SMARTPHONE_RC_TEST_SESSION_SECONDS') ?? 2)};

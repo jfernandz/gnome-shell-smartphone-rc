@@ -94,7 +94,7 @@ The libsoup server runs in a separate GJS child with private bounded IPC and res
 
 ## Development
 
-The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `service-worker.js`; `server.js` handles HTTP/WebSocket sessions and `network-guard.js` bounds incoming connections. Browser startup lives in `web/app.js`; `web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups, including initial network configuration, live in `preferences/`.
+The extension coordinates sessions in `extension.js`, with dialogs in `dialogs.js`, desktop focus in `focus.js`, input injection in `input.js`, and a private-pipe network-process client in `service.js`. The child entry point is `app/service-worker.js`; `app/server.js` handles HTTP/WebSocket sessions and `app/network-guard.js` bounds incoming connections. Browser startup lives in `app/web/app.js`; `app/web/client.js` manages connection transitions through an explicit browser environment, with keyboard editing and gestures in their own modules. Preferences groups, including initial network configuration, live in `preferences/`.
 
 `limits.js` defines shared sensitivity and protocol bounds. `resources.json` declares runtime files and web routes; installation and packaging stage those same files through `scripts/lib/stage.sh`. To build into a separate directory without overwriting a released artifact, run `bash scripts/package.sh /path/to/output`.
 

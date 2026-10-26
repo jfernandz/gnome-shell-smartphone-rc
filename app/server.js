@@ -2,10 +2,10 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Soup from 'gi://Soup?version=3.0';
 
-import {RateLimit, validateInput} from './protocol.js';
-import {isPrivateIPv4} from './network.js';
+import {RateLimit, validateInput} from '../protocol.js';
+import {isPrivateIPv4} from '../network.js';
 import {NetworkGuard} from './network-guard.js';
-import {DEFAULT_SENSITIVITY} from './limits.js';
+import {DEFAULT_SENSITIVITY} from '../limits.js';
 
 export const PORT = 8844;
 const SESSION_COOKIE = '__Host-smartphone_rc';

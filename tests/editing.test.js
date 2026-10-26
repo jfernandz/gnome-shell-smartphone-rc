@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {textChange, editMessages} from '../web/editing.js';
+import {textChange, editMessages} from '../app/web/editing.js';
 import {validateInput} from '../protocol.js';
 
 test('edits preserve correction semantics and count Unicode characters rather than UTF-16 units', () => {

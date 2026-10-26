@@ -22,7 +22,7 @@ export default [
         },
     },
     {
-        files: ['*.js', 'preferences/**/*.js', 'scripts/**/*.js', 'tests/*-fixture.js', 'tests/*-native.mjs'],
+        files: ['*.js', 'preferences/**/*.js', 'app/*.js', 'scripts/**/*.js', 'tests/*-fixture.js', 'tests/*-native.mjs'],
         ignores: ['eslint.config.js', 'tests/shell-security-native.mjs'],
         languageOptions: {globals: gjsGlobals},
     },
@@ -30,7 +30,7 @@ export default [
         files: ['extension.js', 'focus.js', 'input.js', 'scripts/reload.js'],
         languageOptions: {globals: {global: 'readonly'}},
     },
-    {files: ['web/**/*.js'], languageOptions: {globals: globals.browser}},
+    {files: ['app/web/**/*.js'], languageOptions: {globals: globals.browser}},
     {
         files: ['eslint.config.js', 'tests/**/*.test.js', 'tests/cookie-browser.mjs', 'tests/browser-accessibility.mjs', 'tests/shell-security-native.mjs'],
         languageOptions: {globals: globals.node},

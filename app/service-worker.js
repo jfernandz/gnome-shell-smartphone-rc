@@ -2,12 +2,12 @@
 import Gio from 'gi://Gio';
 import GioUnix from 'gi://GioUnix';
 import GLib from 'gi://GLib';
-import {JsonPipe} from './ipc.js';
+import {JsonPipe} from '../ipc.js';
 import {RemoteServer} from './server.js';
-import {TrustedBrowsers} from './trusted.js';
-import {isSensitivityRange} from './limits.js';
+import {TrustedBrowsers} from '../trusted.js';
+import {isSensitivityRange} from '../limits.js';
 
-const directory = Gio.File.new_for_uri(import.meta.url).get_parent().get_path();
+const directory = Gio.File.new_for_uri(import.meta.url).get_parent().get_parent().get_path();
 const loop = new GLib.MainLoop(null, false);
 let server = null;
 let unwatch = null;

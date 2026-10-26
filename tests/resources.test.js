@@ -55,3 +55,22 @@ test('independent GJS processes cannot restore revoked trust by writing stale en
     assert.equal(run('forget-all').records.length, 0);
     assert.equal(run('stale-write', second.grants).records.length, 0);
 });
+
+test('network application entry points are outside the Shell and preferences import graphs', () => {
+    const root = new URL('../', import.meta.url);
+    function graph(entry, seen = new Set()) {
+        const url = new URL(entry, root);
+        if (seen.has(url.href)) return seen;
+        seen.add(url.href);
+        const source = readFileSync(url, 'utf8');
+        for (const [, relative] of source.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
+            if (relative.startsWith('.')) graph(new URL(relative, url).href, seen);
+        }
+        return seen;
+    }
+    for (const entry of ['extension.js', 'prefs.js'])
+        assert.equal([...graph(entry)].some(url => url.startsWith(new URL('app/', root).href)), false, entry);
+    for (const url of graph('app/service-worker.js'))
+        assert.doesNotMatch(readFileSync(new URL(url), 'utf8'), /from ['"](?:resource:\/\/\/org\/gnome\/shell\/|gi:\/\/(?:St|Meta|Clutter|Gtk|Adw)(?:['"?]))/);
+    assert.ok(manifest.runtime.includes('app/service-worker.js'));
+});

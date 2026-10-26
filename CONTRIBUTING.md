@@ -33,9 +33,9 @@ ESLint, its configuration and dependencies are excluded from extension ZIPs. Lin
 ## Project boundaries
 
 - `extension.js`, `dialogs.js`, `focus.js`, and `input.js` own Shell integration and desktop input.
-- `service.js`, `service-worker.js`, and `ipc.js` manage the separate network process and private IPC; `network-guard.js` and `server.js` handle bounded transport and sessions.
+- `service.js`, `app/service-worker.js`, and `ipc.js` manage the separate network process and private IPC; `app/network-guard.js` and `app/server.js` handle bounded transport and sessions.
 - `trusted.js`, `settings.js`, and `preferences/` implement trust storage and native settings.
-- `web/` contains the mobile client; `limits.js` shares validated bounds.
+- `app/web/` contains the mobile client; `limits.js` shares validated bounds.
 - `resources.json` declares shipped files and web routes. Update it when adding runtime files; installation and packaging use this manifest.
 
 Preserve authorization checks on both sides of IPC, immediate revocation, and stop-on-lock/disable/failure behavior. The network child is not an OS sandbox. Review [SECURITY.md](SECURITY.md) before changing pairing, cookies, input, or process boundaries.

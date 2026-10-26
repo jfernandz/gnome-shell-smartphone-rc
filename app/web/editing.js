@@ -1,4 +1,4 @@
-import {MAX_EDIT} from '../limits.js';
+import {MAX_EDIT} from '../../limits.js';
 
 // Remote edits stay anchored at the end of the text written from this phone.
 export function textChange(previous, next) {

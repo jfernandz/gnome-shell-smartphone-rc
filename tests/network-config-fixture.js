@@ -1,4 +1,4 @@
-import {RemoteServer} from '../server.js';
+import {RemoteServer} from '../app/server.js';
 
 for (const options of [
     {address: '192.168.1.5'},

@@ -35,7 +35,7 @@ export class RemoteService {
                     Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE});
                 launcher.unsetenv('G_MESSAGES_DEBUG');
                 const process = launcher.spawnv([limiter, '--nofile=128:128', '--core=0:0', '--data=536870912:536870912', '--',
-                    'gjs', '-m', `${this._directory}/service-worker.js`]);
+                    'gjs', '-m', `${this._directory}/app/service-worker.js`]);
                 this._process = process;
                 this._pipe = new JsonPipe(process.get_stdout_pipe(), process.get_stdin_pipe(),
                     message => this._message(message), () => this._failed('The network service connection ended.'));

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createClient} from '../web/client.js';
+import {createClient} from '../app/web/client.js';
 
 function page({hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
     const elements = new Map();

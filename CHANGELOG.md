@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Group the separately executed network worker, server, guard and mobile client under app/, preserving runtime routes and shared modules. Add import-graph checks for process boundaries.
+
 ## 0.4.7 — 2026-10-25
 
 - Expose keyboard disclosure state and sensitivity multiplier to assistive technology; label editor help and per-browser Settings actions, and restore focus when hiding the editor.

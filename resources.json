@@ -7,7 +7,7 @@
     "input.js",
     "network.js",
     "protocol.js",
-    "server.js",
+    "app/server.js",
     "settings.js",
     "trusted.js",
     "prefs.js",
@@ -18,10 +18,10 @@
     "schemas/org.gnome.shell.extensions.smartphone-rc.browser.gschema.xml",
     "preferences/sensitivity.js",
     "preferences/devices.js",
-    "network-guard.js",
+    "app/network-guard.js",
     "ipc.js",
     "service.js",
-    "service-worker.js",
+    "app/service-worker.js",
     "preferences/security.js",
     "network-config.js",
     "preferences/network.js",
@@ -31,35 +31,35 @@
   ],
   "web": {
     "/": {
-      "file": "web/index.html",
+      "file": "app/web/index.html",
       "type": "text/html"
     },
     "/app.js": {
-      "file": "web/app.js",
+      "file": "app/web/app.js",
       "type": "text/javascript"
     },
     "/client.js": {
-      "file": "web/client.js",
+      "file": "app/web/client.js",
       "type": "text/javascript"
     },
     "/style.css": {
-      "file": "web/style.css",
+      "file": "app/web/style.css",
       "type": "text/css"
     },
     "/editing.js": {
-      "file": "web/editing.js",
+      "file": "app/web/editing.js",
       "type": "text/javascript"
     },
     "/keyboard.js": {
-      "file": "web/keyboard.js",
+      "file": "app/web/keyboard.js",
       "type": "text/javascript"
     },
     "/touchpad.js": {
-      "file": "web/touchpad.js",
+      "file": "app/web/touchpad.js",
       "type": "text/javascript"
     },
     "/viewport.js": {
-      "file": "web/viewport.js",
+      "file": "app/web/viewport.js",
       "type": "text/javascript"
     },
     "/limits.js": {
