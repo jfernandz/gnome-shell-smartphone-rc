@@ -482,3 +482,29 @@ to runtime source. SHA-256: b9bd54b8002cac325c99f4c4fcd18c60bf1fd9f8828aa6da2c65
 Versions in metadata, package and lockfile agree at 0.6.0. Existing 0.5.5
 artifacts are preserved. GitHub CI also provides PR/main/tag checks, ZIP
 artifacts and draft releases for matching version tags.
+
+
+## Published v0.6.0 submission preparation — 2026-10-27
+
+Downloaded the actual GitHub prerelease asset to dist/review-v0.6.0 and
+verified SHA-256 70245e724f752cfc51d754cf3b473f4457bfc7e288951c2eef2d8988a005fab9,
+ZIP integrity, all 45 unique manifest files, byte equality with v0.6.0 source,
+metadata, the GJS worker header and GPL/Octicons licensing. This differs from
+the earlier local build hash because the ZIP archives were built separately;
+all runtime file contents agree.
+
+Pinned shexli analysis reports the same six findings (two errors, three
+warnings, one manual review); no rules were suppressed. The downloaded ZIP
+passed the isolated native installation/lifecycle/preferences harness.
+Remembered-browser/accessibility checks passed with fresh synthetic mobile
+and native screenshot candidates, of which normal mobile and dark Pointer
+captures were visually inspected. A fresh 30-second TLS load/recovery run
+opened 400 incomplete connections and made 160 requests, serving 72 during
+saturation; peak RSS was 56,820 KiB, final growth 1,628 KiB, and descriptors
+returned from a peak of 43 to baseline 11. This is limited loopback evidence.
+
+The report and maintainer checklist are in publication-review-v0.6.0.md;
+the architecture follow-up remains an unsent draft. Physical-phone/audio,
+real output switching, assistive technology/high contrast and maintainer
+understanding/sign-off remain pending. No submission to extensions.gnome.org,
+reviewer message or working-desktop session/audio changes were performed.

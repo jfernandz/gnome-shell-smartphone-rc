@@ -2,6 +2,10 @@
 
 Current implementation: **v0.6.0**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
 
+Current submission preparation: [v0.6.0 artifact, review and maintainer checklist](docs/publication-review-v0.6.0.md).
+The GitHub v0.6.0 prerelease is published; no extensions.gnome.org submission
+or architecture follow-up has been sent as part of this preparation.
+
 ## In place
 
 - Native Settings/network setup; declared clipboard use only on explicit request.
@@ -16,13 +20,16 @@ Local technical review, load measurements and draft release/reviewer text: [publ
 
 ## Before public submission
 
+- [x] Verify the published v0.6.0 ZIP against its digest, manifest, tag and licenses.
+- [x] Repeat pinned static analysis on v0.6.0 and document all six remaining findings.
+- [x] Prepare current listing text, unsent reviewer follow-up and synthetic screenshot candidates.
 - [ ] Clarify reviewability of the bundled HTML/browser JavaScript and separate network core with reviewers.
 - [ ] Complete first-use mobile certificate-warning checks and final packaged-build acceptance.
 - [x] Run a bounded load/recovery check and assess isolation options; broader resource-exhaustion resilience and an OS sandbox remain unestablished.
 - [ ] Complete real assistive-technology, high-contrast and physical display-scaling checks.
-- [ ] Record current supported devices/browsers and prepare publication screenshots.
+- [ ] Record real supported devices/browsers and select final publication screenshots; fresh synthetic candidates are prepared.
 - [ ] Complete the maintainer's code/readability review and understanding of security/lifecycle choices.
-- [x] Recheck current review guidelines (2026-10-26); bundled-web reviewability remains open.
+- [x] Recheck current review guidelines (2026-10-27); bundled-web reviewability remains open.
 - [ ] Publish/submit only when requested.
 
 ## Recorded reviewer guidance

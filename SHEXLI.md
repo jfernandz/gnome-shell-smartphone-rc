@@ -2,6 +2,17 @@
 
 Reviewed on 2026-10-25 with shexli 0.2.1, Python 3.14, tree-sitter 0.25.2 and tree-sitter-javascript 0.25.0. This records our assessment, not approval by extensions.gnome.org reviewers. Architecture acceptance, particularly the bundled mobile web interface, remains an open publication question.
 
+## Current release: v0.6.0
+
+Rechecked the actual GitHub release ZIP on 2026-10-27 with the pinned toolchain.
+It reports the same six findings: two errors (EGO-M-004 and EGO-P-002), three
+warnings (EGO-P-007, EGO-L-002 and EGO-L-003), and one manual-review item
+(EGO-A-005). The new audio controller introduces no additional findings.
+This is **not** a clean analyzer result or reviewer approval; the existing
+dispositions below still need reviewer consideration. No rules were suppressed.
+The asset digest, focused source review and current evidence are recorded in
+[v0.6.0 submission preparation](docs/publication-review-v0.6.0.md).
+
 ## Reproduce the analysis
 
 ```sh
@@ -9,7 +20,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements-review.txt
 # Reproduce the current release analysis:
-shexli dist/smartphone-rc-0.5.1.zip
+shexli dist/review-v0.6.0/smartphone-rc-0.6.0.zip
 ```
 
 The released v0.4.5 ZIP produces seven findings: two errors, four warnings and one manual-review item. On this machine, tree-sitter 0.26.0 causes a native crash during analysis; changing only that dependency to 0.25.2 completed three consecutive runs. The exact underlying native defect has not been established. The pins above reproduce the working toolchain; no dependency is installed into GNOME Shell or shipped in our ZIP.
