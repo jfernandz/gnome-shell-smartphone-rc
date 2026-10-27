@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: Lint and tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    # The server tests need libsoup >= 3.8, unavailable in Ubuntu 24.04.
+    container: archlinux:base
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Install native test dependencies
+        run: >-
+          pacman -Syu --noconfirm --needed
+          git gjs libsoup3 glib2 glib-networking gnome-shell
+          openssl iproute2 util-linux unzip
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install JavaScript dependencies
+        run: npm ci --ignore-scripts
+      - name: Lint
+        run: npm run lint
+      - name: Run automated tests (including ZIP validation)
+        run: npm test
+      - name: Verify release tag matches package versions
+        if: matrix.node == '24' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const metadata = JSON.parse(readFileSync('metadata.json', 'utf8'));
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const version = metadata['version-name'];
+          if (process.env.RELEASE_TAG !== `v${version}` || pkg.version !== version)
+              throw new Error('Release tag, metadata.json and package.json versions must match.');
+          JS
+      - name: Build downloadable ZIP
+        if: matrix.node == '24'
+        run: bash scripts/package.sh "$RUNNER_TEMP/package"
+      - name: Upload ZIP artifact
+        if: matrix.node == '24'
+        uses: actions/upload-artifact@v7
+        with:
+          name: smartphone-rc-package
+          path: ${{ runner.temp }}/package/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Draft release
+    needs: tests
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: smartphone-rc-package
+          path: package
+      - name: Create draft release or refresh its ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft); then
+            if [[ "$draft" != true ]]; then
+              echo 'Refusing to modify an already published release.' >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" package/*.zip --clobber
+          else
+            gh release create "$RELEASE_TAG" package/*.zip \
+              --verify-tag --draft --generate-notes --title "$RELEASE_TAG"
+          fi

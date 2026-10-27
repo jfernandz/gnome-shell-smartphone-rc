@@ -18,6 +18,27 @@ Detailed observations, including the original compositor-crash investigation and
 
 ## Automated and browser checks
 
+GitHub Actions runs lint and the full `npm test` suite on pull requests,
+pushes to `main` (including merges), and all pushed tags. It can also be run
+manually from the Actions tab. The `CI` workflow tests Node.js 22 and 24 in
+an Arch Linux container to provide libsoup 3.8+ and the native GJS/packaging
+dependencies. Arch packages track current releases rather than a frozen
+runtime. ZIP contents and schemas are checked by the automated suite.
+Browser, isolated GNOME Shell and physical-phone checks remain separate.
+To require CI before merging, configure the two `Lint and tests (Node …)`
+checks as required status checks in the GitHub ruleset for `main` after
+the first workflow run.
+
+The Node.js 24 job also builds a ZIP, available as the
+`smartphone-rc-package` workflow artifact for 14 days (including PR runs).
+After both Node.js jobs pass, a pushed `v*` tag creates a GitHub Release
+in draft with that ZIP and automatically generated release notes. The tag
+must equal `v` followed by the version in both `metadata.json` and
+`package.json`, for example `v0.5.5`. Other tags only run CI.
+Re-running the tag workflow refreshes the ZIP of an existing draft; it
+refuses to change a published release. Review and publish the draft manually
+when ready. This workflow does not submit to extensions.gnome.org.
+
 From the repository root, use the dependencies in [README.md](README.md#development):
 
 ```sh
