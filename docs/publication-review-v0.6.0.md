@@ -3,7 +3,8 @@
 Status: local preparation only. The GitHub release is now a published
 **prerelease**; this is separate from submitting to extensions.gnome.org.
 No reviewer message or extension submission has been sent by this preparation.
-Maintainer acceptance and architecture reviewability remain open.
+Maintainer acceptance and package approval remain open. The architecture
+consultation is complete; see the updated status below.
 
 ## Exact artifact
 
@@ -77,29 +78,33 @@ three warnings and one manual-review finding.
 | --- | --- |
 | EGO-M-004, error | The pinned analyzer rejects Shell majors above 50. The package truthfully targets Shell 51 and native checks run on 51.1. Do not claim older untested support to silence it. |
 | EGO-P-002, error | The browser schema is relocatable; trusted.js supplies paths under `/org/gnome/shell/extensions/smartphone-rc/browsers/`. A fixed schema path would break per-browser instances. Strict compilation and revocation tests pass. |
-| EGO-P-007, warning | Worker and browser files are separate executable entry points, not dead imports. The manifest and runtime tests account for them; bundled web reviewability remains unresolved. |
+| EGO-P-007, warning | Worker and browser files are separate executable entry points, not dead imports. The manifest and runtime tests account for them; the architecture consultation is complete; package acceptance still belongs to the actual review. |
 | EGO-L-002, warning | Indicator-menu ownership destroys the three reported rows; isolated native tests observe their destruction. |
 | EGO-L-003, warning | The destroy handler belongs to the owned notification; Stop clears actions and destroys the notification, which releases its signals. |
 | EGO-A-005, manual | Explicit clipboard write is declared and needs reviewer scrutiny. |
 
 See [SHEXLI.md](../SHEXLI.md) for the existing explanations and source references.
 
-## Architecture question to settle
+## Architecture consultation — complete
 
-The [current review guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html#scripts-and-binaries)
-explicitly place HTML and web JavaScript dependencies outside EGO's review
-scope. A dedicated app/ directory and private D-Bus address process separation,
-but do not themselves establish that the bundle is acceptable.
+The [reviewer reply](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4)
+prefers an externally distributed core, recommends D-Bus, permits Soup for
+local-IP service use, and explicitly discusses the bundled option with a
+dedicated directory for files running outside Shell. The project already uses
+private D-Bus and app/ for the helper and browser client.
 
-Earlier reviewer guidance recorded in [PUBLICATION.md](../PUBLICATION.md)
-prefers a separately distributed core. The discussion could not be fetched
-again during this preparation, so no new reply or approval is assumed. The
-updated [message draft](reviewer-message-draft.md) asks whether the present
-bundle can be considered or whether separate distribution is required.
+The [maintainer's follow-up](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/5)
+confirms those changes and the decision to submit a self-contained ZIP.
+Both posts were read directly via the public Discourse JSON endpoint on
+2026-10-27. The architecture consultation is complete: no additional message
+is required before submission. The [earlier follow-up draft](reviewer-message-draft.md)
+is superseded and should not be sent.
 
-Do not remove the web interface or change the architecture merely to make a
-static reachability warning disappear. A reviewer requirement for a separate
-core would require an installation/distribution design before submission.
+The [general guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html#scripts-and-binaries)
+still describe the review-scope concern. The thread supplies project-specific
+guidance for proceeding with a bundled submission; it does not approve the
+v0.6.0 ZIP in advance. If the actual review requests a separate core, revisit
+installation/distribution then.
 
 ## Maintainer actions
 
@@ -128,8 +133,8 @@ Also:
   credential revocation, input injection and cleanup. Be able to explain the
   implementation and its use of AI development tools. This understanding is
   the maintainer's responsibility; an automated report cannot supply it.
-- Send the architecture follow-up yourself in the existing Discourse thread
-  and retain the answer. The message below is prepared but unsent.
+- Architecture consultation is already complete in the Discourse thread;
+  retain that link in the submission notes. No further follow-up is pending.
 - Choose the listing text and screenshots, then upload the installable ZIP
   using your extensions.gnome.org account when you decide to submit.
 

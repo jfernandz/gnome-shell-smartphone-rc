@@ -1,6 +1,11 @@
-# Reviewer follow-up draft
+# Archived reviewer follow-up draft — superseded
 
-Not sent. Intended as a follow-up in the existing [architecture discussion](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4). Maintainer approval is required before sending.
+Do not send: this draft is superseded by the existing
+[reviewer guidance](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4)
+and [maintainer follow-up](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/5).
+The architecture consultation is complete. The project will submit the bundled
+ZIP with D-Bus and app/ separation; acceptance of the actual package remains
+subject to review. The old proposed message is retained below as history.
 
 ---
 

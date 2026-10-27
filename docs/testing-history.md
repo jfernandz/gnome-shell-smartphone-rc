@@ -508,3 +508,16 @@ the architecture follow-up remains an unsent draft. Physical-phone/audio,
 real output switching, assistive technology/high contrast and maintainer
 understanding/sign-off remain pending. No submission to extensions.gnome.org,
 reviewer message or working-desktop session/audio changes were performed.
+
+
+## Architecture consultation status corrected — 2026-10-27
+
+Read the existing Discourse topic through its public JSON endpoint, including
+reviewer post 4 and maintainer post 5. The reviewer prefers an external core
+but explicitly describes the bundled option with separately executed files
+under a dedicated app/ directory and recommends D-Bus. The maintainer already
+confirmed implementing those changes and intends to submit one ZIP. Marked
+the consultation complete and archived the redundant follow-up draft. Earlier
+entries describing an unsent clarification as pending are superseded by this
+status. This is guidance for submission, not approval of the v0.6.0 artifact.
+No new message or extension submission was sent.
