@@ -2,15 +2,26 @@
 
 ## Current evidence
 
-**v0.5.5, 2026-10-27:** ESLint and all 86 automated tests pass. The ZIP contains exactly 43 manifest files, including the extracted About group, and passes the isolated native installation/lifecycle/preferences harness. Deferred GTK tests cover startup/discovery/apply races, newer results, unsaved edits and late completions after close. GJS tests cover temporary credential ownership, exchange, recovery and revocation. Chromium temporary-cookie and remembered-browser/accessibility checks passed on the same runtime before the metadata bump. The user reports the source changes work; final physical acceptance of this ZIP remains pending. Details and limits are in the [historical journal](docs/testing-history.md). Target: GNOME Shell 51, with native observations on 51.1/Wayland.
+**v0.6.0, 2026-10-27:** ESLint and all 91 automated tests pass. The ZIP
+contains exactly 45 manifest files and passes the isolated native
+installation/lifecycle/preferences harness. Volume regressions cover bounded
+commands, local updates, output switches, stale-output rejection, missing
+outputs, amplified-volume capping, coalescing and observer/timer cleanup.
+Chromium temporary-cookie and remembered-browser/accessibility checks pass
+through the real D-Bus helper, including synthetic mixer-state delivery and
+volume/mute command return. The isolated Shell verifies native mixer observer
+creation and lifecycle cleanup; actual audio changes, physical-phone use and
+hardware output switching remain pending. Details and older evidence are in
+the [historical journal](docs/testing-history.md). Target: GNOME Shell 51,
+with native observations on 51.1/Wayland.
 
 | Layer | Recorded coverage | Limit |
 | --- | --- | --- |
 | Automated Node/GJS | Protocol/input validation, browser state, real HTTP/TLS server, authorization/revocation, certificates, subprocess timeout/cancellation/reaping, process failure, D-Bus bounds/identity, schemas and packaging. | Loopback fixtures do not establish physical input or exhaustive resource-exhaustion resilience. |
-| v0.5.5 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Native checks pass with the corrected development installer. |
-| v0.5.5 service | Real helper startup/shutdown with a comma in TMPDIR. | Focused D-Bus path regression. |
-| v0.5.5 runtime Chromium | Recovery, remembered trust, browser/service restart, revocation and accessibility through the real D-Bus helper. | Same runtime before metadata bump; not final physical-phone acceptance. |
-| v0.5.5 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation, active/disabled/first-install rollback and original ZIP replacement. | Real v0.5.5 ZIP; repeated states preserve pending approval, focus and keyboard; working desktop untouched. |
+| v0.6.0 installer | Active/disabled rollback, failed first installation, source-loaded copy, cancellation, private ZIP permissions/removal, and replacement of the original ZIP during validation. | Native checks pass with the corrected development installer. |
+| v0.6.0 service | Real helper startup/shutdown with a comma in TMPDIR. | Focused D-Bus path regression. |
+| v0.6.0 runtime Chromium | Recovery, remembered trust, browser/service restart, revocation and accessibility through the real D-Bus helper. | Synthetic mixer fixture; actual audio and physical-phone acceptance remain pending. |
+| v0.6.0 isolated Shell | Certificate approval gate, crash/lock cleanup, menu states, pending-startup cancellation, ZIP installation, active/disabled/first-install rollback and original ZIP replacement. | Real v0.6.0 ZIP; native mixer observer creation and cleanup pass; working desktop untouched. |
 | Native preferences | Five tabs and keyboard focus, 420-pixel layouts, certificate metadata/renewal/failure preservation, delayed Network operations, sensitivity, trust and About link/icon accessibility. | Isolated light/dark/enlarged-font checks; real assistive technology remains unvalidated. |
 | Physical phone | Android/Chrome LAN control, scrolling, typing, remembered recovery, Settings and lifecycle menu; user confirmed the D-Bus migration works. | Exact migration loading method unspecified; not acceptance of the final v0.5.5 ZIP. |
 
@@ -34,7 +45,7 @@ The Node.js 24 job also builds a ZIP, available as the
 After both Node.js jobs pass, a pushed `v*` tag creates a GitHub Release
 in draft with that ZIP and automatically generated release notes. The tag
 must equal `v` followed by the version in both `metadata.json` and
-`package.json`, for example `v0.5.5`. Other tags only run CI.
+`package.json`, for example `v0.6.0`. Other tags only run CI.
 Re-running the tag workflow refreshes the ZIP of an existing draft; it
 refuses to change a published release. Review and publish the draft manually
 when ready. This workflow does not submit to extensions.gnome.org.
@@ -72,7 +83,7 @@ The duration defaults to 30 seconds (allowed 10–300), followed by 16 seconds o
 Run the self-contained launcher from the repository root:
 
 ```sh
-node tests/run-isolated-native.mjs dist/smartphone-rc-0.5.5.zip
+node tests/run-isolated-native.mjs dist/smartphone-rc-0.6.0.zip
 ```
 
 It creates its own software-rendered headless Shell, private bus, XDG directories and test-only evaluation driver, verifies their identity, then runs ZIP, lifecycle and preferences checks. It terminates only its own process group and attempts private-profile cleanup; failures retain logs. Preferences screenshots go to dist/publication/. It needs the native/browser dependencies, Python 3, `gdbus`, `dbus-run-session`, `gnome-shell`, unzip/coreutils and `fusermount3` for private FUSE cleanup. Network setup additionally needs an active private LAN address.
@@ -91,7 +102,7 @@ Bus files contain the isolated bus address, not a bus name. The launcher provisi
 
 ## Remaining coverage
 
-- Review the corrected development installer and confirm the final ZIP on the physical setup.
+- Confirm the final v0.6.0 ZIP on the physical setup, including local/remote volume, mute, headphones/Bluetooth output changes, missing outputs and stop/lock cleanup.
 - Expand ordinary application, Xwayland, IME, Unicode fallback and long-editing checks.
 - Test current Android/browser versions, iOS Safari, network interruptions and long sessions.
 - Verify multiple monitors, scaling, orientation, real mobile keyboard occlusion and assistive technology; see [ACCESSIBILITY.md](ACCESSIBILITY.md).

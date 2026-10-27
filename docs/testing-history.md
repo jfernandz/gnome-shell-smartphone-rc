@@ -453,3 +453,32 @@ ESLint and all 86 automated tests pass. The final isolated native ZIP/lifecycle/
 Metadata, package and lockfile versions agree at 0.5.5. This patch release fixes delayed Network operation races and refactors About/page composition and temporary authorization ownership. ESLint, all 86 automated tests and the final ZIP's isolated native installation/lifecycle/preferences harness pass, including deferred GTK operation regressions. Chromium temporary-cookie recovery/revocation and remembered-browser/accessibility checks passed on the same runtime before the metadata bump. The user reports the source changes work; final physical acceptance of this ZIP remains pending. The intermittent smartphone keyboard issue remains outside this release's scope.
 
 The ZIP at dist/v0.5.5-verification/smartphone-rc-0.5.5.zip contains exactly 43 manifest files, all byte-identical to runtime source. SHA-256: 97596ad48610669b1294b89fe4b155747b380b42b1fb9aab14d70fbbca2ffdbe. Native previews use a separate output directory and older artifacts are preserved. No working GNOME session or real network/certificate configuration was modified. The release is committed and tagged locally; no push or publication is performed.
+
+
+## v0.6.0 volume and CI — 2026-10-27
+
+Added default-output volume/mute over the existing authenticated input path,
+with independent validation, uint32 output identities, 0–100 integer
+percentages and a typed private D-Bus Volume(bddb) state method. Shell uses
+GNOME's shared mixer; it disconnects only its own signal handlers, coalesces
+updates every 50 ms and removes listeners/timers when leaving connected.
+Delayed input for an old default sink is ignored. Setting zero mutes; raising
+the slider unmutes. Unmuting an amplified output caps it at 100% first.
+
+ESLint and all 91 automated tests pass. Mixer tests inject a signal-capable
+control and verify local changes, switches, missing outputs, stale commands,
+volume bounds and cleanup. Real HTTP/TLS regressions reject pending/suspended
+audio input. Chromium temporary-cookie and remembered-browser/accessibility
+checks pass through the real D-Bus helper with a synthetic mixer snapshot and
+validated audio-command return. Browser checks cover Volume/Mute names,
+pressed state, keyboard order, layout and target sizes. The final ZIP passes
+the isolated native installer/lifecycle/preferences harness, including native
+GNOME mixer observer creation, repeated-state preservation and crash cleanup.
+No test changes the working desktop's volume or session. Physical-phone/audio
+and actual hardware output switching remain pending.
+
+The ZIP at dist/v0.6.0-verification/smartphone-rc-0.6.0.zip has exactly 45 manifest files, all byte-identical
+to runtime source. SHA-256: b9bd54b8002cac325c99f4c4fcd18c60bf1fd9f8828aa6da2c659647963fda85.
+Versions in metadata, package and lockfile agree at 0.6.0. Existing 0.5.5
+artifacts are preserved. GitHub CI also provides PR/main/tag checks, ZIP
+artifacts and draft releases for matching version tags.

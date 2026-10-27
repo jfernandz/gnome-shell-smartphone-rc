@@ -114,6 +114,17 @@ try {
     const first = await tab(pairing);
     await first.evaluate('document.querySelector("#connect").click()');
     await waitFor(() => first.evaluate('document.querySelector("#status").textContent === "Connected"'));
+    await waitFor(() => first.evaluate('!document.querySelector("#volume").disabled'));
+    assert.equal(await first.evaluate('document.querySelector("#volume").value'), '40');
+    await first.evaluate(`(() => {
+        const slider = document.querySelector('#volume');
+        slider.value = '65';
+        slider.dispatchEvent(new Event('input', {bubbles: true}));
+        document.querySelector('#mute').click();
+    })()`);
+    await waitFor(() => events.some(event => event.input?.type === 'volume' && event.input.level === 65 && event.input.output === 7));
+    await waitFor(() => events.some(event => event.input?.type === 'mute' && event.input.muted === true));
+    console.log('PASS: desktop volume snapshot reaches Chromium and validated volume/mute commands return through the authenticated service');
     if (process.argv.includes('--accessibility'))
         await checkBrowserAccessibility(first, process.env.SMARTPHONE_RC_ACCESSIBILITY_OUTPUT);
     const cookies = await waitFor(async () => (await first.call('Network.getCookies', {urls: [origin]})).cookies.find(cookie => cookie.name === '__Host-smartphone_rc'));

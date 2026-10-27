@@ -163,6 +163,7 @@ for (const tls of [false, true]) {
     let packets = observe(socket, head);
     t.after(() => socket.destroy());
     send(socket, {type: 'click', button: 1});
+    send(socket, {type: 'volume', output: 7, level: 90});
     const cookie = await remember(packets);
     assert.equal(events.some(event => event.input), false);
     assert.equal(JSON.parse((await request('/session', {headers: {Cookie: cookie}})).body).authenticated, true);
@@ -173,9 +174,16 @@ for (const tls of [false, true]) {
     send(socket, {type: 'suspend'});
     await waitFor(() => events.some(event => event.state === 'suspended'));
     send(socket, {type: 'move', dx: 333, dy: 0});
+    send(socket, {type: 'mute', output: 7, muted: true});
     send(socket, {type: 'resume'});
     await waitFor(() => events.filter(event => event.state === 'connected').length >= 2);
     assert.equal(events.filter(event => event.input).length, 1);
+    send(socket, {type: 'volume', output: 7, level: 60});
+    send(socket, {type: 'mute', output: 7, muted: false});
+    await waitFor(() => events.filter(event => event.input).length === 3);
+    assert.deepEqual(events.filter(event => event.input).slice(1).map(event => event.input), [
+        {type: 'volume', output: 7, level: 60}, {type: 'mute', output: 7, muted: false},
+    ]);
     socket.destroy();
     await waitFor(() => events.some(event => event.state === 'reconnecting'));
     ({socket, head} = await connect(url.origin, null, cookie));

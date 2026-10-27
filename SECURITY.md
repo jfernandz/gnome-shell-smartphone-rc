@@ -1,6 +1,6 @@
 # Security model
 
-This extension grants pointer and keyboard control of an unlocked GNOME desktop. Use a trusted local network. A remembered browser can reconnect while the service is running; lock, disable and Stop terminate control. Login/lock-screen access and automatic startup are unsupported.
+This extension grants pointer, keyboard and default audio-output control of an unlocked GNOME desktop. Use a trusted local network. A remembered browser can reconnect while the service is running; lock, disable and Stop terminate control. Login/lock-screen access and automatic startup are unsupported.
 
 ## Server identity and credentials
 
@@ -34,6 +34,16 @@ Network limits include:
 - 2 KiB per WebSocket frame and complete message, enforced by libsoup 3.8+ before application parsing; validated/rate-limited input and an independent Shell limiter.
 
 D-Bus application-size checks occur **after** native GDBus reception/deserialization. They are not pre-allocation byte caps. UID/PID checks restrict the private endpoint but do not sandbox compromised same-user code or prove native-parser denial-of-service resilience. Binding a private address also does not prevent separately configured router/VPN forwarding or replace firewall policy.
+
+## Remote audio
+
+Volume and mute commands use the same approved, foreground session and
+independent network/Shell validation as pointer input. Volume percentages
+are integers from 0 to 100; commands identify the intended default output.
+The Shell ignores stale output IDs and removes mixer listeners and pending
+state timers when the session leaves the connected state. Unmuting a locally
+amplified output first caps it at 100%. No microphone control or audio
+capture/streaming is provided.
 
 ## Evidence and reporting
 

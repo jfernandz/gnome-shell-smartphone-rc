@@ -40,7 +40,11 @@ try {
             client.send({type: 'input', input: {type: 'edit', context: 123, remove: 2, text: 'España 🐧'}});
             controller.send({type: 'start', options: {address: '127.0.0.1', port: 0, sensitivity: {min: 0.5, max: 10}}});
             controller.send({type: 'send', message: {type: 'focus', active: true, sensitive: false, context: 123}});
-            await waitFor(() => received.length === 2 && commands.length === 2);
+            controller.send({type: 'send', message: {type: 'volume-state', available: true, output: 0xffffffff, level: 100, muted: false}});
+            client.send({type: 'input', input: {type: 'mute', output: 7, muted: true}});
+            await waitFor(() => received.length === 3 && commands.length === 3);
+            check(commands[2].message.output === 0xffffffff && commands[2].message.level === 100 &&
+                commands[2].message.muted === false && received[2].input.muted === true, 'Volume values did not round-trip');
             check(received[1].input.text === 'España 🐧' && commands[0].options.sensitivity.min === 0.5 && commands[1].message.context === 123,
                 'Typed D-Bus values did not round-trip');
             const introspection = await new Promise((resolve, reject) => connection.call(null,

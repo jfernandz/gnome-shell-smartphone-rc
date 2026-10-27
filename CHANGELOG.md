@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-10-27
+
+- Add mobile volume and mute controls for GNOME's default audio output, synchronized with desktop changes and output switches. Remote adjustments are capped at 100%; unavailable outputs disable the controls.
+- Validate audio commands independently in the network child and Shell, ignore commands for a previous output, and remove mixer observers and pending updates on suspension, disconnect, lock or stop.
+- Add volume protocol, mixer lifecycle, D-Bus, authenticated server and browser regressions; extend mobile accessibility checks.
+- Run GitHub CI on PRs, main pushes and tags, retain downloadable ZIP artifacts, and create draft releases with ZIPs and generated notes for matching version tags.
+
 ## 0.5.5 — 2026-10-27
 
 - Prevent delayed Network startup/discovery results from overwriting Apply, newer discovery results or unsaved edits; ignore completions after preferences close.

@@ -1,4 +1,5 @@
 import {createKeyboard} from './keyboard.js';
+import {createVolume} from './volume.js';
 import {createTouchpad} from './touchpad.js';
 import {trackViewport} from './viewport.js';
 
@@ -137,6 +138,7 @@ export function createClient(environment = globalThis) {
         }
     }
     const keyboard = createKeyboard(send, () => state === 'connected', environment);
+    const volume = createVolume(send, () => state === 'connected' && !document.hidden, environment);
     const touchpad = createTouchpad(send, () => state === 'connected', environment);
 
     function send(message) {
@@ -156,6 +158,7 @@ export function createClient(environment = globalThis) {
             keyboard.hide();
             keyboard.reset();
             touchpad.reset();
+            volume.reset();
         }
     }
 
@@ -177,6 +180,8 @@ export function createClient(environment = globalThis) {
     }
 
     function handleMessage(connection, message) {
+        if (message.type === 'volume-state')
+            volume.update(message);
         if (message.type === 'focus' && (!Number.isSafeInteger(message.context) || message.context < 0 ||
             typeof message.active !== 'boolean' || (message.sensitive !== undefined && typeof message.sensitive !== 'boolean')))
             return;

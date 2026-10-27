@@ -8,6 +8,7 @@ Screen streaming, internet relays, file transfer, login/lock-screen control and 
 
 - HTTPS/WSS, expiring QR invitations, desktop approval and manual certificate verification.
 - Touchpad/clicks/scroll, live typing, IME composition handling and desktop focus detection.
+- Default-output volume/mute control, synchronized with desktop changes and capped at 100%.
 - Settings-based network/certificate setup, sensitivity limits and remembered-browser management.
 - Bounded network child, authenticated private D-Bus and stop-on-lock/disable/failure.
 - Separate source-reload and packaged-ZIP workflows, including rollback and private archive snapshots.
@@ -19,7 +20,7 @@ Release details are in [CHANGELOG.md](CHANGELOG.md); implemented features are no
 - Expand application/IME, iOS, multi-monitor/scaling and long-session/network-interruption coverage.
 - Complete real assistive-technology and first-use certificate-warning checks.
 - Assess sustained resource exhaustion and additional OS isolation.
-- Confirm the final v0.5.5 ZIP on the physical setup; isolated Shell checks pass with the corrected development installer.
+- Confirm the final v0.6.0 ZIP and volume/output switching on the physical setup; isolated Shell checks pass with the corrected development installer.
 - Prepare screenshots/device records and complete maintainer review and distribution readiness.
 
 See [TESTING.md](TESTING.md) for evidence, [IDEAS.md](IDEAS.md) for proposals, [PUBLICATION.md](PUBLICATION.md) for distribution, and [CONTRIBUTING.md](CONTRIBUTING.md) for the working agreement. Publication requires a separate request; the source repository URL is already configured.

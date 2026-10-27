@@ -38,7 +38,7 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
         await page.evaluate('document.documentElement.style.fontSize = ""');
         await page.call('Emulation.clearDeviceMetricsOverride');
         await page.evaluate('document.querySelector("#keyboard").focus()');
-        for (const id of ['disconnect', 'sensitivity', 'left', 'right']) {
+        for (const id of ['disconnect', 'sensitivity', 'volume', 'mute', 'left', 'right']) {
             await key('Tab', 'Tab', 9);
             assert.equal(await page.evaluate('document.activeElement.id'), id);
         }
@@ -50,6 +50,8 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
 
         const {nodes} = await page.call('Accessibility.getFullAXTree');
         assert.ok(nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Sensitivity'));
+        assert.ok(nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Volume'));
+        assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === 'Mute'));
         assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === 'Keyboard'));
         await page.evaluate('document.querySelector("#keyboard").focus()');
         await key('Enter', 'Enter', 13);

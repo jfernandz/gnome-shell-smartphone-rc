@@ -21,6 +21,7 @@ if (ARGV.length) {
 }
 const server = new RemoteServer(GLib.get_current_dir(), state => {
     print(JSON.stringify({state}));
+    if (state === 'connected') server.send({type: 'volume-state', available: true, output: 7, level: 40, muted: false});
     if (state === 'pending') {
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
             server.approve(Boolean(options.trusted));

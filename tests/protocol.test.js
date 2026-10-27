@@ -43,3 +43,14 @@ test('rejects retired batch-text and auxiliary-key messages', () => {
     ])
         assert.equal(validateInput(message), null);
 });
+
+
+test('volume and mute commands require bounded values and an explicit output identity', () => {
+    assert.deepEqual(validateInput({type: 'volume', output: 4, level: 100, extra: true}), {type: 'volume', output: 4, level: 100});
+    assert.deepEqual(validateInput({type: 'mute', output: 4, muted: false}), {type: 'mute', output: 4, muted: false});
+    for (const output of [undefined, -1, 0x100000000, 1.5, '4'])
+        assert.equal(validateInput({type: 'volume', output, level: 10}), null);
+    for (const level of [-1, 101, 0.5, NaN, Infinity, '30', null])
+        assert.equal(validateInput({type: 'volume', output: 4, level}), null);
+    assert.equal(validateInput({type: 'mute', output: 4, muted: 1}), null);
+});

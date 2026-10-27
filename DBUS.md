@@ -4,7 +4,7 @@ Shell and the network child use authenticated private peer-to-peer D-Bus over a 
 
 ## Process layout
 
-- extension.js, dialogs.js, focus.js and input.js run in GNOME Shell.
+- extension.js, dialogs.js, focus.js, input.js and volume.js run in GNOME Shell.
 - service.js is the Shell-side process owner and D-Bus controller.
 - app/service-worker.js runs in the bounded GJS child and owns app/server.js and app/network-guard.js.
 - app/web/ contains the phone-browser HTML/CSS/JavaScript.
@@ -30,10 +30,12 @@ Object path: /io/github/jfernandz/SmartphoneRC. All methods reply with an empty 
 
 | Interface | Methods | Direction |
 | --- | --- | --- |
-| io.github.jfernandz.SmartphoneRC.Control1 | Start(a{sv}), Approve(b), Disconnect(), Sensitivity(dd), Focus(bbd), TypingPaused(s) | Shell → child |
+| io.github.jfernandz.SmartphoneRC.Control1 | Start(a{sv}), Approve(b), Disconnect(), Sensitivity(dd), Focus(bbd), TypingPaused(s), Volume(bddb) | Shell → child |
 | io.github.jfernandz.SmartphoneRC.Events1 | Ready(), Started(ss), State(sss), Input(a{sv}), Failed(s) | Child → Shell |
 
 Start carries bounded configuration dictionaries. Input carries a dictionary of validated control fields. Nested dictionaries are bounded; numeric dictionary values use doubles and existing integer/safe-integer checks still apply where appropriate. Empty strings represent absent optional state/fingerprint labels because D-Bus has no null type. Pairing secrets and input travel only through directed calls on this private peer connection.
+
+Volume carries output availability, the current output ID, a 0–100 percentage and mute state. Output IDs use doubles with integer/uint32 validation; -1 represents no output. Volume/mute input carries the intended output ID so delayed commands cannot change a new default sink. Only connected sessions own mixer observers; state updates are coalesced to at most 20 per second.
 
 Shell validates startup ordering, URL/address/certificate details and every input event independently. Desktop approval and cookie/trust decisions remain in the existing state machine. Selecting D-Bus does not itself authorize a browser.
 

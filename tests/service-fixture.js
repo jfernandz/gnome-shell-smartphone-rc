@@ -25,6 +25,7 @@ async function start() {
     service?.stop();
     service = new RemoteService(directory, state => {
         print(JSON.stringify({state}));
+        if (state === 'connected') service.send({type: 'volume-state', available: true, output: 7, level: 40, muted: false});
         if (state === 'pending') GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
             service.approve(Boolean(GLib.getenv('SMARTPHONE_RC_TEST_TRUST')));
             return GLib.SOURCE_REMOVE;

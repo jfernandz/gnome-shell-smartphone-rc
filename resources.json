@@ -33,7 +33,8 @@
     "icons/remote-touchpad-symbolic.svg",
     "icons/github-symbolic.svg",
     "icons/octicons-LICENSE",
-    "preferences/about.js"
+    "preferences/about.js",
+    "volume.js"
   ],
   "web": {
     "/": {
@@ -70,6 +71,14 @@
     },
     "/limits.js": {
       "file": "limits.js",
+      "type": "text/javascript"
+    },
+    "/volume.js": {
+      "file": "app/web/volume.js",
+      "type": "text/javascript"
+    },
+    "/protocol.js": {
+      "file": "protocol.js",
       "type": "text/javascript"
     }
   }

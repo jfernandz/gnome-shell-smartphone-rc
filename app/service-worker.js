@@ -4,6 +4,7 @@ import GLib from 'gi://GLib';
 import {DBusPeer, connectToParent, cleanupPeerDirectory} from '../dbus.js';
 import {RemoteServer} from './server.js';
 import {TrustedBrowsers} from '../trusted.js';
+import {isVolumeState} from '../protocol.js';
 import {isSensitivityRange} from '../limits.js';
 
 const directory = Gio.File.new_for_uri(import.meta.url).get_parent().get_parent().get_path();
@@ -50,6 +51,8 @@ const peer = new DBusPeer(connection, 'service', command => {
             server?.send({type: 'focus', context: message.context, active: message.active, sensitive: message.sensitive});
         else if (message?.type === 'typing-paused' && typeof message.message === 'string' && message.message.length <= 512)
             server?.send({type: 'typing-paused', message: message.message});
+        else if (isVolumeState(message))
+            server?.send({type: 'volume-state', available: message.available, output: message.output, level: message.level, muted: message.muted});
         else
             finish();
     } else {

@@ -8,6 +8,15 @@ export function validateInput(message) {
     case 'resume':
     case 'disconnect':
         return {type: message.type};
+    case 'volume':
+    case 'mute':
+        if (!Number.isInteger(message.output) || message.output < 0 || message.output > 0xffffffff)
+            break;
+        if (message.type === 'volume' && Number.isInteger(message.level) && message.level >= 0 && message.level <= 100)
+            return {type: 'volume', output: message.output, level: message.level};
+        if (message.type === 'mute' && typeof message.muted === 'boolean')
+            return {type: 'mute', output: message.output, muted: message.muted};
+        break;
     case 'move':
     case 'scroll':
         if ([message.dx, message.dy].every(value => Number.isFinite(value) && Math.abs(value) <= MAX_MOTION))
@@ -46,4 +55,12 @@ export class RateLimit {
         }
         return ++this._count <= 240;
     }
+}
+
+export function isVolumeState(message) {
+    return message?.type === 'volume-state' && typeof message.available === 'boolean' &&
+        Number.isInteger(message.output) && message.output >= (message.available ? 0 : -1) &&
+        message.output <= 0xffffffff && (message.available || message.output === -1) &&
+        Number.isInteger(message.level) && message.level >= 0 && message.level <= 100 &&
+        typeof message.muted === 'boolean';
 }

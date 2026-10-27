@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.5.5 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.6.0 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -21,7 +21,7 @@ Install a built ZIP, or install from the project source:
 
 ```sh
 # Choose one installation method:
-gnome-extensions install --force /path/to/smartphone-rc-0.5.5.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.6.0.zip
 # Or, from the project directory:
 bash scripts/install.sh
 ```
@@ -72,6 +72,14 @@ After lock, login or service restart, start control manually and reopen the plai
 - **Version mismatch in About:** installed and session-cached versions can differ after an update; log out and back in to load the installed version normally.
 
 The network server runs in a bounded GJS child with authenticated private D-Bus. It shares your OS identity and is not sandboxed. TLS still requires manual first-use certificate verification. See [SECURITY.md](SECURITY.md) for the trust model and [TESTING.md](TESTING.md) for actual coverage and limitations.
+
+## Desktop sound
+
+While connected, use **Volume** and **Mute/Unmute** on the phone to control
+GNOME's default audio output. Changes made on the PC and output switches
+are reflected on the phone. Remote adjustments are limited to 0–100%;
+setting the slider to zero mutes, and raising it unmutes. Controls are
+unavailable when disconnected or when there is no audio output.
 
 ## Development
 

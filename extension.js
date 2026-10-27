@@ -9,6 +9,7 @@ import {trustDurationDays, sensitivityRange} from './settings.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {RemoteDialogs} from './dialogs.js';
 
+import {RemoteVolume} from './volume.js';
 import {RemoteInput} from './input.js';
 import {TextFocus} from './focus.js';
 import {RemoteService} from './service.js';
@@ -21,6 +22,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._notification = null;
         this._server = null;
         this._input = null;
+        this._volume = null;
         this._focus = null;
         this._dialogs = new RemoteDialogs();
         this._indicator = new PanelMenu.Button(0.0, 'Smartphone Remote Control');
@@ -155,6 +157,8 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _applySessionTransition(state) {
+        this._volume?.destroy();
+        this._volume = null;
         if (state === 'reconnecting')
             console.info('Smartphone Remote Control: phone transport interrupted; waiting for reconnection.');
         if (['connected', 'disconnected', 'expired'].includes(state)) {
@@ -169,6 +173,7 @@ export default class SmartphoneRemoteControl extends Extension {
         }
         this._input?.cancelKeyboard();
         if (state === 'connected') {
+            this._volume = new RemoteVolume(message => this._server?.send(message));
             this._focus = new TextFocus(message => {
                 this._input.resumeKeyboard();
                 this._server.send(message);
@@ -251,6 +256,10 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _handleInput(input) {
+        if (input.type === 'volume' || input.type === 'mute') {
+            this._volume?.handle(input);
+            return;
+        }
         if (input.type === 'edit' || input.type === 'key') {
             if (!this._focus)
                 return;
@@ -268,6 +277,8 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _stop() {
+        this._volume?.destroy();
+        this._volume = null;
         this._startingCancel?.cancel();
         this._startingCancel = null;
         this._clearNotification();

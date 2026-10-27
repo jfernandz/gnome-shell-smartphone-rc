@@ -5,7 +5,7 @@ const PATH = '/io/github/jfernandz/SmartphoneRC';
 const CONTROL = 'io.github.jfernandz.SmartphoneRC.Control1';
 const EVENTS = 'io.github.jfernandz.SmartphoneRC.Events1';
 const METHODS = {
-    [CONTROL]: {Start: 'a{sv}', Approve: 'b', Disconnect: '', Sensitivity: 'dd', Focus: 'bbd', TypingPaused: 's'},
+    [CONTROL]: {Start: 'a{sv}', Approve: 'b', Disconnect: '', Sensitivity: 'dd', Focus: 'bbd', TypingPaused: 's', Volume: 'bddb'},
     [EVENTS]: {Ready: '', Started: 'ss', State: 'sss', Input: 'a{sv}', Failed: 's'},
 };
 function xml(iface) {
@@ -38,6 +38,10 @@ function encode(message, role) {
         case 'disconnect': return ['Disconnect', []];
         case 'settings': return ['Sensitivity', [message.sensitivity.min, message.sensitivity.max]];
         case 'send':
+            if (message.message.type === 'volume-state') {
+                const {available, output, level, muted} = message.message;
+                return ['Volume', [available, output, level, muted]];
+            }
             if (message.message.type === 'focus') {
                 const {active, sensitive, context} = message.message;
                 return ['Focus', [active, sensitive, context]];
@@ -62,6 +66,7 @@ function decode(method, args) {
     case 'Approve': return {type: 'approve', remember: args[0]};
     case 'Disconnect': return {type: 'disconnect'};
     case 'Sensitivity': return {type: 'settings', sensitivity: {min: args[0], max: args[1]}};
+    case 'Volume': return {type: 'send', message: {type: 'volume-state', available: args[0], output: args[1], level: args[2], muted: args[3]}};
     case 'Focus': return {type: 'send', message: {type: 'focus', active: args[0], sensitive: args[1], context: args[2]}};
     case 'TypingPaused': return {type: 'send', message: {type: 'typing-paused', message: args[0]}};
     case 'Ready': return {type: 'ready'};

@@ -51,3 +51,14 @@ These settings are process-local. They do not change the user's theme, font, rem
 - iOS Safari and other browsers; current Chromium checks do not imply cross-browser support.
 
 See [TESTING.md](TESTING.md) for other validation and [PUBLICATION.md](PUBLICATION.md) for remaining distribution work.
+
+
+## Volume controls (0.6.0)
+
+The mobile Volume slider has a visible label and a 0–100 range. Mute/Unmute
+has an accessible pressed state; both controls are disabled until an approved
+session receives an available output. The sound section hides while typing,
+alongside pointer settings. Browser checks cover the slider/button names,
+keyboard order and 44-pixel targets at narrow, landscape and enlarged-text
+sizes. These checks use a synthetic mixer through the real authenticated
+helper; physical audio and real assistive-technology checks remain pending.

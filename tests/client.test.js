@@ -7,6 +7,7 @@ function page({fetchSession = null, hash = '', storage = new Map(), preferences 
     function element(id) {
         if (!elements.has(id)) {
             elements.set(id, {
+                setAttribute(name, value) { this[name] = value; },
                 disabled: false, hidden: true, textContent: '', handlers: {}, value: '', selectionStart: 0, selectionEnd: 0,
                 classList: {toggle() {}}, blur() { this.focused = false; }, focus() { this.focused = true; },
                 setPointerCapture() {},
@@ -601,4 +602,55 @@ test('Disconnect disables input immediately while the WebSocket close event is d
     browser.element('text').handlers.input({isComposing: false});
     assert.deepEqual(connection.sent, [{type: 'disconnect'}]);
     connection.emit('close', {code: 1000});
+});
+
+
+test('volume follows desktop state and output switches, rejects malformed updates and resets on disconnect', () => {
+    const browser = connectedPage();
+    const socket = browser.sockets[0];
+    const update = state => socket.emit('message', {data: JSON.stringify({type: 'volume-state', available: true, output: 12, level: 35, muted: false, ...state})});
+    assert.equal(browser.element('volume').disabled, true);
+    update({});
+    assert.equal(browser.element('volume').disabled, false);
+    assert.equal(browser.element('volume').value, '35');
+    browser.element('volume').value = '70';
+    browser.element('volume').handlers.input();
+    browser.element('mute').handlers.click();
+    assert.deepEqual(socket.sent, [{type: 'volume', output: 12, level: 70}, {type: 'mute', output: 12, muted: true}]);
+    update({muted: true, level: 50, output: 13});
+    assert.equal(browser.element('mute').textContent, 'Unmute');
+    assert.equal(browser.element('mute')['aria-pressed'], 'true');
+    update({level: 101});
+    assert.equal(browser.element('volume').value, '50');
+    browser.element('mute').handlers.click();
+    assert.deepEqual(socket.sent.at(-1), {type: 'mute', output: 13, muted: false});
+    update({available: false, output: -1, level: 0});
+    assert.equal(browser.element('volume').disabled, true);
+    const count = socket.sent.length;
+    browser.element('mute').handlers.click();
+    assert.equal(socket.sent.length, count);
+    update({});
+    browser.element('disconnect').handlers.click();
+    assert.equal(browser.element('volume').disabled, true);
+    assert.equal(browser.element('mute').disabled, true);
+    browser.element('volume').handlers.input();
+    assert.equal(socket.sent.at(-1).type, 'disconnect');
+    update({});
+    assert.equal(browser.element('volume').disabled, true);
+});
+
+test('background suspension clears volume state until a fresh desktop snapshot arrives', () => {
+    const browser = connectedPage();
+    const socket = browser.sockets[0];
+    const update = () => socket.emit('message', {data: JSON.stringify({type: 'volume-state', available: true, output: 1, level: 60, muted: false})});
+    update();
+    browser.document.hidden = true;
+    for (const callback of browser.documentEvents.get('visibilitychange')) callback();
+    update();
+    assert.equal(browser.element('volume').disabled, true);
+    browser.document.hidden = false;
+    socket.emit('message', {data: JSON.stringify({type: 'resumed'})});
+    assert.equal(browser.element('volume').disabled, true);
+    update();
+    assert.equal(browser.element('volume').disabled, false);
 });

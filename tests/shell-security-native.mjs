@@ -91,17 +91,19 @@ try {
         return true;
     })()`);
     await wait(`${base}._server?._state === 'connected'`);
-    assert.ok(evaluate(`${base}._focus !== null`).includes("'true'"));
+    assert.ok(evaluate(`${base}._focus !== null && ${base}._volume !== null && ${base}._volume._control.get_vol_max_norm() > 0`).includes("'true'"));
+    console.log('PASS: connected session owns a native GNOME mixer observer');
     assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.label.text === 'Disconnect phone'`).includes("'true'"));
     assert.ok(evaluate(`(()=>{
         const extension = ${base};
         const focus = extension._focus;
+        const volume = extension._volume;
         const cancelKeyboard = extension._input.cancelKeyboard;
         let cancellations = 0;
         extension._input.cancelKeyboard = () => cancellations++;
         try {
             extension._onSessionState('connected');
-            return extension._focus === focus && cancellations === 0;
+            return extension._focus === focus && extension._volume === volume && cancellations === 0;
         } finally {
             extension._input.cancelKeyboard = cancelKeyboard;
         }
@@ -111,7 +113,7 @@ try {
 
     evaluate(`${base}._server._process.force_exit()`);
     await wait(`${base}._server === null`);
-    assert.ok(evaluate(`${base}._input === null && ${base}._focus === null`).includes("'true'"));
+    assert.ok(evaluate(`${base}._input === null && ${base}._focus === null && ${base}._volume === null`).includes("'true'"));
     socket.destroy();
     console.log('PASS: helper crash stops native input/focus while GNOME remains alive');
 

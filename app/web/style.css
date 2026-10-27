@@ -28,3 +28,11 @@ body.typing header h1, body.typing .pointer-settings, body.typing footer, body.t
 body.typing #touchpad { flex-basis: 0; min-height: 0; }
 body.typing #touchpad span { display: none; }
 #typing { scroll-margin-bottom: 24px; }
+
+.volume-settings { flex-shrink: 0; }
+.volume-heading { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; color: #bbb; }
+.volume-controls { display: flex; align-items: center; gap: 12px; }
+.volume-controls input { flex: 1; padding: 0; border: 0; min-height: 44px; background: transparent; accent-color: #6bba83; }
+.volume-controls button { flex-shrink: 0; }
+#volume-value { font-variant-numeric: tabular-nums; }
+body.typing .volume-settings { display: none; }
