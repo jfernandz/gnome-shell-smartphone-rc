@@ -342,8 +342,8 @@ test('a typing timeout keeps the pointer connected and refocusing resumes the ke
     const socket = browser.sockets[0];
     socket.emit('message', {data: JSON.stringify({type: 'typing-paused'})});
     assert.equal(browser.element('typing').hidden, true);
-    assert.equal(browser.element('left').disabled, false);
-    browser.element('left').handlers.click();
+    browser.element('touchpad').handlers.pointerdown({pointerId: 1, clientX: 10, clientY: 10});
+    browser.element('touchpad').handlers.pointerup({type: 'pointerup', pointerId: 1});
     assert.deepEqual(socket.sent, [{type: 'click', button: 1}]);
     socket.emit('message', {data: JSON.stringify({type: 'focus', context: 8, active: true})});
     assert.equal(browser.element('status').textContent, 'Connected');
@@ -359,7 +359,7 @@ test('backgrounding Chrome suspends input and reconnects an approved tab without
     browser.document.hidden = true;
     for (const callback of browser.documentEvents.get('visibilitychange')) callback();
     assert.deepEqual(old.sent.at(-1), {type: 'suspend'});
-    assert.equal(browser.element('left').disabled, true);
+    assert.equal(browser.element('keyboard').disabled, true);
     old.emit('close', {code: 1006});
     assert.equal(browser.timeouts.size, 0, 'No retries while the tab is hidden');
     browser.document.hidden = false;
@@ -416,8 +416,9 @@ test('a late resume response cannot reactivate controls after Chrome was hidden 
     browser.document.hidden = true;
     for (const callback of browser.documentEvents.get('visibilitychange')) callback();
     socket.emit('message', {data: JSON.stringify({type: 'resumed'})});
-    assert.equal(browser.element('left').disabled, true);
-    browser.element('left').handlers.click();
+    assert.equal(browser.element('keyboard').disabled, true);
+    browser.element('touchpad').handlers.pointerdown({pointerId: 1, clientX: 10, clientY: 10});
+    browser.element('touchpad').handlers.pointerup({type: 'pointerup', pointerId: 1});
     assert.equal(socket.sent.some(message => message.type === 'click'), false);
     assert.deepEqual(socket.sent.at(-1), {type: 'suspend'});
 });
@@ -653,4 +654,39 @@ test('background suspension clears volume state until a fresh desktop snapshot a
     assert.equal(browser.element('volume').disabled, true);
     update();
     assert.equal(browser.element('volume').disabled, false);
+});
+
+test('holding sends one right click without a left click on release', () => {
+    const browser = connectedPage();
+    const pad = browser.element('touchpad');
+    const existing = new Set(browser.timeouts.keys());
+    pad.handlers.pointerdown({pointerId: 1, clientX: 10, clientY: 10});
+    const hold = [...browser.timeouts].find(([id]) => !existing.has(id));
+    assert.ok(hold);
+    browser.timeouts.delete(hold[0]);
+    hold[1]();
+    pad.handlers.pointerup({type: 'pointerup', pointerId: 1});
+    assert.deepEqual(browser.sockets[0].sent, [{type: 'click', button: 3}]);
+});
+
+test('movement, multitouch, cancellation, backgrounding and disconnect cancel a hold', () => {
+    for (const action of ['move', 'multi', 'cancel', 'capture', 'hidden', 'disconnect', 'release']) {
+        const browser = connectedPage();
+        const pad = browser.element('touchpad');
+        const existing = new Set(browser.timeouts.keys());
+        pad.handlers.pointerdown({pointerId: 1, clientX: 10, clientY: 10});
+        const hold = [...browser.timeouts.keys()].find(id => !existing.has(id));
+        if (action === 'move') pad.handlers.pointermove({pointerId: 1, clientX: 30, clientY: 10});
+        if (action === 'multi') pad.handlers.pointerdown({pointerId: 2, clientX: 30, clientY: 10});
+        if (action === 'cancel') pad.handlers.pointercancel({type: 'pointercancel', pointerId: 1});
+        if (action === 'capture') pad.handlers.lostpointercapture({type: 'lostpointercapture', pointerId: 1});
+        if (action === 'release') pad.handlers.pointerup({type: 'pointerup', pointerId: 1});
+        if (action === 'disconnect') browser.sockets[0].emit('close');
+        if (action === 'hidden') {
+            browser.document.hidden = true;
+            for (const callback of browser.documentEvents.get('visibilitychange')) callback();
+        }
+        assert.equal(browser.timeouts.has(hold), false, action);
+        assert.ok(!browser.sockets[0].sent.some(message => message.type === 'click' && message.button === 3));
+    }
 });

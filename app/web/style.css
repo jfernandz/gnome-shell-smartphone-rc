@@ -1,38 +1,45 @@
 :root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #141414; color: #eee; }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 16px; position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-height, 100dvh); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-header, nav, #typing, footer { flex-shrink: 0; }
-header h1 { font-size: 1.1rem; margin: 0; }
-header p { font-size: .85rem; color: #bdbdbd; margin: 6px 0 0; }
-nav, footer, form { display: flex; gap: 8px; }
-nav, footer { flex-wrap: wrap; }
+[hidden] { display: none !important; }
+body { margin: 0; padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); position: fixed; top: var(--app-top, 0px); left: 0; right: 0; height: var(--app-height, 100dvh); display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+header p { font-size: .85rem; color: #bdbdbd; margin: 0; min-width: 0; overflow-wrap: anywhere; }
 button { border: 1px solid #555; background: #292929; color: inherit; border-radius: 10px; min-height: 44px; padding: 8px 12px; font: inherit; }
 button:disabled { opacity: .4; }
 button:active { background: #454545; }
-button:focus-visible, input:focus-visible { outline: 3px solid #9dd9ff; outline-offset: 3px; }
-nav button, footer button { flex: 1 1 auto; }
-#touchpad { flex: 1 0 auto; min-height: 100px; background: #000; border: 1px solid #333; border-radius: 16px; touch-action: none; user-select: none; display: grid; place-items: center; }
-#touchpad span { padding: 12px; color: #888; text-align: center; pointer-events: none; font-size: .85rem; line-height: 1.8; }
+button:focus-visible, input:focus-visible { outline: 3px solid #9dd9ff; outline-offset: 2px; }
+#touchpad { flex: 1 1 0; min-height: 0; background: #000; border: 1px solid #333; border-radius: 16px; touch-action: none; user-select: none; display: grid; place-items: center; overflow: hidden; }
+#touchpad span { padding: 8px; color: #888; text-align: center; pointer-events: none; font-size: .85rem; line-height: 1.8; }
 #touchpad.active { border-color: #6bba83; }
-#typing label { display: block; margin-bottom: 6px; font-size: .85rem; }
-input { width: 100%; min-width: 0; border: 1px solid #666; border-radius: 8px; background: #222; color: inherit; padding: 10px; font: inherit; }
-.hint { color: #aaa; font-size: .75rem; margin: 6px 0 0; }
+#typing { flex-shrink: 0; }
+#typing label { display: block; margin-bottom: 4px; font-size: .85rem; }
+input { width: 100%; min-width: 0; border: 1px solid #666; border-radius: 8px; background: #222; color: inherit; padding: 8px; font: inherit; }
+.hint { color: #aaa; font-size: .75rem; margin: 4px 0 0; }
+body.typing .hint, body.typing #touchpad span { display: none; }
+#controls { position: fixed; top: calc(var(--app-top, 0px) + 60px + env(safe-area-inset-top, 0px)); bottom: auto; margin: 0 auto; width: min(480px, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); padding: 20px; border: 1px solid #666; border-radius: 20px; background: #202020; color: inherit; }
+#controls:popover-open { display: grid; gap: 20px; }
+#controls::backdrop { background: #0006; }
+nav, .volume-controls { display: flex; gap: 12px; flex-wrap: wrap; }
+nav button { flex: 1 1 auto; }
+.pointer-settings div, .volume-heading { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: #bbb; flex-wrap: wrap; }
+input[type="range"] { display: block; padding: 0; border: 0; min-height: 44px; background: transparent; accent-color: #6bba83; }
+.volume-controls { align-items: center; }
+.volume-controls input { flex: 1; width: 0; }
+#sensitivity-value, #volume-value { font-variant-numeric: tabular-nums; }
+@media (orientation: landscape) {
+    #controls { width: min(720px, calc(100% - 24px)); }
+    #controls header, #controls nav { grid-column: 1 / -1; }
+    #controls:popover-open { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+@media (max-height: 240px) {
+    #typing label { display: none; }
+}
 
-.pointer-settings { flex-shrink: 0; }
-.pointer-settings div { display: flex; justify-content: space-between; font-size: .8rem; color: #bbb; }
-.pointer-settings input { display: block; padding: 0; border: 0; min-height: 44px; background: transparent; accent-color: #6bba83; }
-#sensitivity-value { font-variant-numeric: tabular-nums; }
-
-body.typing { gap: 8px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
-body.typing header h1, body.typing .pointer-settings, body.typing footer, body.typing .hint { display: none; }
-body.typing #touchpad { flex-basis: 0; min-height: 0; }
-body.typing #touchpad span { display: none; }
-#typing { scroll-margin-bottom: 24px; }
-
-.volume-settings { flex-shrink: 0; }
-.volume-heading { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; color: #bbb; }
-.volume-controls { display: flex; align-items: center; gap: 12px; }
-.volume-controls input { flex: 1; padding: 0; border: 0; min-height: 44px; background: transparent; accent-color: #6bba83; }
-.volume-controls button { flex-shrink: 0; }
-#volume-value { font-variant-numeric: tabular-nums; }
-body.typing .volume-settings { display: none; }
+#controls-toggle { position: absolute; z-index: 1; top: max(20px, env(safe-area-inset-top, 0px)); right: max(20px, env(safe-area-inset-right, 0px)); min-width: 52px; border-radius: 24px; letter-spacing: 2px; }
+#controls:popover-open { animation: reveal 120ms ease-out; }
+@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { #controls:popover-open { animation: none; } }
+@media (max-height: 360px) and (orientation: landscape) {
+    #controls { top: calc(var(--app-top, 0px) + 8px); padding: 12px 20px; }
+    #controls:popover-open { gap: 8px 20px; }
+}

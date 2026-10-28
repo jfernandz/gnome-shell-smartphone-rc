@@ -2,13 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content, viewport-fit=cover">
   <title>Smartphone Remote Control</title>
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <header><h1>Remote Control</h1><p id="status" role="status">Ready to connect</p></header>
+  <button id="controls-toggle" popovertarget="controls" aria-label="Controls">•••</button>
+  <main id="touchpad" aria-label="Touchpad" aria-describedby="touchpad-help"><span id="touchpad-help">Slide to move · Tap to click<br>Hold for right click · Two fingers to scroll</span></main>
+  <section id="typing" aria-label="Phone keyboard" hidden>
+    <label for="text">Typing on your PC</label>
+    <form id="text-form"><input id="text" aria-describedby="typing-hint" type="text" autocomplete="off" spellcheck="false" enterkeyhint="enter" placeholder="Type here — changes appear on your PC" maxlength="65536"></form>
+    <p id="typing-hint" class="hint">Shows text typed from this phone. Tap here if the keyboard stays closed.</p>
+  </section>
+  <div id="controls" popover aria-label="Remote controls">
+    <header><p id="status" role="status">Ready to connect</p></header>
   <nav aria-label="Connection controls">
     <button id="connect" disabled>Connect</button>
     <button id="keyboard" aria-controls="typing" aria-expanded="false" disabled>Keyboard</button>
@@ -22,12 +30,6 @@
     <div class="volume-heading"><label for="volume">Volume</label><output id="volume-value" for="volume" aria-hidden="true">Unavailable</output></div>
     <div class="volume-controls"><input id="volume" type="range" min="0" max="100" step="1" value="0" disabled><button id="mute" aria-pressed="false" disabled>Mute</button></div>
   </section>
-  <main id="touchpad" aria-label="Touchpad" aria-describedby="touchpad-help"><span id="touchpad-help">Slide to move · Tap to click<br>Two fingers to scroll</span></main>
-  <section id="typing" aria-label="Phone keyboard" hidden>
-    <label for="text">Typing on your PC</label>
-    <form id="text-form"><input id="text" aria-describedby="typing-hint" type="text" autocomplete="off" spellcheck="false" enterkeyhint="enter" placeholder="Type here — changes appear on your PC" maxlength="65536"></form>
-    <p id="typing-hint" class="hint">Shows text typed from this phone. Tap here if the keyboard stays closed.</p>
-  </section>
-  <footer><button id="left" disabled>Left click</button><button id="right" disabled>Right click</button></footer>
+  </div>
 </body>
 </html>

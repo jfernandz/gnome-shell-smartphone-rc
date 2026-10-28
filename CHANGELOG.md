@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1 — 2026-10-28
+
+- Maximize the mobile touchpad in portrait and landscape, moving connection/keyboard, sensitivity and sound actions into a padded card opened by a floating ••• button, with no intermediate menu.
+- Keep the phone editor outside the panel, preserving text, focus and selection across rotation without page scrolling.
+- Replace click buttons with tap for left click and a 550 ms hold for right click; cancel holds on movement, multitouch, capture loss, cancellation, backgrounding or disconnect.
+- Check the controls card at standard and enlarged text sizes, short landscape viewports, panel dismissal/focus restoration and keyboard disclosure in Chromium.
+
 ## 0.6.0 — 2026-10-27
 
 - Add mobile volume and mute controls for GNOME's default audio output, synchronized with desktop changes and output switches. Remote adjustments are capped at 100%; unavailable outputs disable the controls.

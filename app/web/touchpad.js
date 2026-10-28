@@ -1,7 +1,7 @@
 import {DEFAULT_SENSITIVITY, SENSITIVITY, MAX_MOTION, isSensitivityRange, snapSensitivity} from '../../limits.js';
 
 export function createTouchpad(send, isApproved, environment = globalThis) {
-    const {document, requestAnimationFrame, cancelAnimationFrame, performance} = environment;
+    const {document, requestAnimationFrame, cancelAnimationFrame, performance, setTimeout, clearTimeout} = environment;
     const $ = id => document.getElementById(id);
     let sensitivity = 1;
     let range = {...DEFAULT_SENSITIVITY};
@@ -30,11 +30,13 @@ export function createTouchpad(send, isApproved, environment = globalThis) {
             // Keep the chosen value for this page even if it cannot be saved.
         }
     });
-    $('left').addEventListener('click', () => send({type: 'click', button: 1}));
-    $('right').addEventListener('click', () => send({type: 'click', button: 3}));
-
     const points = new Map();
     let tap = null;
+    let holdTimer = 0;
+    function cancelHold() {
+        if (holdTimer) clearTimeout(holdTimer);
+        holdTimer = 0;
+    }
     let multi = false;
     let dx = 0;
     let dy = 0;
@@ -54,12 +56,21 @@ export function createTouchpad(send, isApproved, environment = globalThis) {
     pad.addEventListener('pointerdown', event => {
         if (!isApproved())
             return;
+        cancelHold();
         flush();
         pad.setPointerCapture(event.pointerId);
         points.set(event.pointerId, {x: event.clientX, y: event.clientY});
         if (points.size === 1) {
             tap = {x: event.clientX, y: event.clientY, time: performance.now(), moved: false};
             multi = false;
+            holdTimer = setTimeout(() => {
+                holdTimer = 0;
+                if (isApproved() && !document.hidden && points.size === 1 && tap && !tap.moved) {
+                    flush();
+                    tap.moved = true;
+                    send({type: 'click', button: 3});
+                }
+            }, 550);
         } else {
             multi = true;
         }
@@ -76,14 +87,17 @@ export function createTouchpad(send, isApproved, environment = globalThis) {
         dx += (event.clientX - previous.x) * scale;
         dy += (event.clientY - previous.y) * scale;
         points.set(event.pointerId, {x: event.clientX, y: event.clientY});
-        if (tap && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 8)
+        if (tap && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 8) {
             tap.moved = true;
+            cancelHold();
+        }
         if (!frame)
             frame = requestAnimationFrame(flush);
     });
     function endPointer(event) {
         if (!points.has(event.pointerId))
             return;
+        cancelHold();
         flush();
         points.delete(event.pointerId);
         if (event.type === 'pointerup' && !multi && tap && !tap.moved && performance.now() - tap.time < 300)
@@ -101,6 +115,7 @@ export function createTouchpad(send, isApproved, environment = globalThis) {
     });
 
     function reset() {
+        cancelHold();
         if (frame)
             cancelAnimationFrame(frame);
         frame = 0;

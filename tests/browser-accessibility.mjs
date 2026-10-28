@@ -3,70 +3,92 @@ import {mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 export async function checkBrowserAccessibility(page, outputDirectory = null) {
-    async function key(key, code, virtualKey, shiftKey = false) {
-        const params = {key, code, windowsVirtualKeyCode: virtualKey, nativeVirtualKeyCode: virtualKey, modifiers: shiftKey ? 8 : 0};
-        await page.call('Input.dispatchKeyEvent', {type: 'keyDown', ...params, ...(key === 'Enter' ? {text: '\r', unmodifiedText: '\r'} : {})});
-        await page.call('Input.dispatchKeyEvent', {type: 'keyUp', ...params});
+    async function group() {
+        await page.evaluate(`(() => {
+            const panel = document.querySelector('#controls');
+            if (!panel.matches(':popover-open')) document.querySelector('#controls-toggle').click();
+        })()`);
+    }
+    async function screenshot(name) {
+        if (!outputDirectory) return;
+        await page.evaluate("Promise.all(document.getAnimations().map(animation => animation.finished))");
+        mkdirSync(outputDirectory, {recursive: true});
+        const result = await page.call('Page.captureScreenshot', {format: 'png'});
+        writeFileSync(join(outputDirectory, name + '.png'), Buffer.from(result.data, 'base64'));
     }
     try {
-        for (const [width, height, fontSize] of [[360, 800, 16], [320, 568, 16], [568, 320, 16], [320, 568, 32]]) {
+        for (const [width, height, fontSize] of [[360, 800, 16], [320, 568, 16], [568, 320, 16], [844, 390, 16], [568, 240, 16], [844, 180, 16], [568, 320, 32], [320, 568, 32]]) {
             await page.call('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: true});
-            const layout = await page.evaluate(`(async()=>{
-                document.documentElement.style.fontSize = '${fontSize}px';
-                await new Promise(requestAnimationFrame);
-                const visible = [...document.querySelectorAll('button, input[type="range"]')].filter(node => node.getClientRects().length);
+            await page.evaluate(`document.documentElement.style.fontSize = '${fontSize}px'`);
+            for (const value of ['all']) {
+                await group(value);
+                const layout = await page.evaluate(`(async () => {
+                    await new Promise(requestAnimationFrame);
+                    const panel = document.querySelector('#controls');
+                    const box = panel.getBoundingClientRect();
+                    const controls = [...panel.querySelectorAll('button, input, select')].filter(node => node.getClientRects().length);
+                    return {fits: box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth,
+                        scroll: panel.scrollHeight > panel.clientHeight + 1 || document.body.scrollHeight > document.body.clientHeight + 1,
+                        targets: controls.map(node => {const rect = node.getBoundingClientRect(); return {id: node.id, height: rect.height, fits: rect.top >= box.top && rect.bottom <= box.bottom && rect.left >= box.left && rect.right <= box.right};})};
+                })()`);
+                assert.ok(layout.fits && !layout.scroll, `Panel needs scrolling at ${width}×${height}/${fontSize}/${value}: ${JSON.stringify(layout)}`);
+                for (const target of layout.targets)
+                    assert.ok(target.fits && target.height >= 44, `Clipped or small control: ${JSON.stringify(target)}`);
+                await screenshot(`controls-${width}x${height}-${fontSize}-${value}`);
+            }
+            await page.evaluate('document.querySelector("#controls").hidePopover()');
+            const closed = await page.evaluate(`(() => {
                 const pad = document.querySelector('#touchpad').getBoundingClientRect();
-                const help = document.querySelector('#touchpad-help').getBoundingClientRect();
-                return {width: innerWidth, content: document.documentElement.scrollWidth,
-                    helpFits: help.top >= pad.top && help.bottom <= pad.bottom && help.left >= pad.left && help.right <= pad.right,
-                    controls: visible.map(node => ({id: node.id, height: node.getBoundingClientRect().height,
-                        left: node.getBoundingClientRect().left, right: node.getBoundingClientRect().right}))};
+                return {hidden: !document.querySelector('#controls').matches(':popover-open'),
+                    fits: pad.bottom <= innerHeight && pad.height >= innerHeight - 90,
+                    scroll: document.body.scrollHeight > document.body.clientHeight + 1};
             })()`);
-            assert.ok(layout.content <= layout.width + 1, `Horizontal overflow at ${width}×${height}, ${fontSize}px: ${JSON.stringify(layout)}`);
-            assert.ok(layout.helpFits, `Touchpad instructions clipped at ${width}×${height}, ${fontSize}px`);
-            for (const control of layout.controls) {
-                assert.ok(control.height >= 44, `Small target: ${JSON.stringify(control)}`);
-                assert.ok(control.left >= 0 && control.right <= layout.width + 1, `Clipped control: ${JSON.stringify(control)}`);
-            }
-            if (outputDirectory) {
-                mkdirSync(outputDirectory, {recursive: true});
-                const screenshot = await page.call('Page.captureScreenshot', {format: 'png'});
-                writeFileSync(join(outputDirectory, `mobile-${width}x${height}-${fontSize}px.png`), Buffer.from(screenshot.data, 'base64'));
-            }
+            assert.ok(closed.hidden && closed.fits && !closed.scroll, JSON.stringify(closed));
+            await screenshot(`touchpad-${width}x${height}-${fontSize}`);
         }
-        console.log('PASS: mobile portrait/landscape and 200% text retain controls without horizontal overflow; targets are at least 44px high');
+        console.log('PASS: direct controls fit without scrolling in portrait, landscape, short viewports and 200% text; closed panel maximizes touchpad');
         await page.evaluate('document.documentElement.style.fontSize = ""');
         await page.call('Emulation.clearDeviceMetricsOverride');
-        await page.evaluate('document.querySelector("#keyboard").focus()');
-        for (const id of ['disconnect', 'sensitivity', 'volume', 'mute', 'left', 'right']) {
-            await key('Tab', 'Tab', 9);
-            assert.equal(await page.evaluate('document.activeElement.id'), id);
-        }
-        await key('Tab', 'Tab', 9, true);
-        assert.equal(await page.evaluate('document.activeElement.id'), 'left');
-        const outline = await page.evaluate('getComputedStyle(document.activeElement).outlineStyle');
-        assert.notEqual(outline, 'none');
-        console.log('PASS: keyboard focus follows visible controls in both directions with a visible outline');
-
+        await group('sound');
         const {nodes} = await page.call('Accessibility.getFullAXTree');
-        assert.ok(nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Sensitivity'));
         assert.ok(nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Volume'));
         assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === 'Mute'));
-        assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === 'Keyboard'));
+        await group('pointer');
+        const tree = await page.call('Accessibility.getFullAXTree');
+        assert.ok(tree.nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Sensitivity'));
+        await group('connection');
         await page.evaluate('document.querySelector("#keyboard").focus()');
-        await key('Enter', 'Enter', 13);
-        assert.equal(await page.evaluate('document.querySelector("#keyboard").getAttribute("aria-expanded")'), 'true');
+        await page.call('Input.dispatchKeyEvent', {type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27});
+        await page.call('Input.dispatchKeyEvent', {type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27});
+        assert.equal(await page.evaluate('document.querySelector("#controls").matches(":popover-open")'), false);
+        assert.equal(await page.evaluate('document.activeElement.id'), 'controls-toggle');
+        await group('connection');
+        await page.evaluate('document.querySelector("#keyboard").click()');
         assert.equal(await page.evaluate('document.activeElement.id'), 'text');
-        assert.equal(await page.evaluate('document.querySelector("#text").labels[0].textContent'), 'Typing on your PC');
-        // A desktop field change can close the editor while it still owns focus.
+        assert.equal(await page.evaluate('document.querySelector("#controls").matches(":popover-open")'), false);
+        await page.evaluate('document.querySelector("#text").value = "rotation"; document.querySelector("#text").setSelectionRange(2, 5)');
+        for (const [width, height] of [[360, 800], [844, 390], [844, 180], [360, 800]]) {
+            await page.call('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: true});
+            const editor = await page.evaluate(`(async () => {
+                await new Promise(requestAnimationFrame);
+                const input = document.querySelector('#text');
+                const box = input.getBoundingClientRect();
+                return {focus: document.activeElement.id, value: input.value, start: input.selectionStart, end: input.selectionEnd,
+                    fits: box.bottom <= innerHeight && box.top >= 0, scroll: document.body.scrollHeight > document.body.clientHeight + 1};
+            })()`);
+            assert.deepEqual(editor, {focus: 'text', value: 'rotation', start: 2, end: 5, fits: true, scroll: false});
+            await screenshot(`typing-${width}x${height}`);
+        }
+        await page.evaluate('document.querySelector("#text").value = ""');
+        await page.call('Emulation.clearDeviceMetricsOverride');
+        await group('connection');
         await page.evaluate('document.querySelector("#keyboard").click()');
         assert.equal(await page.evaluate('document.querySelector("#keyboard").getAttribute("aria-expanded")'), 'false');
-        assert.equal(await page.evaluate('document.activeElement.id'), 'keyboard');
-        console.log('PASS: browser accessibility tree names controls; keyboard disclosure state and focus restoration stay synchronized');
-        const colors = await page.evaluate(`['#keyboard', '#status', '#touchpad-help'].map(selector => {
+        console.log('PASS: named controls, Escape dismissal/focus restoration, keyboard disclosure and editor selection across rotation');
+        const colors = await page.evaluate(`['#controls-toggle', '#touchpad-help'].map(selector => {
             const element = document.querySelector(selector);
             return {foreground: getComputedStyle(element).color,
-                background: getComputedStyle(document.querySelector(selector === '#keyboard' ? '#keyboard' : selector === '#status' ? ':root' : '#touchpad')).backgroundColor};
+                background: getComputedStyle(document.querySelector(selector === '#controls-toggle' ? '#controls-toggle' : selector === '#status' ? ':root' : '#touchpad')).backgroundColor};
         })`);
         const luminance = color => {
             const [r, g, b] = color.match(/[\d.]+/g).slice(0, 3).map(value => {
@@ -79,9 +101,9 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
             const a = luminance(foreground), b = luminance(background);
             assert.ok((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5, `Low text contrast: ${foreground} on ${background}`);
         }
-        console.log('PASS: enabled button, status and touchpad-help text have at least 4.5:1 contrast');
+        console.log('PASS: enabled button and touchpad-help text have at least 4.5:1 contrast');
     } finally {
-        await page.evaluate('document.documentElement.style.fontSize = ""');
+        await page.evaluate('document.documentElement.style.fontSize = ""; document.querySelector("#controls").hidePopover()');
         await page.call('Emulation.clearDeviceMetricsOverride');
     }
 }

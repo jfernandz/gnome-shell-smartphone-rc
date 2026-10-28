@@ -2,6 +2,18 @@
 
 ## Current evidence
 
+**v0.6.1, 2026-10-28:** The Controls-panel revision passes ESLint, all
+93 automated tests and Chromium remembered-browser/accessibility checks
+through the real D-Bus helper.
+The direct-controls card fits without scrolling at 360×800, 320×568, 568×320,
+844×390, 568×240 and 844×180, plus 200% text at 568×320 and 320×568.
+Tests cover hold-to-right-click and cancellation, 44-pixel targets,
+dismissal/focus restoration, accessible labels
+and editor focus/text/selection across rotation and short keyboard viewports.
+Physical-phone use, real Android keyboard behavior and display cutouts
+remain pending. No release ZIP or isolated Shell acceptance was run for this
+revision. Screenshots are available from the optional browser output folder.
+
 **v0.6.0, 2026-10-27:** ESLint and all 91 automated tests pass. The ZIP
 contains exactly 45 manifest files and passes the isolated native
 installation/lifecycle/preferences harness. Volume regressions cover bounded

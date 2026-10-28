@@ -150,7 +150,7 @@ export function createClient(environment = globalThis) {
         state = next;
         const connected = state === 'connected';
         $('status').textContent = status;
-        for (const id of ['keyboard', 'disconnect', 'left', 'right'])
+        for (const id of ['keyboard', 'disconnect'])
             $(id).disabled = !connected;
         $('connect').disabled = socket !== null || (!token && !cookieSession);
         $('touchpad').classList.toggle('active', connected);

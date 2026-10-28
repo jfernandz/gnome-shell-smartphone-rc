@@ -2,11 +2,11 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.6.0 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.6.1 · GNOME Shell 51 · tested on 51.1, Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
-- Touchpad movement, tap/left/right click, and two-finger scrolling.
+- Touchpad movement, tap for left click, hold for right click, and two-finger scrolling; a collapsible Controls panel maximizes the touch surface in portrait and landscape.
 - Live typing, corrections and Enter, with desktop text-focus detection and a manual **Keyboard** fallback.
 - Pointer sensitivity in half steps: default range 0.5×–10×, configurable up to 20×. Scrolling speed is independent.
 - Local QR pairing over HTTPS/WSS with explicit desktop approval.
@@ -21,7 +21,7 @@ Install a built ZIP, or install from the project source:
 
 ```sh
 # Choose one installation method:
-gnome-extensions install --force /path/to/smartphone-rc-0.6.0.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.6.1.zip
 # Or, from the project directory:
 bash scripts/install.sh
 ```
@@ -46,7 +46,7 @@ For development without logging out, see the separate [source reload and ZIP ins
 2. Scan the QR and open the complete link on the phone. In Lens, choose **Open in Chrome**. **Show pairing QR** and **Copy pairing link** are alternatives.
 3. At the self-signed certificate warning, compare the browser certificate's SHA-256 fingerprint with **Show certificate fingerprint** on the PC before allowing an exception. Do not trust a fingerprint shown only inside the web page or disable certificate checks globally.
 4. Tap **Connect**. On the PC, choose **Accept**, **Accept and remember**, or **Reject**. Approval requires acknowledging the certificate comparison. The menu also offers **Approve phone** and a remember switch.
-5. Slide or tap the touchpad. Focus a desktop text field to request the phone keyboard; tap **Keyboard** or the editor if it stays closed. Changes stream immediately; the native Enter key sends Enter to the PC.
+5. Slide or tap the touchpad. Tap **•••** to open the controls card with connection, keyboard, sensitivity and sound actions. Hold one finger still on the touchpad for a right click; moving or adding another finger cancels the hold. Tap outside the panel to close it. Focus a desktop text field to request the phone keyboard; tap **Keyboard** or the editor if it stays closed. Changes stream immediately; the native Enter key sends Enter to the PC.
 
 Invitations expire after two minutes; approval must occur within 30 seconds of connecting. Approval consumes the invitation. **New pairing QR** ends the previous connection and creates a fresh invitation. Never share pairing links publicly.
 
@@ -75,7 +75,7 @@ The network server runs in a bounded GJS child with authenticated private D-Bus.
 
 ## Desktop sound
 
-While connected, use **Volume** and **Mute/Unmute** on the phone to control
+While connected, open the **•••** controls card to use **Volume** and **Mute/Unmute** on the phone to control
 GNOME's default audio output. Changes made on the PC and output switches
 are reflected on the phone. Remote adjustments are limited to 0–100%;
 setting the slider to zero mutes, and raising it unmutes. Controls are
