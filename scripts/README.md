@@ -97,7 +97,7 @@ Each release-checks-node-22/24 directory must contain evidence.json, lint.txt an
 
 1. Resolve the tag and run lint/tests on Node 22 and 24.
 2. Reuse those results to build and verify one publication ZIP and run browser checks.
-3. On tag pushes, verify checksums and attach that exact ZIP, selected images, icon, notes, checksums and the full bundle to a draft. Its body includes the tagged changelog and comparison link.
+3. On tag pushes, verify checksums and attach only that exact installable ZIP and the publication ZIP to a draft. Captures, icon, notes, checksums and reports stay inside the publication ZIP; the draft body includes the tagged changelog and comparison link.
 
 Manual runs skip draft changes; published releases are never overwritten. Artifacts are retained for 30 days under **Actions → Release preparation → run → Summary → Artifacts**. The workflow uses current tooling from the default branch and runtime/test source from the selected tag. CI bootstrap declares packages directly to support checkout and older tags.
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Attach only the installable and publication ZIPs to GitHub releases; retain images, notes, checksums and reports inside the publication bundle.
+
 ## 0.7.0 — 2026-10-28
 
 - Add an opt-in automatic stop timer in Security settings: 1–1440 minutes, default 30, counting total time from successful service startup. Show remaining time and local extend/cancel actions in the desktop menu; expiry uses Stop cleanup without restarting.

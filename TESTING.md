@@ -41,7 +41,7 @@ SMARTPHONE_RC_ACCESSIBILITY_OUTPUT=dist/accessibility npm run test:accessibility
 ## CI and release checks
 
 - **CI:** PRs, pushes to main and manual runs; ESLint, actionlint and tests on Node 22/24.
-- **Release preparation:** version-tag pushes or manual tag selection; resolve/validate the tag → Node 22/24 checks → one verified ZIP and browser captures → draft attachments on tag pushes.
+- **Release preparation:** version-tag pushes or manual tag selection; resolve/validate the tag → Node 22/24 checks → one verified ZIP and browser captures → the installable/publication ZIP attachments on tag pushes.
 - Manual preparation skips release changes. Published releases are not overwritten. Other tag names do not trigger workflows.
 
 Successful test jobs provide receipts and logs tied to the exact tag commit; the generator validates them rather than repeating tests. Missing or stale evidence blocks generation. The draft reuses the prepared ZIP after checksum verification and includes its changelog/comparison link. Artifacts are retained for 30 days. See [publication tooling](scripts/README.md#prepare-a-publication-from-a-tag).

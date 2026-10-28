@@ -174,7 +174,7 @@ jobs:
           sha256sum -c SHA256SUMS
           # Include reports, logs and all diagnostic captures in one extra asset.
           python3 -m zipfile -c "../publication-$RELEASE_TAG.zip" *
-          assets=("smartphone-rc-${RELEASE_TAG#v}.zip" 01-mobile-controls.png 02-landscape-touchpad.png smartphone-rc-icon.png release-notes.md SHA256SUMS "../publication-$RELEASE_TAG.zip")
+          assets=("smartphone-rc-${RELEASE_TAG#v}.zip" "../publication-$RELEASE_TAG.zip")
           if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft); then
             if [[ "$draft" != true ]]; then
               echo 'Refusing to modify an already published release.' >&2

@@ -15,7 +15,7 @@ node scripts/prepare-publication.mjs v0.7.0
 
 The default output is dist/publication-v0.7.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
 
-On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach the same verified ZIP, selected images, icon and full material bundle to a **draft** under Releases. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
+On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach only the installable ZIP and publication ZIP to a **draft** under Releases. Captures, icon, release notes and SHA256SUMS stay inside the publication ZIP. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
 
 Captures use synthetic approval/audio fixtures. Select and inspect the numbered candidates; diagnostic images may contain test-only editor text. Real device acceptance remains separate.
 
