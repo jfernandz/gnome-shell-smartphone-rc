@@ -2,14 +2,14 @@
 
 Current implementation: **v0.6.3**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
 
-Latest recorded local preparation: [v0.6.1 artifacts, automated evidence and pending review](docs/publication-review-v0.6.1.md). Generate it with `node scripts/prepare-publication.mjs v0.6.1`; see the [script instructions](scripts/README.md#prepare-a-publication-from-a-tag). The existing [v0.6.0 review](docs/publication-review-v0.6.0.md) remains historical evidence.
+Historical local preparation: [v0.6.1 artifacts, automated evidence and pending review](docs/publication-review-v0.6.1.md). Generate it with `node scripts/prepare-publication.mjs v0.6.1`; see the [script instructions](scripts/README.md#prepare-a-publication-from-a-tag). The existing [v0.6.0 review](docs/publication-review-v0.6.0.md) remains historical evidence.
 The GitHub v0.6.0 prerelease is published. The architecture consultation is
 complete in the existing Discourse thread, including the maintainer follow-up.
 The earlier v0.6.0 preparation recorded no EGO submission. External submission/review status has not been rechecked by the v0.6.1 preparation.
 
 Prepare the current release with `node scripts/prepare-publication.mjs v0.6.3`; its generated report is `dist/publication-v0.6.3/REVIEW.md`.
 
-A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its first hosted v0.6.2 run passed automated tests and ZIP checks, then failed during Chromium startup before browser checks; the next hosted run confirmed Chromium starts and exposed the narrow-screen enlarged-text overflow corrected in v0.6.3. Hosted verification of v0.6.3 remains pending. It never submits to EGO or publishes a release.
+A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its first hosted v0.6.2 run passed automated tests and ZIP checks, then failed during Chromium startup before browser checks; the next hosted run confirmed Chromium starts and exposed the narrow-screen enlarged-text overflow corrected in v0.6.3. Hosted v0.6.3 publication preparation and the separate Node 22/24 CI now pass; see the [v0.6.3 evidence](docs/publication-review-v0.6.3.md). It never submits to EGO or publishes a release.
 
 ## In place
 

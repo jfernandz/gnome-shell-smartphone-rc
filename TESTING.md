@@ -6,7 +6,11 @@
 with Noto Sans, including the 320×568 viewport at 200% text that failed on
 hosted v0.6.2. The narrow portrait card now uses smaller gaps and safe top
 placement. Layout checks wait for its opening animation before measuring.
-Physical-phone verification and hosted v0.6.3 acceptance remain pending.
+Hosted v0.6.3 publication preparation now passes, including the previously
+failing enlarged-text check. Its 45-file ZIP and all recorded checksums were
+verified after download. The separate tag CI passes lint and all 93 tests on
+Node 22 and 24 and creates a draft release. Physical-phone and isolated native
+acceptance remain pending. See docs/publication-review-v0.6.3.md.
 
 **Publication CI follow-up, 2026-10-28:** The first hosted v0.6.2 preparation
 passed automated tests, packaging and ZIP validation, but Chromium never
