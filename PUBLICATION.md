@@ -9,7 +9,15 @@ The earlier v0.6.0 preparation recorded no EGO submission. External submission/r
 
 Prepare the current release with `node scripts/prepare-publication.mjs v0.6.3`; its generated report is `dist/publication-v0.6.3/REVIEW.md`.
 
-A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its first hosted v0.6.2 run passed automated tests and ZIP checks, then failed during Chromium startup before browser checks; the next hosted run confirmed Chromium starts and exposed the narrow-screen enlarged-text overflow corrected in v0.6.3. Hosted v0.6.3 publication preparation and the separate Node 22/24 CI now pass; see the [v0.6.3 evidence](docs/publication-review-v0.6.3.md). It never submits to EGO or publishes a release.
+The **Release preparation** workflow owns version-tag validation, Node 22/24
+lint and tests, publication generation and draft-release attachments in one
+chain. The exact verified ZIP is reused for the draft, together with selected
+screenshots, the PNG icon, release notes, checksums and the full preparation
+bundle. PR/main CI does not also run for tags. Manual dispatch regenerates an
+existing tag's bundle without changing a release. The unified flow awaits its
+first hosted run. The earlier separate v0.6.3 workflows passed; see the
+[v0.6.3 evidence](docs/publication-review-v0.6.3.md). No workflow submits to EGO
+or automatically publishes a release.
 
 ## Publication icon
 

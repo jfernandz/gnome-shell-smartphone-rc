@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Unify version-tag validation, Node 22/24 lint/tests, publication generation and draft-release creation in one workflow, reusing CI receipts instead of repeating tests.
+- Attach the exact verified ZIP, selected screenshots, icon, release notes, checksums and a complete publication bundle to drafts. Manual runs regenerate artifacts without modifying releases; PR/main CI no longer runs for tags.
 - Populate GitHub release bodies with the full version-specific changelog and a commit-comparison link, including when refreshing drafts.
 
 ## 0.6.3 — 2026-10-28

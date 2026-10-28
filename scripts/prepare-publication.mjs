@@ -5,17 +5,20 @@ import {copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, closeSync, r
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readReleaseChecks} from './lib/release-checks.mjs';
 import {releaseNotes} from './lib/release-notes.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [tag, destination, ...extra] = process.argv.slice(2);
-if (!/^v\d+\.\d+\.\d+$/.test(tag ?? '') || extra.length) {
-    console.error('Usage: node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory]');
+if (!/^v\d+\.\d+\.\d+$/.test(tag ?? '') ||
+    (extra.length !== 0 && (extra.length !== 2 || extra[0] !== '--checks-from'))) {
+    console.error('Usage: node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory] [--checks-from checks-directory]');
     process.exit(1);
 }
 const output = resolve(destination ?? join(root, 'dist', `publication-${tag}`));
 const git = (...args) => execFileSync('git', ['-C', root, ...args], {encoding: 'utf8'}).trim();
 const commit = git('rev-parse', '--verify', `refs/tags/${tag}^{commit}`);
+const verifiedChecks = extra.length ? readReleaseChecks(resolve(extra[1]), commit) : null;
 if (existsSync(output)) throw new Error(`Output already exists; choose a new directory: ${output}`);
 const temporary = mkdtempSync(join(tmpdir(), 'smartphone-rc-publication-'));
 const source = join(temporary, 'source');
@@ -58,7 +61,18 @@ try {
     createdOutput = true;
     mkdirSync(join(output, 'logs'));
     writeFileSync(join(output, 'INCOMPLETE.txt'), 'Preparation has not completed. Do not use this directory as release evidence.\n');
-    run('automated-tests', process.execPath, ['--test', ...readdirSync(join(source, 'tests')).filter(name => name.endsWith('.test.js')).sort().map(name => `tests/${name}`)]);
+    if (verifiedChecks) {
+        for (const {major, receipt, logs} of verifiedChecks) {
+            const folder = join(output, 'logs', `node-${major}`);
+            mkdirSync(folder);
+            writeFileSync(join(folder, 'evidence.json'), JSON.stringify(receipt, null, 2) + '\n');
+            copyFileSync(logs[0], join(folder, 'lint.txt'));
+            copyFileSync(logs[1], join(folder, 'automated-tests.txt'));
+            checks.push({name: `lint-node-${major}`, passed: true}, {name: `automated-tests-node-${major}`, passed: true});
+        }
+    } else {
+        run('automated-tests', process.execPath, ['--test', ...readdirSync(join(source, 'tests')).filter(name => name.endsWith('.test.js')).sort().map(name => `tests/${name}`)]);
+    }
     run('package', 'bash', ['scripts/package.sh', output]);
     const zipName = `smartphone-rc-${version}.zip`;
     const zip = join(output, zipName);
@@ -108,10 +122,10 @@ try {
         generatorSha256: sha256(readFileSync(fileURLToPath(import.meta.url))),
         node: process.version, checks, zip: {file: zipName, sha256: sha256(readFileSync(zip)), files: expected.length},
         screenshots: 'Synthetic Chromium captures from the tagged source and real loopback D-Bus helper; synthetic audio and approval. No physical phone, GNOME desktop input or real audio acceptance.',
-        pending: ['ESLint for this tag', 'Pinned static analyzer and manual source review', 'Isolated GNOME Shell/package acceptance', 'Physical phone and certificate first-use acceptance', 'Maintainer review and screenshot selection', 'Submission and EGO approval'],
+        pending: [...(verifiedChecks ? [] : ['ESLint for this tag']), 'Pinned static analyzer and manual source review', 'Isolated GNOME Shell/package acceptance', 'Physical phone and certificate first-use acceptance', 'Maintainer review and screenshot selection', 'Submission and EGO approval'],
     };
     writeFileSync(join(output, 'evidence.json'), JSON.stringify(evidence, null, 2) + '\n');
-    writeFileSync(join(output, 'REVIEW.md'), `# ${tag} publication preparation\n\nTag commit: \`${commit}\`. Generated ${evidence.generatedAt}.\n\nLocal preparation only. No release, listing update, reviewer message or submission has been sent. This is an automated evidence report, not a manual code review or EGO approval.\n\n## Artifact\n\n- [Installable ZIP](${zipName})\n- SHA-256: \`${evidence.zip.sha256}\`\n- All ${expected.length} packaged files match the tagged source and runtime manifest byte for byte.\n\n## Completed checks\n\n${checks.map(check => `- ${check.name}: passed`).join('\n')}\n\nSee [machine-readable evidence](evidence.json) and logs/. ESLint, native Shell and static analysis were not run by this script. Copied source documentation records historical evidence, not additional checks performed here.\n\n## Screenshot candidates\n\n1. [Portrait controls](01-mobile-controls.png): connected, editor closed, direct controls visible.\n2. [Landscape touchpad](02-landscape-touchpad.png): card closed, maximum gesture area.\n\n${evidence.screenshots}\nCaptures show only the web page; no address bar, LAN address or pairing link. All harness captures, including test-only editor text and enlarged fonts, remain in screenshots/; the two numbered files are the listing candidates.\n\n[128×128 transparent icon](${icon}), [release notes](release-notes.md), [listing draft](listing-draft.md). Review candidates before uploading; dimensions are a preparation choice, not a claim about current EGO upload requirements.\n\n## Pending\n\n${evidence.pending.map(item => `- [ ] ${item}`).join('\n')}\n`);
+    writeFileSync(join(output, 'REVIEW.md'), `# ${tag} publication preparation\n\nTag commit: \`${commit}\`. Generated ${evidence.generatedAt}.\n\nLocal preparation only. No release, listing update, reviewer message or submission has been sent. This is an automated evidence report, not a manual code review or EGO approval.\n\n## Artifact\n\n- [Installable ZIP](${zipName})\n- SHA-256: \`${evidence.zip.sha256}\`\n- All ${expected.length} packaged files match the tagged source and runtime manifest byte for byte.\n\n## Completed checks\n\n${checks.map(check => `- ${check.name}: passed`).join('\n')}\n\nSee [machine-readable evidence](evidence.json) and logs/. ${verifiedChecks ? 'Lint and automated tests were supplied by successful Node 22/24 CI jobs tied to this tag commit; their receipts and logs are retained.' : 'ESLint was not run by this script.'} Native Shell and static analysis were not run by this script. Copied source documentation records historical evidence, not additional checks performed here.\n\n## Screenshot candidates\n\n1. [Portrait controls](01-mobile-controls.png): connected, editor closed, direct controls visible.\n2. [Landscape touchpad](02-landscape-touchpad.png): card closed, maximum gesture area.\n\n${evidence.screenshots}\nCaptures show only the web page; no address bar, LAN address or pairing link. All harness captures, including test-only editor text and enlarged fonts, remain in screenshots/; the two numbered files are the listing candidates.\n\n[128×128 transparent icon](${icon}), [release notes](release-notes.md), [listing draft](listing-draft.md). Review candidates before uploading; dimensions are a preparation choice, not a claim about current EGO upload requirements.\n\n## Pending\n\n${evidence.pending.map(item => `- [ ] ${item}`).join('\n')}\n`);
     const artifacts = readdirSync(output).filter(name => name !== 'INCOMPLETE.txt' && !['logs', 'screenshots'].includes(name));
     writeFileSync(join(output, 'SHA256SUMS'), artifacts.sort().map(name => `${sha256(readFileSync(join(output, name)))}  ${name}`).join('\n') + '\n');
     rmSync(join(output, 'INCOMPLETE.txt'));

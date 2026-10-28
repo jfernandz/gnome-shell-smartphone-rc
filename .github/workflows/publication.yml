@@ -1,4 +1,4 @@
-name: Publication preparation
+name: Release preparation
 
 on:
   push:
@@ -13,8 +13,93 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  version:
+    name: Resolve version tag
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync} from 'node:fs';
+          const tag = process.env.RELEASE_TAG;
+          if (!/^v\d+\.\d+\.\d+$/.test(tag)) throw new Error('Expected an existing vX.Y.Z tag.');
+          const git = (...args) => execFileSync('git', args, {encoding: 'utf8'}).trim();
+          const commit = git('rev-parse', '--verify', `refs/tags/${tag}^{commit}`);
+          const metadata = JSON.parse(git('show', `${commit}:metadata.json`));
+          const pkg = JSON.parse(git('show', `${commit}:package.json`));
+          if (tag !== `v${metadata['version-name']}` || pkg.version !== metadata['version-name'])
+              throw new Error('Tag, metadata.json and package.json versions must match.');
+          appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\ncommit=${commit}\n`);
+          JS
+
+  tests:
+    name: Lint and tests (Node ${{ matrix.node }})
+    needs: version
+    runs-on: ubuntu-24.04
+    container: archlinux:base
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - name: Install native test dependencies
+        run: >-
+          pacman -Syu --noconfirm --needed
+          git gjs libsoup3 glib2 glib-networking gnome-shell
+          openssl iproute2 util-linux unzip
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Lint and automated tests for the resolved tag
+        shell: bash
+        env:
+          RELEASE_COMMIT: ${{ needs.version.outputs.commit }}
+        run: |
+          set -euo pipefail
+          mkdir checks
+          npm run lint 2>&1 | tee checks/lint.txt
+          npm test 2>&1 | tee checks/automated-tests.txt
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          writeFileSync('checks/evidence.json', JSON.stringify({
+              commit: process.env.RELEASE_COMMIT,
+              node: process.versions.node,
+              checks: {lint: true, automatedTests: true},
+          }, null, 2) + '\n');
+          JS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-checks-node-${{ matrix.node }}
+          path: checks/
+          if-no-files-found: error
+          retention-days: 30
+
   prepare:
+    name: Build and verify publication bundle
+    needs: [version, tests]
     runs-on: ubuntu-24.04
     container: archlinux:base
     timeout-minutes: 20
@@ -26,18 +111,21 @@ jobs:
           openssl iproute2 util-linux chromium imagemagick noto-fonts
       - uses: actions/checkout@v7
         with:
-          # Use current preparation tooling; release source comes only from the tag.
+          # Current tooling prepares an archive of the resolved release tag.
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Prepare tagged artifacts with an unprivileged browser
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-checks-node-*
+          path: dist/release-checks
+      - name: Prepare the single release ZIP and publication material
         env:
-          PUBLICATION_TAG: ${{ inputs.tag || github.ref_name }}
+          PUBLICATION_TAG: ${{ needs.version.outputs.tag }}
         run: |
           useradd --create-home publication
           chown -R publication:publication "$GITHUB_WORKSPACE"
-          # Allow Chromium in the disposable container without host namespace privileges.
-          # Keep this exception in CI; tagged source and local browser defaults stay intact.
+          # The CI-only browser wrapper avoids requiring host namespace privileges.
           install -d -o publication -g publication /tmp/publication-browser
           cat > /tmp/publication-browser/chromium <<'BROWSER'
           #!/usr/bin/env bash
@@ -47,12 +135,52 @@ jobs:
           chmod 755 /tmp/publication-browser/chromium
           export SMARTPHONE_RC_CHROMIUM_BIN=/tmp/publication-browser/chromium
           export SMARTPHONE_RC_CHROMIUM_LOG="$GITHUB_WORKSPACE/dist/publication/logs/chromium-startup.txt"
-          runuser -u publication -- node scripts/prepare-publication.mjs "$PUBLICATION_TAG" dist/publication
+          runuser -u publication -- node scripts/prepare-publication.mjs "$PUBLICATION_TAG" dist/publication --checks-from dist/release-checks
       - name: Upload preparation bundle
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: publication-${{ inputs.tag || github.ref_name }}
+          name: publication-${{ needs.version.outputs.tag }}
           path: dist/publication/
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Draft release with verified artifacts
+    needs: [version, prepare]
+    # Manual runs regenerate evidence without modifying GitHub releases.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: publication-${{ needs.version.outputs.tag }}
+          path: package
+      - name: Verify checksums and attach the exact prepared artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd package
+          test ! -e INCOMPLETE.txt
+          sha256sum -c SHA256SUMS
+          # Include reports, logs and all diagnostic captures in one extra asset.
+          python3 -m zipfile -c "../publication-$RELEASE_TAG.zip" *
+          assets=("smartphone-rc-${RELEASE_TAG#v}.zip" 01-mobile-controls.png 02-landscape-touchpad.png smartphone-rc-icon.png release-notes.md SHA256SUMS "../publication-$RELEASE_TAG.zip")
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft); then
+            if [[ "$draft" != true ]]; then
+              echo 'Refusing to modify an already published release.' >&2
+              exit 1
+            fi
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --verify-tag --draft --notes-file release-notes.md --title "$RELEASE_TAG"
+          fi

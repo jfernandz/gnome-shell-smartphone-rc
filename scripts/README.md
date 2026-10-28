@@ -84,7 +84,7 @@ runs remove it. Temporary source, certificates and browser profiles are
 cleaned up. Nothing is installed, pushed, published or sent to reviewers.
 Review the generated text and images before uploading them.
 
-The **Publication preparation** GitHub Actions workflow also runs on pushed
+The **Release preparation** GitHub Actions workflow runs on pushed
 `v*` tags, or manually with an existing version tag. It uses current tooling
 from the default branch and archives the selected release tag, then retains
 the bundle for 30 days. Chromium runs as an unprivileged user in its disposable
@@ -97,4 +97,32 @@ The first hosted run reached browser startup but timed out before DevTools;
 the container-browser correction was verified by the next hosted run, which
 then exposed a narrow-screen layout failure at 200% text. That layout fix is
 included in v0.6.3; earlier immutable tags still reproduce their original UI.
-The separate CI workflow continues to create GitHub draft releases.
+The workflow resolves and validates the tag, then runs lint and tests on Node
+22 and 24. Its successful jobs produce `release-checks-node-22/` and
+`release-checks-node-24/`, each containing evidence.json and both check logs.
+The generator accepts them with:
+
+```sh
+node scripts/prepare-publication.mjs v0.6.3 dist/publication \
+  --checks-from dist/release-checks
+```
+
+Both receipts must report successful lint and tests, the expected Node major
+and the exact tag commit; missing logs or stale results fail before output is
+created. Only pass trusted results from the same CI run. Their evidence/logs
+are copied into the bundle. Without this option, local runs still execute the
+tagged automated suite as before, without claiming a lint run.
+
+Release descriptions contain that version's full CHANGELOG.md section and a
+**Full Changelog** comparison link to the preceding tagged ancestor (or commit
+history for an initial release). They are passed as the actual GitHub release
+body, not just uploaded as an attachment; refreshing a draft also refreshes
+its description.
+
+After preparation succeeds, tag pushes create or refresh a draft with the
+same ZIP, selected images, icon, release notes, SHA256SUMS and a complete
+publication-materials ZIP. Checksums are verified after downloading the
+preparation artifact; no second release ZIP is built. Published releases are
+never overwritten. Manual dispatch regenerates artifacts without modifying
+releases. The **CI** workflow only handles PR/main/manual checks and does not
+run for tags. This unified workflow still requires a hosted verification run.
