@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 — 2026-10-28
+
+- Add a publication-preparation command that archives an exact version tag, runs its automated and browser checks, verifies the packaged files against the tagged source, and generates screenshots, a PNG icon, release notes, listing text and evidence with checksums.
+- Add a GitHub Actions workflow for version-tag pushes and manual preparation of an existing tag, retaining the generated bundle for 30 days without submitting to extensions.gnome.org.
+- Document the generator, pending acceptance checks and local v0.6.1 preparation evidence.
+
 ## 0.6.1 — 2026-10-28
 
 - Maximize the mobile touchpad in portrait and landscape, moving connection/keyboard, sensitivity and sound actions into a padded card opened by a floating ••• button, with no intermediate menu.
