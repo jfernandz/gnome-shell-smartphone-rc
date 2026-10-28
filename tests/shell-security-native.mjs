@@ -64,6 +64,7 @@ try {
 
     assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     await connect();
+    assert.ok(evaluate(`${base}._autoStopTimer.remainingSeconds === null && !${base}._autoStopStatus.visible`).includes("'true'"));
     assert.ok(evaluate(`!${base}._startAction.visible && ${base}._stopAction.visible && ${base}._disconnectAction.visible && ${base}._disconnectAction.label.text === 'Reject request'`).includes("'true'"));
     assert.ok(evaluate(`(()=>{
         const extension = ${base};
@@ -117,15 +118,53 @@ try {
     socket.destroy();
     console.log('PASS: helper crash stops native input/focus while GNOME remains alive');
 
+    evaluate(`${base}._settings.set_boolean('auto-stop-enabled', true); ${base}._settings.set_uint('auto-stop-minutes', 1)`);
+    await connect();
+    assert.ok(evaluate(`(()=>{
+        const extension = ${base};
+        const timer = extension._autoStopTimer;
+        if (!(timer.remainingSeconds > 55 && timer.remainingSeconds <= 60) || !extension._autoStopStatus.visible)
+            return false;
+        const deadline = timer._deadline;
+        extension._onSessionState('pending');
+        if (timer._deadline !== deadline) return false;
+        extension._autoStopExtend.emit('activate', null);
+        if (timer._deadline !== deadline + 900) return false;
+        extension._autoStopCancel.emit('activate', null);
+        return timer.remainingSeconds === null && timer._source === 0 && !extension._autoStopStatus.visible && extension._server !== null && extension._settings.get_boolean('auto-stop-enabled');
+    })()`).includes("'true'"));
+    socket.destroy();
+    await connect();
+    evaluate(`${base}._approveRequest(false)`);
+    await wait(`${base}._dialogs._verification !== null`);
+    evaluate(`(()=>{
+        const dialog = ${base}._dialogs._verification;
+        dialog.contentLayout.get_children().find(actor => actor.toggle_mode).checked = true;
+        dialog.buttonLayout.get_last_child().emit('clicked', 1);
+        return true;
+    })()`);
+    await wait(`${base}._server?._state === 'connected'`);
+    evaluate(`${base}._autoStopTimer._deadline = GLib.get_monotonic_time() / 1000000 + 0.1`);
+    await wait(`${base}._server === null`);
+    assert.ok(evaluate(`${base}._input === null && ${base}._focus === null && ${base}._volume === null && ${base}._autoStopTimer._source === 0 && !${base}._autoStopStatus.visible && ${base}._startAction.visible`).includes("'true'"));
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    assert.ok(evaluate(`${base}._server === null`).includes("'true'"));
+    socket.destroy();
+    evaluate(`${base}._settings.reset('auto-stop-enabled'); ${base}._settings.reset('auto-stop-minutes')`);
+    console.log('PASS: automatic stop starts once, extends/cancels locally, fully stops connected control and does not restart');
+
+
     await connect();
     evaluate(`${base}._approveRequest(false)`);
     evaluate(`(()=>{
         const extension = ${base};
         const dialogs = extension._dialogs;
+        const timer = extension._autoStopTimer;
+        timer.start(1);
         Main.sessionMode.pushMode('unlock-dialog');
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
             GLib.file_set_contents(${JSON.stringify(join(directory, 'lock.json'))}, JSON.stringify({
-                stopped: extension._server === null, closed: dialogs._verification === null,
+                stopped: extension._server === null, closed: dialogs._verification === null, timerCleared: timer._source === 0,
             }));
             Main.sessionMode.popMode('unlock-dialog');
             return GLib.SOURCE_REMOVE;
@@ -133,7 +172,7 @@ try {
         return true;
     })()`);
     await new Promise(resolve => setTimeout(resolve, 1200));
-    assert.deepEqual(JSON.parse(readFileSync(join(directory, 'lock.json'), 'utf8')), {stopped: true, closed: true});
+    assert.deepEqual(JSON.parse(readFileSync(join(directory, 'lock.json'), 'utf8')), {stopped: true, closed: true, timerCleared: true});
     assert.ok(evaluate(`${base}._server === null`).includes("'true'"));
     assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     console.log('PASS: menu actions reflect stopped, pending, connected and post-lock states');

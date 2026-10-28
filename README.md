@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.6.3 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.7.0 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -13,6 +13,7 @@ Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME deskto
 - Default-output volume/mute controls, synchronized with the PC and limited to 0–100%.
 - HTTPS/WSS QR pairing with desktop approval and optional remembered browsers.
 - One controlling browser; lock, Stop or disabling the extension ends control.
+- Optional automatic stop timer, configured locally and disabled by default.
 
 ## Install and configure
 
@@ -22,7 +23,7 @@ Both devices must be on a network that permits communication. The PC may use Eth
 
 ```sh
 # Choose one:
-gnome-extensions install --force /path/to/smartphone-rc-0.6.3.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.7.0.zip
 bash scripts/install.sh
 ```
 
@@ -51,6 +52,21 @@ Focus a desktop text field to request the phone keyboard. If it stays closed, us
 The editor shows only text entered from the phone, resets on detected field changes and masks fields GNOME reports as sensitive. It does not mirror existing desktop text or cursor selections. Avoid editing the same field from both devices during corrections. An unacknowledged edit pauses typing after one second; refocus the PC field to resume. Pointer control remains connected.
 
 Volume and mute affect GNOME's default audio output. Setting volume to zero mutes; raising it unmutes. Controls are disabled when disconnected or no output is available. Desktop changes and output switches are reflected on the phone.
+
+## Automatic stop
+
+In **Settings → Security → Automatic stop**, enable the timer and choose
+1–1440 minutes (default 30). The PC stays on. Settings apply at the next
+successful service start.
+
+The timer counts total service running time, including waiting for a phone,
+disconnection and background pauses. The desktop menu shows the remaining
+time and offers **Add 15 minutes** (up to 24 hours remaining) or **Cancel
+automatic stop** for this run. Cancelling does not change the next-start setting.
+
+Expiry performs the normal **Stop** cleanup, disconnects browsers and revokes
+temporary approval. Remembered trust is preserved. Starting control again is
+always a local action.
 
 ## Reconnect and remembered browsers
 

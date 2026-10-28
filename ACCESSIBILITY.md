@@ -23,7 +23,7 @@ Contrast assertions sample the enabled Controls button and touchpad instructions
 
 ## Native preferences
 
-The isolated GTK harness checks accessible names for per-browser Rename/Forget, the Device name entry, sensitivity and About, alongside existing settings behavior. Run through the [isolated launcher](TESTING.md#native-checks), not the working desktop.
+The isolated GTK harness checks accessible names for per-browser Rename/Forget, the Device name entry, sensitivity and About. Automatic stop uses labelled native switch/spin rows; checks cover the disabled default, duration updates and external settings synchronization. Run through the [isolated launcher](TESTING.md#native-checks), not the working desktop.
 
 | Environment variable | Purpose |
 | --- | --- |

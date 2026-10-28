@@ -34,7 +34,9 @@
     "icons/github-symbolic.svg",
     "icons/octicons-LICENSE",
     "preferences/about.js",
-    "volume.js"
+    "volume.js",
+    "auto-stop.js",
+    "preferences/auto-stop.js"
   ],
   "web": {
     "/": {

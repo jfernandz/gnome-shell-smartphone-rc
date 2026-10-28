@@ -54,6 +54,21 @@ app.connect('activate', () => {
                         !widgets(securityPage).some(widget => widget instanceof Adw.ActionRow && widget.title === title))
                         throw Error('Certificate details must appear only on the Security page');
                 }
+                const autoStop = widgets(securityPage).find(w => w instanceof Adw.SwitchRow && w.title === 'Stop remote control automatically');
+                const stopDuration = widgets(securityPage).find(w => w instanceof Adw.SpinRow && w.title === 'Duration (minutes)');
+                if (!autoStop || !stopDuration || autoStop.active || stopDuration.value !== 30 || stopDuration.sensitive)
+                    throw Error('Automatic stop must default to off with a disabled 30-minute duration');
+                autoStop.active = true;
+                stopDuration.value = 90;
+                const stopSettings = prefs.getSettings();
+                if (!stopSettings.get_boolean('auto-stop-enabled') || stopSettings.get_uint('auto-stop-minutes') !== 90 || !stopDuration.sensitive)
+                    throw Error('Automatic stop controls did not save settings');
+                stopSettings.set_uint('auto-stop-minutes', 1440);
+                stopSettings.set_boolean('auto-stop-enabled', false);
+                if (stopDuration.value !== 1440 || autoStop.active || stopDuration.sensitive)
+                    throw Error('Automatic stop controls did not follow external settings changes');
+                stopSettings.reset('auto-stop-minutes');
+                print('PASS: automatic stop defaults, native controls and external settings synchronization');
                 const screenshot = GLib.getenv('SMARTPHONE_RC_TEST_SCREENSHOT');
                 const delay = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
                     resolve(); return GLib.SOURCE_REMOVE;

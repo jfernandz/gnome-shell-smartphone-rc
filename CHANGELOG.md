@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — 2026-10-28
 
+- Add an opt-in automatic stop timer in Security settings: 1–1440 minutes, default 30, counting total time from successful service startup. Show remaining time and local extend/cancel actions in the desktop menu; expiry uses Stop cleanup without restarting.
+- Cover timer deadlines, cancellation, stale callbacks, settings synchronization and real isolated Shell expiry/lock cleanup.
 - Refresh and shorten user/developer guides, update controls and release instructions, and distinguish current evidence from historical validation reports.
-
 - Unify version-tag validation, Node 22/24 lint/tests, publication generation and draft-release creation in one workflow, reusing CI receipts instead of repeating tests.
 - Attach the exact verified ZIP, selected screenshots, icon, release notes, checksums and a complete publication bundle to drafts. Manual runs regenerate artifacts without modifying releases; PR/main CI no longer runs for tags.
 - Populate GitHub release bodies with the full version-specific changelog and a commit-comparison link, including when refreshing drafts.

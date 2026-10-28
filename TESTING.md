@@ -6,7 +6,8 @@ Recorded on 2026-10-28. Results apply to the stated revision, not every later bu
 
 | Revision/check | Result | Limit |
 | --- | --- | --- |
-| Current development tooling | ESLint, actionlint 1.7.12 and all 105 automated tests pass. Environment setup, CI receipts and release-note generation are covered. | Setup installation commands and draft-release operations were simulated; no system installation or remote release mutation was performed by those tests. |
+| v0.7.0 automatic stop, pre-release source | ESLint and all 112 automated tests pass. A 47-file source ZIP passes isolated installation/lifecycle/preferences checks, including configured start, extend/cancel, expiry of connected control and lock cleanup. Native settings pass light/dark/enlarged-font runs. | Test expiry shortens the internal deadline in the isolated Shell. The user reports the timer works. Final versioned-package acceptance remains separate; the source ZIP used the previous version metadata. |
+| Earlier development tooling | ESLint, actionlint 1.7.12 and all 105 automated tests pass. Environment setup, CI receipts and release-note generation are covered. | Setup installation commands and draft-release operations were simulated; no system installation or remote release mutation was performed by those tests. |
 | Consolidated release tooling | Local tag preparation passes with fresh tagged tests and with imported successful Node 22/24 evidence; ZIP checksums pass. | The new consolidated workflow awaits its first hosted run. |
 | v0.6.3 | Hosted Node 22/24 CI and Chromium publication preparation pass; all 45 ZIP entries match tagged source. The 320×568/200%-text case passes with CI fonts. | Synthetic approval/audio fixtures; physical-phone and isolated native acceptance of this package remain pending. |
 | v0.6.0 | Isolated ZIP installation, Shell lifecycle and preferences checks passed. | Historical native evidence, not acceptance of v0.6.3 or later code. |
@@ -53,7 +54,7 @@ Use the isolated launcher with an explicit built ZIP:
 
 ```sh
 bash scripts/package.sh dist/native-check
-node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.6.3.zip
+node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.7.0.zip
 ```
 
 It creates a headless software-rendered GNOME Shell, private D-Bus session, XDG directories and a test-only evaluation driver; verifies that isolation; then exercises installation/rollback, lifecycle and preferences. It stops only its own process group. Failures retain the profile/logs; preference screenshots default to dist/publication/. Network setup checks need an active private LAN address.

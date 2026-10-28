@@ -1,15 +1,19 @@
 # Publication readiness
 
-Latest version: **v0.6.3**. Its original hosted CI and publication preparation passed; see the [versioned report](docs/publication-review-v0.6.3.md). The newer consolidated workflow is implemented but awaits hosted validation. Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
+Latest version: **v0.7.0**, adding the optional automatic stop timer. Its
+pre-release source passed automated and isolated native checks; the user
+reports the feature works. The consolidated release workflow awaits hosted
+validation. Earlier hosted evidence is in the [v0.6.3 report](docs/publication-review-v0.6.3.md).
+Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
 
 ## Prepare and retrieve artifacts
 
 ```sh
 bash scripts/prepare-env.sh --install --publication
-node scripts/prepare-publication.mjs v0.6.3
+node scripts/prepare-publication.mjs v0.7.0
 ```
 
-The default output is dist/publication-v0.6.3/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
+The default output is dist/publication-v0.7.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
 
 On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach the same verified ZIP, selected images, icon and full material bundle to a **draft** under Releases. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
 

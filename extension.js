@@ -5,7 +5,8 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
-import {trustDurationDays, sensitivityRange} from './settings.js';
+import {trustDurationDays, sensitivityRange, autoStopMinutes, AUTO_STOP} from './settings.js';
+import {AutoStopTimer, formatRemaining} from './auto-stop.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {RemoteDialogs} from './dialogs.js';
 
@@ -57,6 +58,15 @@ export default class SmartphoneRemoteControl extends Extension {
         this._disconnectAction.add_style_class_name('smartphone-rc-stop');
         this._stopAction = this._indicator.menu.addAction('Stop remote control', () => this._stop());
         this._stopAction.add_style_class_name('smartphone-rc-stop');
+        this._autoStopStatus = new PopupMenu.PopupMenuItem('', {reactive: false});
+        this._indicator.menu.addMenuItem(this._autoStopStatus);
+        this._autoStopExtend = this._indicator.menu.addAction('Add 15 minutes', () => this._autoStopTimer.extend(15));
+        this._autoStopCancel = this._indicator.menu.addAction('Cancel automatic stop', () => this._autoStopTimer.cancel());
+        this._autoStopTimer = new AutoStopTimer(() => {
+            this._stop();
+            Main.notify('Smartphone Remote Control', 'Remote control stopped: the automatic stop timer expired.');
+        }, remaining => this._updateAutoStopMenu(remaining));
+        this._updateAutoStopMenu(null);
         this._indicator.menu.addAction('Settings', () => this.openPreferences());
         this._settingsId = this._settings.connect('changed', (_settings, key) => {
             if (key === 'trust-duration-days')
@@ -114,6 +124,8 @@ export default class SmartphoneRemoteControl extends Extension {
             if (options.fingerprint && options.fingerprint !== started.fingerprint)
                 throw new Error('The service certificate does not match the local certificate.');
             this._startingCancel = null;
+            if (this._settings.get_boolean('auto-stop-enabled'))
+                this._autoStopTimer.start(autoStopMinutes(this._settings));
             this._url = started.url;
             this._fingerprint = started.fingerprint;
             this._showCertificate.visible = Boolean(this._fingerprint);
@@ -192,6 +204,17 @@ export default class SmartphoneRemoteControl extends Extension {
         this._stopAction.visible = state !== 'off';
         this._disconnectAction.visible = ['pending', 'connected', 'suspended'].includes(state);
         this._disconnectAction.label.text = state === 'pending' ? 'Reject request' : 'Disconnect phone';
+    }
+
+    _updateAutoStopMenu(remaining) {
+        const active = remaining !== null;
+        this._autoStopStatus.visible = active;
+        this._autoStopExtend.visible = active;
+        this._autoStopCancel.visible = active;
+        if (active) {
+            this._autoStopStatus.label.text = `Automatic stop in ${formatRemaining(remaining)}`;
+            this._autoStopExtend.setSensitive(remaining + 15 * 60 <= AUTO_STOP.max * 60);
+        }
     }
 
     _clearNotification() {
@@ -277,6 +300,7 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _stop() {
+        this._autoStopTimer.cancel();
         this._volume?.destroy();
         this._volume = null;
         this._startingCancel?.cancel();
@@ -320,6 +344,8 @@ export default class SmartphoneRemoteControl extends Extension {
 
     disable() {
         this._stop();
+        this._autoStopTimer.destroy();
+        this._autoStopTimer = null;
         this._settings.disconnect(this._settingsId);
         this._settings = null;
         Main.sessionMode.disconnect(this._lockId);
@@ -336,5 +362,8 @@ export default class SmartphoneRemoteControl extends Extension {
         this._copy = null;
         this._pairing = null;
         this._showCertificate = null;
+        this._autoStopStatus = null;
+        this._autoStopExtend = null;
+        this._autoStopCancel = null;
     }
 }

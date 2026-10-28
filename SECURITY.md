@@ -35,6 +35,17 @@ Network limits include:
 
 D-Bus application-size checks occur **after** native GDBus reception/deserialization. They are not pre-allocation byte caps. UID/PID checks restrict the private endpoint but do not sandbox compromised same-user code or prove native-parser denial-of-service resilience. Binding a private address also does not prevent separately configured router/VPN forwarding or replace firewall policy.
 
+## Automatic stop
+
+The optional timer is owned by Shell and starts after successful service
+startup. It measures elapsed running time rather than input inactivity;
+phone connection changes do not reset it. Only local settings/menu actions
+configure, extend or cancel it. Duration changes apply to the next start.
+Expiry calls the existing Stop cleanup: input and helper resources are
+removed, temporary authorization is revoked, and control does not restart.
+Lock, Stop, helper failure and disable cancel the timer and its GLib source.
+Remembered-browser grants retain the existing Stop semantics.
+
 ## Remote audio
 
 Volume and mute commands use the same approved, foreground session and

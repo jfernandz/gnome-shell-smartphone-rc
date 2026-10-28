@@ -11,6 +11,16 @@
       <range min="1.0" max="20.0"/>
       <summary>Maximum pointer sensitivity</summary>
     </key>
+    <key name="auto-stop-enabled" type="b">
+      <default>false</default>
+      <summary>Stop remote control after a fixed running duration</summary>
+      <description>Applies at the next service start. The desktop menu can extend or cancel the current timer.</description>
+    </key>
+    <key name="auto-stop-minutes" type="u">
+      <default>30</default>
+      <range min="1" max="1440"/>
+      <summary>Total service running duration in minutes</summary>
+    </key>
     <key name="trust-duration-days" type="u">
       <default>90</default>
       <range min="7" max="90"/>

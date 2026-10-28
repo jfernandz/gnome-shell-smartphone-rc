@@ -30,7 +30,7 @@ Run native validation only in the [isolated launcher](TESTING.md#native-checks).
 
 | Area | Files |
 | --- | --- |
-| Shell UI/input | extension.js, dialogs.js, focus.js, input.js, volume.js |
+| Shell UI/input/lifecycle | extension.js, dialogs.js, focus.js, input.js, volume.js, auto-stop.js |
 | Process/D-Bus | service.js, dbus.js |
 | Network child | app/service-worker.js, app/server.js, app/network-guard.js, app/session-authorization.js |
 | Mobile client | app/web/ |

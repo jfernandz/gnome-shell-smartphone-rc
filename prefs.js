@@ -6,6 +6,7 @@ import {createNetworkGroup} from './preferences/network.js';
 import {createSecurityGroup} from './preferences/security.js';
 import {createTrustedGroup} from './preferences/devices.js';
 import {createAboutGroup} from './preferences/about.js';
+import {createAutoStopGroup} from './preferences/auto-stop.js';
 
 export default class RemotePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -18,11 +19,12 @@ export default class RemotePreferences extends ExtensionPreferences {
             network.focusAddress();
         });
         const network = createNetworkGroup((config, error) => security.setCertificate(config, error));
+        const autoStop = createAutoStopGroup(this.getSettings());
         const about = createAboutGroup(this.dir, this.metadata);
         for (const [name, title, icon, groups] of [
             ['network', 'Network', 'network-workgroup-symbolic', [network.group]],
             ['pointer', 'Pointer', 'input-touchpad-symbolic', [sensitivity.group]],
-            ['security', 'Security', 'security-high-symbolic', [security.certificateGroup, security.group]],
+            ['security', 'Security', 'security-high-symbolic', [security.certificateGroup, security.group, autoStop.group]],
             ['devices', 'Devices', 'phone-symbolic', [devices.group]],
             ['about', 'About', 'help-about-symbolic', [about]],
         ]) {
@@ -35,6 +37,7 @@ export default class RemotePreferences extends ExtensionPreferences {
             network.destroy();
             sensitivity.destroy();
             security.destroy();
+            autoStop.destroy();
             devices.destroy();
             return false;
         });
