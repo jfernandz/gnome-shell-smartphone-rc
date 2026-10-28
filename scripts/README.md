@@ -5,6 +5,7 @@ Run from the repository root. Development scripts and backups are excluded from 
 | Command | Purpose |
 | --- | --- |
 | `bash scripts/install.sh` | Install source runtime files and compile schemas for the next login. |
+| `node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory]` | Prepare tagged ZIP, checks, synthetic mobile screenshots, icon, notes and publication evidence; defaults to dist/publication-vX.Y.Z. |
 | `bash scripts/package.sh [output-directory]` | Build the versioned ZIP; defaults to dist/. Use another directory to preserve released artifacts. |
 | `bash scripts/prepare-reload.sh` | Print a reusable Looking Glass command that builds and loads fresh source. |
 | `bash scripts/prepare-zip-install.sh [zip-path]` | Select an existing ZIP and print a reusable install/reload command. Without a path, select the most recently modified ZIP under dist/, including review/. |
@@ -47,3 +48,45 @@ External installer commands use the shared GIO subprocess helper with a 30-secon
 The private ZIP copy is deleted on completion. Backups, failed installations and import aliases remain under `$XDG_CACHE_HOME/smartphone-rc/zip-install-*` (normally `~/.cache/smartphone-rc/`); source snapshots use `build-*` in the same cache.
 
 Do not prune these by age or by checking only the active alias: Shell can import modules lazily, and preferences may still use older files. There is no reliable cross-process reference inventory. For safe manual cleanup, close preferences, end every GNOME session using these files, and remove obsolete transactions/snapshots from another session. Keep recovery backups you need and leave the normal installed extension directory intact. Closing Looking Glass alone does not make its imports unused. Empty or validation-only transaction directories may remain too.
+
+## Prepare a publication from a tag
+
+```sh
+node scripts/prepare-publication.mjs v0.6.1
+```
+
+The generator archives the exact local tag commit into a private temporary
+directory, validates both version fields, runs the tagged automated and
+Chromium remembered-browser/accessibility suites, and builds a ZIP. Every ZIP
+entry must match the tagged runtime manifest and source bytes. Current working
+files, including uncommitted changes, do not enter the release artifact.
+
+Requirements: the native/test dependencies in README, Node.js 22.13+ on 22.x or
+24+, git, tar, unzip, Chromium and ImageMagick (`magick`). Set
+`SMARTPHONE_RC_CHROMIUM_BIN` for a different Chromium executable. The tag must
+contain the screenshot harness and its direct-controls candidate filenames
+(v0.6.1 onward); unsupported layouts fail explicitly rather than substituting
+current working files. This executes code from the selected tag; use project
+tags you trust. The script does not install npm dependencies or run ESLint,
+static analysis or a native Shell session.
+
+Output includes the installable ZIP, SHA256SUMS, machine-readable evidence,
+REVIEW.md, release notes, a listing draft, a transparent PNG icon, logs and all
+browser captures. The two numbered PNGs are publication candidates: portrait
+with controls open and landscape with controls closed. They are synthetic
+loopback-fixture captures without browser chrome, LAN addresses or pairing
+links; real-device and packaged native acceptance remain separate. Other
+harness captures may contain test-only editor text.
+
+An existing output directory is never overwritten: pass a new destination to
+repeat a run. Failures retain logs and an INCOMPLETE.txt marker; successful
+runs remove it. Temporary source, certificates and browser profiles are
+cleaned up. Nothing is installed, pushed, published or sent to reviewers.
+Review the generated text and images before uploading them.
+
+The **Publication preparation** GitHub Actions workflow also runs on pushed
+`v*` tags, or manually with an existing version tag. It uses current tooling
+from the default branch and archives the selected release tag, then retains
+the bundle for 30 days. Chromium runs as an unprivileged user in its container.
+Hosted execution remains pending until this workflow is committed and run.
+The separate CI workflow continues to create GitHub draft releases.

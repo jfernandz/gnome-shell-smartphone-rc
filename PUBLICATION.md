@@ -1,11 +1,13 @@
 # Publication readiness
 
-Current implementation: **v0.6.0**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
+Current implementation: **v0.6.1**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
 
-Current submission preparation: [v0.6.0 artifact, review and maintainer checklist](docs/publication-review-v0.6.0.md).
+Current local preparation: [v0.6.1 artifacts, automated evidence and pending review](docs/publication-review-v0.6.1.md). Generate it with `node scripts/prepare-publication.mjs v0.6.1`; see the [script instructions](scripts/README.md#prepare-a-publication-from-a-tag). The existing [v0.6.0 review](docs/publication-review-v0.6.0.md) remains historical evidence.
 The GitHub v0.6.0 prerelease is published. The architecture consultation is
 complete in the existing Discourse thread, including the maintainer follow-up.
-The extension ZIP itself has not yet been submitted to extensions.gnome.org.
+The earlier v0.6.0 preparation recorded no EGO submission. External submission/review status has not been rechecked by the v0.6.1 preparation.
+
+A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its hosted execution is pending; it never submits to EGO or publishes a release.
 
 ## In place
 

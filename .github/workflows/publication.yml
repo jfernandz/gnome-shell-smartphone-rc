@@ -1,0 +1,47 @@
+name: Publication preparation
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to prepare (vX.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    container: archlinux:base
+    timeout-minutes: 20
+    steps:
+      - name: Install preparation dependencies
+        run: >-
+          pacman -Syu --noconfirm --needed
+          nodejs git tar unzip gjs libsoup3 glib2 glib-networking gnome-shell
+          openssl iproute2 util-linux chromium imagemagick noto-fonts
+      - uses: actions/checkout@v7
+        with:
+          # Use current preparation tooling; release source comes only from the tag.
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare tagged artifacts with an unprivileged browser
+        env:
+          PUBLICATION_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          useradd --create-home publication
+          chown -R publication:publication "$GITHUB_WORKSPACE"
+          runuser -u publication -- node scripts/prepare-publication.mjs "$PUBLICATION_TAG" dist/publication
+      - name: Upload preparation bundle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: publication-${{ inputs.tag || github.ref_name }}
+          path: dist/publication/
+          if-no-files-found: error
+          retention-days: 30

@@ -32,7 +32,7 @@ export default [
     },
     {files: ['app/web/**/*.js'], languageOptions: {globals: globals.browser}},
     {
-        files: ['eslint.config.js', 'tests/**/*.test.js', 'tests/cookie-browser.mjs', 'tests/browser-accessibility.mjs', 'tests/shell-security-native.mjs', 'tests/install-zip-native.mjs', 'tests/network-soak.mjs', 'tests/run-isolated-native.mjs'],
+        files: ['eslint.config.js', 'scripts/**/*.mjs', 'tests/**/*.test.js', 'tests/cookie-browser.mjs', 'tests/browser-accessibility.mjs', 'tests/shell-security-native.mjs', 'tests/install-zip-native.mjs', 'tests/network-soak.mjs', 'tests/run-isolated-native.mjs'],
         languageOptions: {globals: globals.node},
     },
 ];
