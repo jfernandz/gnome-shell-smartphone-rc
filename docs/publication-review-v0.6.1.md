@@ -1,5 +1,9 @@
 # v0.6.1 publication preparation — 2026-10-28
 
+Historical record for the stated version/date. For current instructions and
+readiness, see [README](../README.md), [TESTING](../TESTING.md) and
+[PUBLICATION](../PUBLICATION.md).
+
 Status: local automated preparation, not a completed manual source review or
 approval from extensions.gnome.org. Nothing was submitted or published by
 this preparation. External submission/review status has not been queried.

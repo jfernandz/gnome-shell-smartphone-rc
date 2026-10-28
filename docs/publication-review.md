@@ -1,5 +1,9 @@
 # Publication review — 2026-10-26
 
+Historical record for the stated version/date. For current instructions and
+readiness, see [README](../README.md), [TESTING](../TESTING.md) and
+[PUBLICATION](../PUBLICATION.md).
+
 Status: technical checks completed locally; nothing submitted. GNOME Shell 51.1, GJS 1.90.1, Chromium 156.0.8078.47. The desktop session was not modified. Tests used disposable browser profiles and a separate headless Shell/bus/XDG profile.
 
 ## Artifact and findings

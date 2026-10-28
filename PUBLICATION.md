@@ -1,73 +1,41 @@
 # Publication readiness
 
-Current implementation: **v0.6.3**. A local ZIP/tag is not approval from extensions.gnome.org. Source is available in the [repository](https://github.com/jfernandz/gnome-shell-smartphone-rc); publication/submission requires a separate request.
+Latest version: **v0.6.3**. Its original hosted CI and publication preparation passed; see the [versioned report](docs/publication-review-v0.6.3.md). The newer consolidated workflow is implemented but awaits hosted validation. Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
 
-Historical local preparation: [v0.6.1 artifacts, automated evidence and pending review](docs/publication-review-v0.6.1.md). Generate it with `node scripts/prepare-publication.mjs v0.6.1`; see the [script instructions](scripts/README.md#prepare-a-publication-from-a-tag). The existing [v0.6.0 review](docs/publication-review-v0.6.0.md) remains historical evidence.
-The GitHub v0.6.0 prerelease is published. The architecture consultation is
-complete in the existing Discourse thread, including the maintainer follow-up.
-The earlier v0.6.0 preparation recorded no EGO submission. External submission/review status has not been rechecked by the v0.6.1 preparation.
+## Prepare and retrieve artifacts
 
-Prepare the current release with `node scripts/prepare-publication.mjs v0.6.3`; its generated report is `dist/publication-v0.6.3/REVIEW.md`.
+```sh
+bash scripts/prepare-env.sh --install --publication
+node scripts/prepare-publication.mjs v0.6.3
+```
 
-The **Release preparation** workflow owns version-tag validation, Node 22/24
-lint and tests, publication generation and draft-release attachments in one
-chain. The exact verified ZIP is reused for the draft, together with selected
-screenshots, the PNG icon, release notes, checksums and the full preparation
-bundle. PR/main CI does not also run for tags. Manual dispatch regenerates an
-existing tag's bundle without changing a release. The unified flow awaits its
-first hosted run. The earlier separate v0.6.3 workflows passed; see the
-[v0.6.3 evidence](docs/publication-review-v0.6.3.md). No workflow submits to EGO
-or automatically publishes a release.
+The default output is dist/publication-v0.6.3/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
 
-## Publication icon
+On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach the same verified ZIP, selected images, icon and full material bundle to a **draft** under Releases. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
 
-The tracked [128×128 transparent PNG](icons/smartphone-rc-icon.png) is for the
-extensions.gnome.org listing. The [symbolic SVG](icons/remote-touchpad-symbolic.svg)
-remains the source and the runtime icon. Regenerate the PNG with:
+Captures use synthetic approval/audio fixtures. Select and inspect the numbered candidates; diagnostic images may contain test-only editor text. Real device acceptance remains separate.
+
+## Before submission
+
+- Validate the final ZIP in an isolated GNOME Shell and on the supported phone, including certificate first use, typing, volume/output switching and lock/Stop cleanup.
+- Review the source and static-analysis findings for that tag; the [last recorded analyzer run](SHEXLI.md) is v0.6.0.
+- Confirm device/browser support, listing text and final screenshots; accessibility gaps are in [ACCESSIBILITY.md](ACCESSIBILITY.md).
+- Confirm current EGO submission/review status before updating a listing. These reports do not establish that status.
+- Publish or submit only when requested. Retain the exact submitted ZIP and its digest.
+
+## Icon
+
+The tracked [128×128 PNG](icons/smartphone-rc-icon.png) is a listing asset, excluded from the runtime ZIP. The [SVG](icons/remote-touchpad-symbolic.svg) is its source and the runtime icon:
 
 ```sh
 magick -background none -density 2304 icons/remote-touchpad-symbolic.svg \
   -resize 128x128 -strip icons/smartphone-rc-icon.png
 ```
 
-The PNG is intentionally absent from resources.json and the extension ZIP;
-the publication generator also renders it from each selected tag's SVG.
+The generator renders it from the selected tag's SVG.
 
-## In place
+## Recorded architecture guidance
 
-- Native Settings/network setup; declared clipboard use only on explicit request.
-- Manifest-based packages with license, runtime assets and schema XML; tests, development loaders and credentials excluded.
-- Shell/GTK/child import boundaries, bounded private D-Bus, lifecycle cleanup and transport/authorization regressions.
-- Contribution guidance, reproducible lint and documented static-review findings.
-- Earlier physical acceptance of ZIP installation and Settings, plus confirmation of the D-Bus migration; final v0.6.0 ZIP and physical volume/output-switch acceptance remain pending.
+The [reviewer reply](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4) prefers separate core distribution, recommends D-Bus and requests a dedicated directory for separately executed files if bundled. The [maintainer follow-up](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/5) records the move to private D-Bus/app/ and the decision to submit one self-contained ZIP. This consultation is complete; package acceptance remains the reviewer's decision.
 
-Evidence and limitations: [TESTING.md](TESTING.md), [SECURITY.md](SECURITY.md), [ACCESSIBILITY.md](ACCESSIBILITY.md) and [SHEXLI.md](SHEXLI.md).
-
-Local technical review, load measurements and draft release/reviewer text: [publication review](docs/publication-review.md). The v0.5.2 package includes the scoped lifecycle and authorization refactoring; the earlier review remains historical evidence.
-
-## Before public submission
-
-- [x] Verify the published v0.6.0 ZIP against its digest, manifest, tag and licenses.
-- [x] Repeat pinned static analysis on v0.6.0 and document all six remaining findings.
-- [x] Prepare current listing text and synthetic screenshot candidates; archive the redundant follow-up draft.
-- [x] Complete the architecture consultation: submit the self-contained ZIP with private D-Bus and separately executed files under app/, following the reviewer guidance in the existing thread.
-- [ ] Complete first-use mobile certificate-warning checks and final packaged-build acceptance.
-- [x] Run a bounded load/recovery check and assess isolation options; broader resource-exhaustion resilience and an OS sandbox remain unestablished.
-- [ ] Complete real assistive-technology, high-contrast and physical display-scaling checks.
-- [ ] Record real supported devices/browsers and select final publication screenshots; fresh synthetic candidates are prepared.
-- [ ] Complete the maintainer's code/readability review and understanding of security/lifecycle choices.
-- [x] Recheck current review guidelines (2026-10-27); architecture consultation completed; approval of the submitted ZIP remains pending.
-- [ ] Publish/submit only when requested.
-
-## Recorded reviewer guidance
-
-The [maintainer response](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4) on 2026-10-26 prefers distributing the core separately, recommends D-Bus, and requests a dedicated directory for separately executed files if bundled. The reply explicitly discusses bundling as an option with that layout. The
-[maintainer follow-up](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/5)
-confirms the D-Bus/app/ changes and the decision to submit one ZIP. This closes
-the architecture consultation; it is not approval of a specific release ZIP.
-
-The project retains one package with a private D-Bus child and browser assets under `app/`; Shell/preferences do not import that application core. See [DBUS.md](DBUS.md). No additional architecture clarification is required before submitting on
-this basis. Separate distribution remains the reviewer's preference and may
-need revisiting if requested during the actual package review.
-
-The initial 2026-10-25 review consulted the [extension review guidelines](https://gjs.guide/extensions/review-guidelines/review-guidelines.html) and [preferences documentation](https://gjs.guide/extensions/development/preferences.html). The current review rechecked the extension guidelines; that does not constitute approval.
+Historical evidence: [v0.6.1](docs/publication-review-v0.6.1.md), [v0.6.0](docs/publication-review-v0.6.0.md), [earlier technical review](docs/publication-review.md). Current boundaries and checks: [SECURITY.md](SECURITY.md), [DBUS.md](DBUS.md), [TESTING.md](TESTING.md).

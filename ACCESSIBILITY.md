@@ -1,64 +1,43 @@
 # Accessibility validation
 
-Validated for v0.4.7 on 2026-10-25. This is a focused validation record, not a claim of complete WCAG compliance or screen-reader certification. Target mobile support remains Chrome on Android. Checks use a synthetic local browser session and isolated native preferences, never the working desktop's remote connection.
-
-The same browser checks and native light/Sans 11, dark/Sans 11 and dark/Sans 22 checks were rerun during the v0.5.1 [pre-publication review](docs/publication-review.md). Synthetic candidates are under dist/publication/. Normal-size light/dark captures use Sans 11; `preferences-dark-large-text.png` uses Sans 22 for enlarged-text testing; real assistive-technology and physical-device limits below still apply.
+Current browser evidence: v0.6.3 on 2026-10-28. These are focused Chromium regressions, not WCAG certification or real screen-reader acceptance. Earlier native light/dark/enlarged-font checks are recorded in [TESTING.md](TESTING.md) and its history.
 
 ## Mobile interface
 
-- Native buttons, a labelled sensitivity range and a labelled text input retain standard keyboard behavior.
-- Connection status uses role=status. Keyboard exposes aria-controls and an aria-expanded state synchronized with editor visibility. Hiding an editor that owns focus returns focus to Keyboard when that control is enabled.
-- The sensitivity range exposes its multiplier through aria-valuetext; the duplicate visual output is hidden from the accessibility tree.
-- The editor and touchpad reference their explanatory text. The touchpad remains a touch-gesture surface; there are no keyboard shortcuts for pointer movement or two-finger scrolling.
-- Keyboard focus has an explicit visible outline. Buttons and the sensitivity range have a minimum 44-pixel target height.
-- Connection buttons wrap instead of overflowing narrow layouts. Touchpad height accommodates its instructions when text grows; vertical scrolling is allowed when space is limited.
-- The mobile page deliberately uses a dark color scheme. Native Settings follows GNOME's theme.
-
-Run the real Chromium checks with:
+- The floating **•••** button has the accessible name Controls. Its native popover exposes connection, keyboard, sensitivity and sound controls directly; Escape/light dismissal closes it. Focus inside a closing card returns to its trigger.
+- Keyboard reports editor visibility through aria-expanded/aria-controls. Opening it closes the card and focuses the editor. The editor remains outside the card; controls remain available while typing.
+- Sensitivity/volume sliders have labels; sensitivity exposes its multiplier through aria-valuetext. Mute/Unmute exposes a pressed state. Duplicate visual outputs are hidden from the accessibility tree.
+- Connection status uses role=status. Editor and touchpad reference their instructions. Focus outlines are explicit; buttons and sliders have minimum 44-pixel targets.
+- The touchpad supports tap, hold and two-finger gestures. There are no separate click buttons or keyboard shortcuts for pointer movement/scrolling.
+- The page uses a dark scheme; native Settings follows GNOME's theme.
 
 ```sh
 npm run test:accessibility
-```
-
-This also runs the existing trusted-browser/helper recovery suite. The accessibility checks cover 360×800 and 320×568 portrait, 568×320 landscape, and a 320×568 layout with the root font increased from 16 to 32 pixels. The last case simulates 200% text size; it does not establish physical display scaling or browser pinch-zoom behavior.
-
-Assertions cover horizontal overflow, target height, touchpad instruction containment, forward/reverse Tab order, focus outline, Enter activation, editor focus/return, accessibility-tree names and disclosure state. Enabled button, status and touchpad-help text are checked for at least 4.5:1 contrast; this samples key text rather than auditing every rendered color or state.
-
-To save synthetic mobile screenshots for visual inspection:
-
-```sh
+# Save synthetic page captures:
 SMARTPHONE_RC_ACCESSIBILITY_OUTPUT=dist/accessibility npm run test:accessibility
 ```
 
+The suite checks the card without scrolling at 360×800, 320×568, 568×320, 844×390, 568×240 and 844×180, plus 200% root text at 568×320 and 320×568. It measures after the opening animation and checks target bounds/heights, slider/button accessible names, Escape dismissal/focus return and editor text/selection/focus across rotation and short keyboard viewports.
+
+Contrast assertions sample the enabled Controls button and touchpad instructions at 4.5:1 or greater. They do not audit every state or color. Enlarged root text and simulated viewports do not establish browser zoom, physical scaling or real software-keyboard behavior.
+
 ## Native preferences
 
-Remembered-browser Rename and Forget actions have explicit accessible names identifying the browser. The rename entry is labelled Device name. The native preferences harness uses GTK's test accessibility backend and checks that these labels are set, alongside the existing rename, revocation, sensitivity and About assertions.
+The isolated GTK harness checks accessible names for per-browser Rename/Forget, the Device name entry, sensitivity and About, alongside existing settings behavior. Run through the [isolated launcher](TESTING.md#native-checks), not the working desktop.
 
-Run native tests only in an isolated graphical compositor with a separate D-Bus session. Use GSETTINGS_BACKEND=memory and a temporary XDG_CONFIG_HOME, passing a staged extension directory with compiled schemas to tests/preferences-native.mjs. Optional environment variables:
+| Environment variable | Purpose |
+| --- | --- |
+| SMARTPHONE_RC_TEST_COLOR_SCHEME=light/dark | Process-local theme. |
+| SMARTPHONE_RC_TEST_FONT="Sans 11"/"Sans 22" | Normal/enlarged test font. |
+| SMARTPHONE_RC_TEST_SCREENSHOT=/absolute/path.png | Rendered preference-window capture. |
 
-- SMARTPHONE_RC_TEST_COLOR_SCHEME=light or dark forces the process's theme for the test.
-- SMARTPHONE_RC_TEST_FONT="Sans 11" or "Sans 22" selects the process's font, covering normal/enlarged text in the recorded runs.
-- SMARTPHONE_RC_TEST_SCREENSHOT=/absolute/path/preview.png saves a rendered test window for inspection.
-
-These settings are process-local. They do not change the user's theme, font, remembered browsers or network setup. Browser and native preview images are generated artifacts under dist and are not shipped in the extension ZIP.
+These fixtures use separate configuration and memory GSettings. Generated images stay under dist/ and are not shipped in the extension ZIP.
 
 ## Remaining manual checks
 
-- Real TalkBack/Orca announcements, reading order and activation, including connection and typing transitions.
-- Physical touchscreen target comfort and keyboard occlusion with enlarged text and different mobile keyboards.
-- Browser pinch zoom and real desktop fractional/high-DPI scaling.
-- Forced-colors/high-contrast themes, all focus/error/disabled states and a complete contrast audit.
-- iOS Safari and other browsers; current Chromium checks do not imply cross-browser support.
+- TalkBack/Orca announcements, reading order, focus and activation during connection/editor transitions.
+- Touch target comfort, real keyboards, orientation and enlarged-text occlusion.
+- Browser pinch zoom, desktop fractional/high-DPI scaling and forced colors/high contrast.
+- Complete contrast/state audit and iOS/other browser support.
 
-See [TESTING.md](TESTING.md) for other validation and [PUBLICATION.md](PUBLICATION.md) for remaining distribution work.
-
-
-## Volume controls (0.6.0)
-
-The mobile Volume slider has a visible label and a 0–100 range. Mute/Unmute
-has an accessible pressed state; both controls are disabled until an approved
-session receives an available output. The sound section hides while typing,
-alongside pointer settings. Browser checks cover the slider/button names,
-keyboard order and 44-pixel targets at narrow, landscape and enlarged-text
-sizes. These checks use a synthetic mixer through the real authenticated
-helper; physical audio and real assistive-technology checks remain pending.
+Publication readiness is tracked in [PUBLICATION.md](PUBLICATION.md).

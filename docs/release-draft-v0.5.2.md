@@ -1,5 +1,9 @@
 # Smartphone Remote Control v0.5.2
 
+Historical record for the stated version/date. For current instructions and
+readiness, see [README](../README.md), [TESTING](../TESTING.md) and
+[PUBLICATION](../PUBLICATION.md).
+
 Prepared locally; not published or submitted.
 
 - Prevent delayed session responses from changing a newer browser connection or reviving recovery after Disconnect. Cancel obsolete requests and disable input immediately on Disconnect.

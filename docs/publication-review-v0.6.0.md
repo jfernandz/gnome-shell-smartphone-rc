@@ -1,5 +1,9 @@
 # v0.6.0 submission preparation — 2026-10-27
 
+Historical record for the stated version/date. For current instructions and
+readiness, see [README](../README.md), [TESTING](../TESTING.md) and
+[PUBLICATION](../PUBLICATION.md).
+
 Status: local preparation only. The GitHub release is now a published
 **prerelease**; this is separate from submitting to extensions.gnome.org.
 No reviewer message or extension submission has been sent by this preparation.

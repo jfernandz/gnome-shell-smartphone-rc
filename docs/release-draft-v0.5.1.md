@@ -1,5 +1,9 @@
 # Smartphone Remote Control v0.5.1
 
+Historical record for the stated version/date. For current instructions and
+readiness, see [README](../README.md), [TESTING](../TESTING.md) and
+[PUBLICATION](../PUBLICATION.md).
+
 Draft release text; not published. Publication is separate from extensions.gnome.org acceptance.
 
 Control an unlocked GNOME desktop from a smartphone browser over your local network, with touchpad gestures, live typing, encrypted pairing and optional remembered browsers.

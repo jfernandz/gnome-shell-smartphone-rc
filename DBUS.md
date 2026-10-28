@@ -53,6 +53,6 @@ Stop, disable, lock, malformed/excessive requests, connection loss and helper fa
 
 ## Validation
 
-See [TESTING.md](TESTING.md) for automated identity/contract/limits tests, browser coverage and earlier isolated Shell checks. v0.5.1 adds real helper startup with a comma-containing temporary path, escaped using `Gio.dbus_address_escape_value()`.
+See [TESTING.md](TESTING.md) for identity/contract/limits tests, browser coverage and isolated Shell evidence. Regression tests include comma-containing temporary paths, escaped using `Gio.dbus_address_escape_value()`.
 
 References: [GJS D-Bus guide](https://gjs.guide/guides/gio/dbus.html), [GIO peer credentials](https://docs.gtk.org/gio/method.DBusConnection.get_peer_credentials.html), and [maintainer feedback](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4). See [SECURITY.md](SECURITY.md) for the wider threat model.

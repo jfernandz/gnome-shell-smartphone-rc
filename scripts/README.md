@@ -1,165 +1,104 @@
 # Project scripts
 
-Run from the repository root. Development scripts and backups are excluded from the runtime ZIP.
+Run from the repository root. Scripts, tests and development dependencies are excluded from the runtime ZIP.
 
 | Command | Purpose |
 | --- | --- |
-| `bash scripts/prepare-env.sh [--install] [--browser] [--publication] [--native] [--review] [--all]` | Check selected development dependencies; explicitly install them with pacman/npm/venv when --install is supplied. |
-| `bash scripts/install.sh` | Install source runtime files and compile schemas for the next login. |
-| `node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory]` | Prepare tagged ZIP, checks, synthetic mobile screenshots, icon, notes and publication evidence; defaults to dist/publication-vX.Y.Z. |
-| `bash scripts/package.sh [output-directory]` | Build the versioned ZIP; defaults to dist/. Use another directory to preserve released artifacts. |
-| `bash scripts/prepare-reload.sh` | Print a reusable Looking Glass command that builds and loads fresh source. |
-| `bash scripts/prepare-zip-install.sh [zip-path]` | Select an existing ZIP and print a reusable install/reload command. Without a path, select the most recently modified ZIP under dist/, including review/. |
-
-Installation and packaging share the runtime manifest through `lib/stage.sh` and `lib/runtime-files.js`. The internal `prepare-reload.sh --build-only` interface stages a snapshot and prints its path.
+| `bash scripts/prepare-env.sh` | Check base development dependencies. Add --install to install them on Arch Linux. |
+| `bash scripts/install.sh` | Install source files and compile schemas for the next login. |
+| `bash scripts/package.sh [output-directory]` | Build a versioned ZIP; defaults to dist/. |
+| `bash scripts/prepare-reload.sh` | Print a reusable source-reload command for Looking Glass. |
+| `bash scripts/prepare-zip-install.sh [zip-path]` | Select a ZIP and print a reusable install/reload command. |
+| `node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory]` | Prepare an exact tag's verified ZIP, captures, icon, notes and evidence. |
 
 ## Prepare the development environment
 
 ```sh
 bash scripts/prepare-env.sh
-bash scripts/prepare-env.sh --install
 bash scripts/prepare-env.sh --install --publication
 ```
 
-One script covers all dependency groups from the [README](../README.md#development):
+Default/`--check` installs nothing. It checks commands, supported Node, GNOME Shell 51, libsoup 3.8+, GIO TLS, GTK 4/libadwaita and npm dependencies. Missing or incompatible dependencies cause a nonzero exit.
 
-| Profile | Adds to the base JavaScript/native-test and workflow-lint tools |
+| Optional profile | Adds |
 | --- | --- |
-| `--browser` | Chromium, Noto Sans fonts and fontconfig. Respects SMARTPHONE_RC_CHROMIUM_BIN. |
-| `--publication` | Browser tools, ImageMagick, GitHub CLI and Python. |
-| `--native` | Python, isolated D-Bus session tools, FUSE cleanup and which. |
-| `--review` | Python/pip and the pinned optional review packages in .venv. |
-| `--all` | Every profile above. |
+| `--browser` | Chromium, Noto Sans and fontconfig; respects SMARTPHONE_RC_CHROMIUM_BIN. |
+| `--publication` | Browser tools, ImageMagick, gh and Python. |
+| `--native` | Python, isolated D-Bus tools, FUSE cleanup and which. |
+| `--review` | Python/pip and the pinned review packages in .venv. |
+| `--all` | Every profile. |
 
-Default/`--check` is read-only apart from normal tool diagnostics: it checks
-executables, supported Node, GNOME Shell 51, libsoup 3.8+, GIO TLS, GTK 4,
-libadwaita and npm dependency availability. Browser profiles additionally
-check that Noto Sans resolves without a fallback; review checks compare the
-venv's package versions with requirements-review.txt. Failures exit nonzero.
+`--install` uses pacman with its normal confirmation prompt, then `npm ci --ignore-scripts`. Review packages go into .venv, created only if needed. Run as your normal user; only pacman uses sudo. Check mode works on other Linux distributions with the required tools; automatic installation supports pacman.
 
-`--install` uses pacman with its normal confirmation prompt, then npm ci with
-lifecycle scripts disabled. For `--review`, it creates .venv only if needed
-and installs the existing pinned requirements there. It does not install pip
-packages globally. Only system package installation invokes sudo as needed;
-run this script without sudo to keep project files owned by your user.
-
-Check mode can be used on other Linux distributions with the required tools;
-automatic system installation currently supports pacman. The script neither
-installs/reloads the extension nor starts native tests or GitHub authentication.
-CI still declares its packages directly because its bootstrap happens before
-the checkout, and release checks also support older tags without this script.
+Browser checks reject a missing Noto Sans installation that resolves to a fallback font. Review checks compare venv versions with requirements-review.txt. Setup does not install/reload the extension, run native tests or authenticate GitHub. The full dependency inventory is in [README](../README.md#development).
 
 ## Reload source
 
-Run `bash scripts/prepare-reload.sh`. Open Looking Glass with **Alt+F2**, `lg`, Enter, and paste the printed command. Later, recall that command with Up and Enter: `reload.js` builds a fresh source snapshot on each call. Close the console with Esc.
+Run `bash scripts/prepare-reload.sh`, open Looking Glass with **Alt+F2**, `lg`, Enter, and paste the printed command. On later updates, recall that command with Up: `reload.js` builds a fresh source snapshot each time. Close the console with Esc.
 
-Reload replaces only this extension and stops its service; start control manually afterwards. Keep the stable `scripts/reload.js` entry point for existing console history. Use an isolated Shell for native tests; see [TESTING.md](../TESTING.md#native-checks).
+Reload replaces only this extension and stops remote connections. Start control manually afterwards. Keep the stable scripts/reload.js entry point for console history. Use [isolated tests](../TESTING.md#native-checks) for native validation.
 
 ## Install and reload a ZIP
 
 ```sh
-bash scripts/prepare-zip-install.sh /path/to/extension.zip
+bash scripts/prepare-zip-install.sh /path/to/smartphone-rc-0.6.3.zip
 ```
 
-The selector verifies the UUID, writes a private selection record, and prints a stable Looking Glass command. It does not build or install anything. For later archives, rerun the selector and recall the same console command with Up and Enter. Selection uses Node.js and unzip; the installer also needs unzip, `gnome-extensions` and coreutils (`mktemp`, `cp`, `mv`).
+Without a path, the selector chooses the most recently modified ZIP anywhere under dist/. Pass an explicit installable ZIP when dist/ also contains publication bundles. It verifies the UUID and prints a stable Looking Glass command; it does not build or install anything itself. To change archives, rerun the selector and recall the same console command.
 
-Explicit calls are supported:
+Close Settings before updating and reopen afterwards. The installer:
+
+1. Validates and installs from one private ZIP snapshot, so replacement of the original archive cannot change the installed bytes.
+2. Backs up installed files and enablement, unloads this extension, installs, and loads fresh aliases of the installed modules.
+3. Restores previous files/enablement on failure, including failed first installs and previously disabled copies.
+
+Commands have 30-second deadlines and support cancellation. Direct calls can pass a Gio.Cancellable:
 
 ```js
 await (await import("file:///absolute/path/to/project/scripts/install-zip.js")).installZip("/absolute/path/to/extension.zip")
 ```
 
-Close Settings before updating and reopen it afterwards. `install-zip.js`:
-
-1. Copies the ZIP into a mode-0700 cache transaction; the copy is mode 0600. It validates metadata/entry point and installs using that same copy. Do not edit the original in place while the initial copy is being made.
-2. Backs up any installed directory, unloads this extension, and runs `gnome-extensions install --force --print-uuid` into the normal per-user directory.
-3. Loads the installed files through a fresh symlink import alias to avoid cached dependency URLs. No project runtime source is built or loaded. Successful installation enables the extension.
-4. On failure after unloading, attempts to restore the old files and enabled/disabled settings, including for a failed first installation. A previously loaded source copy can also be restored. Rollback failure reports the backup location.
-
-Settings, certificates and remembered devices are outside the replaced directory. The GNOME 51 loader clears only this UUID's private numeric-version reload guard. It does not invalidate the global module cache. The normal installed directory is still used at the next login. The helper module itself is also cached: after editing its source, use a fresh import URI or a new isolated Shell session to test the changes.
-
-External installer commands use the shared GIO subprocess helper with a 30-second timeout per command and direct-child reaping. Pass `installZip(path, {cancellable})` with a `Gio.Cancellable` to cancel copying/commands; cancellation is also checked before and after loading. Rollback ignores the cancelled token and has its own command timeouts. These are per-step bounds, not a deadline for the entire transaction.
-
 ## Cache cleanup
 
-The private ZIP copy is deleted on completion. Backups, failed installations and import aliases remain under `$XDG_CACHE_HOME/smartphone-rc/zip-install-*` (normally `~/.cache/smartphone-rc/`); source snapshots use `build-*` in the same cache.
+The private ZIP copy is removed after the transaction. Source snapshots, backups and module aliases remain under `$XDG_CACHE_HOME/smartphone-rc/` (normally `~/.cache/smartphone-rc/`).
 
-Do not prune these by age or by checking only the active alias: Shell can import modules lazily, and preferences may still use older files. There is no reliable cross-process reference inventory. For safe manual cleanup, close preferences, end every GNOME session using these files, and remove obsolete transactions/snapshots from another session. Keep recovery backups you need and leave the normal installed extension directory intact. Closing Looking Glass alone does not make its imports unused. Empty or validation-only transaction directories may remain too.
+Do not delete them by age: Shell and Settings may import files lazily. Close Settings and end every GNOME session using these files before removing obsolete build-* or zip-install-* directories from another session. Keep recovery backups you need; leave the normal installed extension directory intact.
 
 ## Prepare a publication from a tag
 
 ```sh
-node scripts/prepare-publication.mjs v0.6.1
+node scripts/prepare-publication.mjs v0.6.3
 ```
 
-The generator archives the exact local tag commit into a private temporary
-directory, validates both version fields, runs the tagged automated and
-Chromium remembered-browser/accessibility suites, and builds a ZIP. Every ZIP
-entry must match the tagged runtime manifest and source bytes. Current working
-files, including uncommitted changes, do not enter the release artifact.
+The generator archives the local tag into a private temporary directory, checks versions, runs tagged tests, builds a ZIP and verifies every packaged file against the tagged manifest/source. Chromium then runs the tagged remembered-browser/accessibility suite and saves synthetic captures. Current working files do not enter the release ZIP.
 
-Requirements: the native/test dependencies in README, Node.js 22.13+ on 22.x or
-24+, git, tar, unzip, Chromium and ImageMagick (`magick`). Set
-`SMARTPHONE_RC_CHROMIUM_BIN` for a different Chromium executable. The tag must
-contain the screenshot harness and its direct-controls candidate filenames
-(v0.6.1 onward); unsupported layouts fail explicitly rather than substituting
-current working files. This executes code from the selected tag; use project
-tags you trust. The script does not install npm dependencies or run ESLint,
-static analysis or a native Shell session.
+Requirements are in [README](../README.md#development); select the publication profile. Supported tags need the direct-controls screenshot harness/candidate filenames (v0.6.1 onward). Unsupported layouts fail explicitly; old tags retain their original UI and test failures. Only execute tags you trust.
 
-Output includes the installable ZIP, SHA256SUMS, machine-readable evidence,
-REVIEW.md, release notes, a listing draft, a transparent PNG icon, logs and all
-browser captures. The two numbered PNGs are publication candidates: portrait
-with controls open and landscape with controls closed. They are synthetic
-loopback-fixture captures without browser chrome, LAN addresses or pairing
-links; real-device and packaged native acceptance remain separate. Other
-harness captures may contain test-only editor text.
+Output defaults to dist/publication-vX.Y.Z/ and includes:
 
-An existing output directory is never overwritten: pass a new destination to
-repeat a run. Failures retain logs and an INCOMPLETE.txt marker; successful
-runs remove it. Temporary source, certificates and browser profiles are
-cleaned up. Nothing is installed, pushed, published or sent to reviewers.
-Review the generated text and images before uploading them.
+- Installable ZIP, runtime file list and SHA256SUMS.
+- Portrait-controls and landscape-touchpad candidates, all diagnostic captures and a transparent 128×128 icon.
+- Version-specific changelog plus commit-comparison link, listing draft, REVIEW.md, evidence.json, logs and source documentation.
 
-The **Release preparation** GitHub Actions workflow runs on pushed
-`v*` tags, or manually with an existing version tag. It uses current tooling
-from the default branch and archives the selected release tag, then retains
-the bundle for 30 days. Chromium runs as an unprivileged user in its disposable
-container. Only that CI wrapper supplies `--no-sandbox` to avoid requiring
-host namespace privileges; local invocations keep Chromium's
-default sandbox. The wrapper also retains browser stderr in
-`logs/chromium-startup.txt`, including when running an older tag's harness.
-Failed steps print the tail of their logs to the Actions console.
-The first hosted run reached browser startup but timed out before DevTools;
-the container-browser correction was verified by the next hosted run, which
-then exposed a narrow-screen layout failure at 200% text. That layout fix is
-included in v0.6.3; earlier immutable tags still reproduce their original UI.
-The workflow resolves and validates the tag, then runs lint and tests on Node
-22 and 24. Its successful jobs produce `release-checks-node-22/` and
-`release-checks-node-24/`, each containing evidence.json and both check logs.
-The generator accepts them with:
+Existing output directories are never overwritten. A failed run retains logs and INCOMPLETE.txt; a successful run removes that marker. Temporary source, certificates and browser profiles are cleaned up. Captures use synthetic loopback approval/audio and contain no browser address bar or pairing link; diagnostic captures may contain test-only editor text.
+
+For CI, `--checks-from directory` accepts trusted results from successful Node 22/24 jobs for the exact tag commit:
 
 ```sh
 node scripts/prepare-publication.mjs v0.6.3 dist/publication \
   --checks-from dist/release-checks
 ```
 
-Both receipts must report successful lint and tests, the expected Node major
-and the exact tag commit; missing logs or stale results fail before output is
-created. Only pass trusted results from the same CI run. Their evidence/logs
-are copied into the bundle. Without this option, local runs still execute the
-tagged automated suite as before, without claiming a lint run.
+Each release-checks-node-22/24 directory must contain evidence.json, lint.txt and automated-tests.txt. Missing, stale or unsuccessful evidence fails before output is created. Valid evidence is retained and replaces the repeated test run. Without it, local runs execute tagged tests and report lint as pending. The generator does not install dependencies or perform native Shell/static review.
 
-Release descriptions contain that version's full CHANGELOG.md section and a
-**Full Changelog** comparison link to the preceding tagged ancestor (or commit
-history for an initial release). They are passed as the actual GitHub release
-body, not just uploaded as an attachment; refreshing a draft also refreshes
-its description.
+## GitHub automation
 
-After preparation succeeds, tag pushes create or refresh a draft with the
-same ZIP, selected images, icon, release notes, SHA256SUMS and a complete
-publication-materials ZIP. Checksums are verified after downloading the
-preparation artifact; no second release ZIP is built. Published releases are
-never overwritten. Manual dispatch regenerates artifacts without modifying
-releases. The **CI** workflow only handles PR/main/manual checks and does not
-run for tags. This unified workflow still requires a hosted verification run.
+**CI** handles PR/main/manual lint and tests. **Release preparation** handles version tags or manual preparation of an existing tag:
+
+1. Resolve the tag and run lint/tests on Node 22 and 24.
+2. Reuse those results to build and verify one publication ZIP and run browser checks.
+3. On tag pushes, verify checksums and attach that exact ZIP, selected images, icon, notes, checksums and the full bundle to a draft. Its body includes the tagged changelog and comparison link.
+
+Manual runs skip draft changes; published releases are never overwritten. Artifacts are retained for 30 days under **Actions → Release preparation → run → Summary → Artifacts**. The workflow uses current tooling from the default branch and runtime/test source from the selected tag. CI bootstrap declares packages directly to support checkout and older tags.
+
+Chromium runs unprivileged in the disposable container with a CI-only `--no-sandbox` wrapper. Local defaults remain unchanged. Browser stderr is retained in logs/chromium-startup.txt; failing logs are also printed to Actions. Hosted validation of the consolidated workflow is pending; see [TESTING.md](../TESTING.md). No workflow submits to extensions.gnome.org or publishes a draft automatically.

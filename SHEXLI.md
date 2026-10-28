@@ -2,7 +2,7 @@
 
 Reviewed on 2026-10-25 with shexli 0.2.1, Python 3.14, tree-sitter 0.25.2 and tree-sitter-javascript 0.25.0. This records our assessment, not approval by extensions.gnome.org reviewers. The architecture consultation is now complete: reviewer guidance and the maintainer follow-up support proceeding with the bundled submission using D-Bus and app/ separation. Acceptance of a particular ZIP remains subject to review; see [PUBLICATION.md](PUBLICATION.md).
 
-## Current release: v0.6.0
+## Last recorded analysis: v0.6.0 — 2026-10-27
 
 Rechecked the actual GitHub release ZIP on 2026-10-27 with the pinned toolchain.
 It reports the same six findings: two errors (EGO-M-004 and EGO-P-002), three
@@ -56,9 +56,11 @@ shexli dist/review/smartphone-rc-0.5.1.zip
 
 ## Validation
 
-The automated protocol, process, certificate, schema and packaging suite and real Chromium helper recovery/revocation suite pass. Native GTK checks cover preferences, network setup and failure recovery. The isolated Shell harness additionally verifies first-approval certificate acknowledgement, helper crash, lock shutdown, Stop during pending asynchronous reads, and menu-row destruction on disable during pending reads. None of these tests locks or restarts the working desktop.
-
-See [TESTING.md](TESTING.md) for the broader validation record and [PUBLICATION.md](PUBLICATION.md) for remaining distribution work. The v0.4.5 release ZIP remains unchanged; these explanations do not mean that every remaining finding will be accepted by a reviewer.
+This report describes the analyzed v0.6.0 ZIP and historical observations.
+It is not a fresh analyzer run on v0.6.3 or current development code. Use
+[TESTING.md](TESTING.md) for current evidence and [PUBLICATION.md](PUBLICATION.md)
+for the remaining review/submission steps. Findings still require manual
+assessment for the specific package being submitted.
 
 ## D-Bus and app layout — v0.5.0
 
