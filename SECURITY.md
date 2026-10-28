@@ -85,3 +85,9 @@ capture/streaming is provided.
 [TESTING.md](TESTING.md) distinguishes current automated checks, earlier browser/native runs and physical acceptance. These are bounded regressions, not an exhaustive security audit. Sustained resource exhaustion, broader browser/IME support and real assistive-technology coverage remain open. First-use certificate verification remains a user action.
 
 Keep GNOME, GJS, GnuTLS and libsoup updated. Never post private keys, pairing links, cookies or typed text in bug reports. Report suspected authorization or credential disclosure privately to the maintainer. [PUBLICATION.md](PUBLICATION.md) tracks distribution readiness.
+
+## Optional automatic startup
+
+Both startup settings default to false. First extension activation after login can start the service; ordinary disable/re-enable does not count as another login. Unlock restart requires a separate opt-in and a service that was active (or starting) before locking. Stop, timer expiry and confirmed remote session actions leave no unlock restart request. Lock and disable cancel deferred starts and ongoing setup; callbacks recheck lock state and settings. No lock-screen service is started.
+
+Automatic startup uses the same network configuration, helper, approval and remembered-browser validation as manual startup. It never approves new browsers or displays pairing automatically. Setup failures notify locally without retrying. Successful startup applies the normal automatic stop timer.

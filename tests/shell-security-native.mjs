@@ -229,6 +229,21 @@ try {
     assert.ok(evaluate(`${base}._startAction.visible && !${base}._stopAction.visible && !${base}._disconnectAction.visible`).includes("'true'"));
     console.log('PASS: menu actions reflect stopped, pending, connected and post-lock states');
     console.log('PASS: lock mode closes certificate approval and helper, without automatic restart after unlock');
+    evaluate(`${base}._settings.set_boolean('restart-after-unlock', true)`);
+    await connect();
+    evaluate(`Main.sessionMode.pushMode('unlock-dialog'); GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+        Main.sessionMode.popMode('unlock-dialog'); return GLib.SOURCE_REMOVE;
+    }); true;`);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    await wait(`${base}._server?._state === 'listening' && typeof ${base}._url === 'string'`);
+    assert.ok(evaluate(`${base}._dialogs._pairing === null`).includes("'true'"));
+    evaluate(`${base}._stop(); Main.sessionMode.pushMode('unlock-dialog'); GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+        Main.sessionMode.popMode('unlock-dialog'); return GLib.SOURCE_REMOVE;
+    }); true;`);
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    assert.ok(evaluate(`${base}._server === null && !${base}._autoStartId`).includes("'true'"));
+    evaluate(`${base}._settings.reset('restart-after-unlock')`);
+    console.log('PASS: opt-in unlock restarts the real helper without QR; manual stop survives unlock');
     evaluate(`(()=>{
         const extension = ${base};
         global._remotePendingRead = false;

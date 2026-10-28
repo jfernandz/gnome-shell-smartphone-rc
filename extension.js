@@ -88,12 +88,46 @@ export default class SmartphoneRemoteControl extends Extension {
         this._updateServiceActions('off');
         Main.panel.addToStatusArea(this.uuid, this._indicator);
         this._lockId = Main.sessionMode.connect('updated', () => {
-            if (Main.sessionMode.isLocked)
+            if (Main.sessionMode.isLocked) {
+                this._rememberLock();
                 this._stop();
+            } else if (this._wasLocked) {
+                this._queueAutomaticStart();
+            }
+        });
+        this._queueAutomaticStart();
+    }
+
+    _rememberLock() {
+        if (!this._wasLocked) {
+            this._resumeAfterUnlock = Boolean(this._server || this._startingCancel || this._autoStartId);
+            this._wasLocked = true;
+        }
+    }
+
+    _queueAutomaticStart() {
+        if (Main.sessionMode.isLocked)
+            return;
+        const firstEnable = !this._hasEnabled;
+        const resume = this._wasLocked && this._resumeAfterUnlock;
+        this._hasEnabled = true;
+        this._wasLocked = false;
+        this._resumeAfterUnlock = false;
+        const key = firstEnable ? 'start-after-login' : resume ? 'restart-after-unlock' : null;
+        if (!key || !this._settings.get_boolean(key) || this._autoStartId)
+            return;
+        // Defer until enable() has finished; Stop/disable/lock cancels this source.
+        this._autoStartId = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._autoStartId = 0;
+            if (this._settings && !Main.sessionMode.isLocked && this._settings.get_boolean(key))
+                this._start(false);
+            return GLib.SOURCE_REMOVE;
         });
     }
 
-    async _start() {
+    async _start(showPairing = true) {
+        if (Main.sessionMode.isLocked)
+            return;
         this._stop();
         const cancellable = new Gio.Cancellable();
         this._startingCancel = cancellable;
@@ -109,7 +143,10 @@ export default class SmartphoneRemoteControl extends Extension {
             } catch (error) {
                 if (cancellable.is_cancelled()) return;
                 this._stop();
-                this._dialogs.showNetworkSetup(() => this.openPreferences(), error.message);
+                if (showPairing)
+                    this._dialogs.showNetworkSetup(() => this.openPreferences(), error.message);
+                else
+                    Main.notifyError('Smartphone Remote Control', `Automatic start failed: ${error.message} Configure Network in Settings → Service, then start manually.`);
                 return;
             }
             this._input = new RemoteInput(message => {
@@ -144,7 +181,8 @@ export default class SmartphoneRemoteControl extends Extension {
             this._pairing.visible = true;
             // Native development checks read this temporary URL through a user-only file.
             this._writeSessionFile();
-            this._dialogs.showPairing(this._url);
+            if (showPairing)
+                this._dialogs.showPairing(this._url);
         } catch (error) {
             if (starting && this._server !== starting)
                 return;
@@ -314,6 +352,10 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _stop() {
+        if (this._autoStartId) {
+            GLib.Source.remove(this._autoStartId);
+            this._autoStartId = 0;
+        }
         this._sessionActions.cancel();
         this._autoStopTimer.cancel();
         this._volume?.destroy();
@@ -358,6 +400,8 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     disable() {
+        if (Main.sessionMode.isLocked)
+            this._rememberLock();
         this._stop();
         this._sessionActions.destroy();
         this._sessionActions = null;

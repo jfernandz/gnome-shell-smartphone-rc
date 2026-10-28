@@ -69,6 +69,16 @@ app.connect('activate', () => {
                     throw Error('Automatic stop controls did not follow external settings changes');
                 stopSettings.reset('auto-stop-minutes');
                 print('PASS: automatic stop defaults, native controls and external settings synchronization');
+                for (const [key, title] of [['start-after-login', 'Start after login'], ['restart-after-unlock', 'Restart after unlock']]) {
+                    const row = widgets(securityPage).find(w => w instanceof Adw.SwitchRow && w.title === title);
+                    if (!row || row.active || stopSettings.get_boolean(key))
+                        throw Error('Automatic startup must default to off');
+                    row.active = true;
+                    if (!stopSettings.get_boolean(key)) throw Error('Startup switch did not save');
+                    stopSettings.set_boolean(key, false);
+                    if (row.active) throw Error('Startup switch did not follow external settings');
+                }
+                print('PASS: independent startup switches default off and synchronize both ways');
                 const screenshot = GLib.getenv('SMARTPHONE_RC_TEST_SCREENSHOT');
                 const delay = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
                     resolve(); return GLib.SOURCE_REMOVE;
