@@ -2,6 +2,24 @@
 
 Target GNOME Shell 51 on Wayland. Keep code, UI text, comments and documentation in English. Dependencies and user instructions are in [README.md](README.md).
 
+## Dependency policy
+
+The [README dependency table](README.md#development) is the central inventory.
+Classify a dependency by the task that needs it, not by its language or where
+it happened to be installed:
+
+- Runtime dependencies support the installed extension and are documented in
+  Install and configure. Development tools never enter the runtime manifest.
+- Shared lint/test checks run locally and in the corresponding CI jobs with
+  the same options. CI installs those tools; actionlint is treated like ESLint.
+- Browser, packaging, publication and optional review tools are installed only
+  where those tasks run. A manual review tool need not become a CI gate.
+- Use the OS package manager for system executables, npm/package-lock.json for
+  JavaScript dependencies, and a venv/requirements-review.txt for Python review
+  dependencies. Record supported/tested versions; do not add per-tool installers.
+- Every new dependency needs an entry explaining its purpose, installation and
+  CI use. A temporary diagnostic tool does not silently become a prerequisite.
+
 ## Workflow
 
 1. Make a focused change; update the runtime manifest if adding shipped files.
@@ -13,12 +31,17 @@ Target GNOME Shell 51 on Wayland. Keep code, UI text, comments and documentation
 
 ## Lint
 
+Use `bash scripts/prepare-env.sh` to check dependencies, or add `--install` to prepare them on Arch Linux. Select optional profiles as described in [README](README.md#development).
+
 Use Node.js 22.13+ on 22.x, or 24+:
 
 ```sh
 npm ci --ignore-scripts
 npm run lint
+npm run lint:actions
 ```
+
+Install system development tools, including actionlint, using the [README dependency list](README.md#development). `lint:actions` validates workflow syntax and expressions without executing jobs.
 
 Pinned ESLint dependencies are development-only. Checks cover GJS, browser and Node code with separate globals, recommended correctness rules, strict equality and implicit coercion. Warnings and unused suppression directives fail lint; no formatting preset is imposed. Lint does not replace runtime tests or [manual static-review triage](SHEXLI.md).
 

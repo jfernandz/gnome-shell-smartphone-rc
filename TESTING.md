@@ -2,6 +2,24 @@
 
 ## Current evidence
 
+**Workflow consolidation, 2026-10-28:** Working-checkout ESLint and all 105
+automated tests pass, including environment setup, release-receipt and
+release-body validation. actionlint 1.7.12
+validates both workflows. Local v0.6.3 generation passes both with its normal
+tagged tests and with imported real successful Node 22/24 evidence from the
+hosted tag CI, reusing those checks and retaining their logs. Checksums pass.
+The exact draft-release shell was exercised with a stub GitHub CLI for new,
+existing-draft and published-release cases: it preserves the prepared ZIP,
+attaches the selected material, and refuses to mutate a published release.
+Environment setup checks pass against the real base/review environment with
+the temporary actionlint binary on PATH. The normal check reports actionlint
+missing without installing it. Six hermetic tests cover check/install mode
+boundaries, selected publication packages, invalid modes, fallback fonts and
+missing npm dependencies. Install-mode commands were simulated; no system
+packages were installed by these checks.
+No remote release was modified by these shell checks. End-to-end hosted
+validation of the consolidated workflow remains pending.
+
 **v0.6.3, 2026-10-28:** Chromium remembered-browser/accessibility checks pass
 with Noto Sans, including the 320×568 viewport at 200% text that failed on
 hosted v0.6.2. The narrow portrait card now uses smaller gaps and safe top
@@ -62,32 +80,45 @@ Detailed observations, including the original compositor-crash investigation and
 
 ## Automated and browser checks
 
-GitHub Actions runs lint and the full `npm test` suite on pull requests,
-pushes to `main` (including merges), and all pushed tags. It can also be run
-manually from the Actions tab. The `CI` workflow tests Node.js 22 and 24 in
-an Arch Linux container to provide libsoup 3.8+ and the native GJS/packaging
-dependencies. Arch packages track current releases rather than a frozen
-runtime. ZIP contents and schemas are checked by the automated suite.
-Browser, isolated GNOME Shell and physical-phone checks remain separate.
-To require CI before merging, configure the two `Lint and tests (Node …)`
-checks as required status checks in the GitHub ruleset for `main` after
-the first workflow run.
+The **CI** workflow runs ESLint, actionlint and the full `npm test` suite on pull requests
+and pushes to `main`, or manually. It tests Node.js 22 and 24 in an Arch Linux
+container for libsoup 3.8+ and native GJS/packaging dependencies. Packages track
+current Arch releases. ZIP contents and schemas are checked by the suite;
+these test-only ZIPs are not release artifacts. Configure the two
+`Lint and tests (Node …)` checks as required status checks for `main` if needed.
 
-The Node.js 24 job also builds a ZIP, available as the
-`smartphone-rc-package` workflow artifact for 14 days (including PR runs).
-After both Node.js jobs pass, a pushed `v*` tag creates a GitHub Release
-in draft with that ZIP and automatically generated release notes. The tag
-must equal `v` followed by the version in both `metadata.json` and
-`package.json`, for example `v0.6.0`. Other tags only run CI.
-Re-running the tag workflow refreshes the ZIP of an existing draft; it
-refuses to change a published release. Review and publish the draft manually
-when ready. This workflow does not submit to extensions.gnome.org.
+Version tags (`vX.Y.Z`) use one **Release preparation** chain instead of
+triggering CI as well:
+
+1. Resolve the exact tag commit and verify metadata/package versions.
+2. Run lint and automated tests on Node 22 and 24, recording the commit,
+   versions, successful checks and logs as workflow artifacts.
+3. Validate both receipts against the archived tag, build one release ZIP,
+   verify its manifest/source bytes, and run the Chromium checks and captures.
+   The generator reuses those test results rather than running the suite again.
+4. Verify all checksums and attach that same ZIP, selected screenshots, PNG
+   icon, release notes, checksums and a complete publication-materials archive
+   to a GitHub draft release. Its body includes the complete tagged changelog
+   section plus a linked tag comparison; refreshing a draft updates that body.
+   No independent release ZIP is rebuilt.
+
+Preparation artifacts are retained for 30 days. The receipts come from this
+workflow's successful matrix jobs; `--checks-from` is not an independent
+signature or a substitute for trusted CI. Missing, failed or stale evidence
+blocks preparation. The release job refuses to modify a published release.
+A manual **Release preparation** run accepts an existing tag and performs the
+same checks and generation, but skips the draft-release job. Other tag names
+do not trigger workflows. Review and publish drafts manually; these workflows
+never submit to extensions.gnome.org. Browser startup diagnostics are retained
+under logs/, with a container-only Chromium wrapper. Native Shell and physical
+phone acceptance remain separate.
 
 From the repository root, use the dependencies in [README.md](README.md#development):
 
 ```sh
 npm ci --ignore-scripts
 npm run lint
+npm run lint:actions
 npm test
 ```
 

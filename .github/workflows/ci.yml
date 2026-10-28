@@ -28,7 +28,7 @@ jobs:
       - name: Install native test dependencies
         run: >-
           pacman -Syu --noconfirm --needed
-          git gjs libsoup3 glib2 glib-networking gnome-shell
+          git actionlint gjs libsoup3 glib2 glib-networking gnome-shell
           openssl iproute2 util-linux unzip
       - uses: actions/checkout@v7
         with:
@@ -39,6 +39,8 @@ jobs:
           cache: npm
       - name: Install JavaScript dependencies
         run: npm ci --ignore-scripts
+      - name: Lint workflows
+        run: npm run lint:actions
       - name: Lint
         run: npm run lint
       - name: Run automated tests (including ZIP validation)

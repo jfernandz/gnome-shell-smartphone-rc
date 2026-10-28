@@ -7,7 +7,8 @@
     "test:browser": "node tests/cookie-browser.mjs",
     "test:trusted-browser": "node tests/cookie-browser.mjs --trusted",
     "lint": "eslint . --max-warnings 0",
-    "test:accessibility": "node tests/cookie-browser.mjs --trusted --helper --accessibility"
+    "test:accessibility": "node tests/cookie-browser.mjs --trusted --helper --accessibility",
+    "lint:actions": "actionlint -shellcheck= -pyflakes="
   },
   "version": "0.6.3",
   "devDependencies": {

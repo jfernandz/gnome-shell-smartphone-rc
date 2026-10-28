@@ -4,6 +4,7 @@ Run from the repository root. Development scripts and backups are excluded from 
 
 | Command | Purpose |
 | --- | --- |
+| `bash scripts/prepare-env.sh [--install] [--browser] [--publication] [--native] [--review] [--all]` | Check selected development dependencies; explicitly install them with pacman/npm/venv when --install is supplied. |
 | `bash scripts/install.sh` | Install source runtime files and compile schemas for the next login. |
 | `node scripts/prepare-publication.mjs vX.Y.Z [new-output-directory]` | Prepare tagged ZIP, checks, synthetic mobile screenshots, icon, notes and publication evidence; defaults to dist/publication-vX.Y.Z. |
 | `bash scripts/package.sh [output-directory]` | Build the versioned ZIP; defaults to dist/. Use another directory to preserve released artifacts. |
@@ -11,6 +12,42 @@ Run from the repository root. Development scripts and backups are excluded from 
 | `bash scripts/prepare-zip-install.sh [zip-path]` | Select an existing ZIP and print a reusable install/reload command. Without a path, select the most recently modified ZIP under dist/, including review/. |
 
 Installation and packaging share the runtime manifest through `lib/stage.sh` and `lib/runtime-files.js`. The internal `prepare-reload.sh --build-only` interface stages a snapshot and prints its path.
+
+## Prepare the development environment
+
+```sh
+bash scripts/prepare-env.sh
+bash scripts/prepare-env.sh --install
+bash scripts/prepare-env.sh --install --publication
+```
+
+One script covers all dependency groups from the [README](../README.md#development):
+
+| Profile | Adds to the base JavaScript/native-test and workflow-lint tools |
+| --- | --- |
+| `--browser` | Chromium, Noto Sans fonts and fontconfig. Respects SMARTPHONE_RC_CHROMIUM_BIN. |
+| `--publication` | Browser tools, ImageMagick, GitHub CLI and Python. |
+| `--native` | Python, isolated D-Bus session tools, FUSE cleanup and which. |
+| `--review` | Python/pip and the pinned optional review packages in .venv. |
+| `--all` | Every profile above. |
+
+Default/`--check` is read-only apart from normal tool diagnostics: it checks
+executables, supported Node, GNOME Shell 51, libsoup 3.8+, GIO TLS, GTK 4,
+libadwaita and npm dependency availability. Browser profiles additionally
+check that Noto Sans resolves without a fallback; review checks compare the
+venv's package versions with requirements-review.txt. Failures exit nonzero.
+
+`--install` uses pacman with its normal confirmation prompt, then npm ci with
+lifecycle scripts disabled. For `--review`, it creates .venv only if needed
+and installs the existing pinned requirements there. It does not install pip
+packages globally. Only system package installation invokes sudo as needed;
+run this script without sudo to keep project files owned by your user.
+
+Check mode can be used on other Linux distributions with the required tools;
+automatic system installation currently supports pacman. The script neither
+installs/reloads the extension nor starts native tests or GitHub authentication.
+CI still declares its packages directly because its bootstrap happens before
+the checkout, and release checks also support older tags without this script.
 
 ## Reload source
 

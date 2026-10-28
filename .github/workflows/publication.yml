@@ -62,7 +62,7 @@ jobs:
       - name: Install native test dependencies
         run: >-
           pacman -Syu --noconfirm --needed
-          git gjs libsoup3 glib2 glib-networking gnome-shell
+          git actionlint gjs libsoup3 glib2 glib-networking gnome-shell
           openssl iproute2 util-linux unzip
       - uses: actions/checkout@v7
         with:
@@ -80,7 +80,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir checks
-          npm run lint 2>&1 | tee checks/lint.txt
+          # Same options as lint:actions; older tags may not have the npm alias.
+          actionlint -shellcheck= -pyflakes= 2>&1 | tee checks/lint.txt
+          npm run lint 2>&1 | tee -a checks/lint.txt
           npm test 2>&1 | tee checks/automated-tests.txt
           node --input-type=module <<'JS'
           import {writeFileSync} from 'node:fs';
