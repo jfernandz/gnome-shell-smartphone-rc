@@ -58,7 +58,7 @@ export class RemoteDialogs {
         this.closeCertificate();
         this._certificate = new ModalDialog.ModalDialog();
         this._certificate.contentLayout.add_child(new St.Label({text: 'Configure local networking'}));
-        const label = new St.Label({text: 'Open Settings → Network to choose the PC address\nand create its local certificate, then press Start again.'});
+        const label = new St.Label({text: 'Open Settings → Service → Network to choose the PC address\nand create its local certificate, then press Start again.'});
         this._certificate.contentLayout.add_child(label);
         console.info(`Smartphone Remote Control: network setup required: ${reason}`);
         this._certificate.setButtons([

@@ -7,13 +7,13 @@ import {createSecurityGroup} from '../preferences/security.js';
 import {readNetworkConfig} from '../network-config.js';
 if (!GLib.getenv('SMARTPHONE_RC_NETWORK_TEST')) throw Error('Use a temporary XDG_CONFIG_HOME and set SMARTPHONE_RC_NETWORK_TEST=1.');
 Adw.init();
-const page = new Adw.PreferencesPage({name: 'network', title: 'Network'});
+const page = new Adw.PreferencesPage({name: 'service', title: 'Service'});
 const securityPage = new Adw.PreferencesPage({name: 'security', title: 'Security'});
 const window = new Adw.PreferencesWindow();
 window.add(page);
 window.add(securityPage);
 const security = createSecurityGroup(new Gio.Settings({schema_id: 'org.gnome.shell.extensions.smartphone-rc'}), () => {
-    window.set_visible_page_name('network');
+    window.set_visible_page_name('service');
     network.focusAddress();
 });
 securityPage.add(security.certificateGroup);
@@ -70,8 +70,8 @@ try {
     window.set_visible_page_name('security');
     widgets(securityPage).find(w => w instanceof Adw.ButtonRow && w.title === 'Renew certificate…').emit('activated');
     await delay();
-    if (window.get_visible_page_name() !== 'network' || !window.get_focus()?.is_ancestor(page))
-        throw Error('Renew certificate must open Network and focus its address');
+    if (window.get_visible_page_name() !== 'service' || !window.get_focus()?.is_ancestor(page))
+        throw Error('Renew certificate must open Service and focus its address');
     if ((await readNetworkConfig()).fingerprint !== renewed.fingerprint)
         throw Error('Opening renewal generated a certificate before Apply');
     widgets(page).find(w => w instanceof Adw.EntryRow).text = '8.8.8.8';

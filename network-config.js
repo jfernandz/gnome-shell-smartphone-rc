@@ -27,7 +27,7 @@ export async function readNetworkConfig(directory = configDirectory(), cancellab
     const config = JSON.parse(await readText(`${directory}/network.json`, cancellable));
     const {address, port = 8844, credentials} = config;
     if (!isPrivateIPv4(address) || !Number.isInteger(port) || port < 1024 || port > 65535)
-        throw new Error('Choose a private LAN IPv4 address and a port between 1024 and 65535 in Settings → Network.');
+        throw new Error('Choose a private LAN IPv4 address and a port between 1024 and 65535 in Settings → Service → Network.');
     if (credentials !== undefined && !/^tls-[a-f0-9-]{36}$/.test(credentials))
         throw new Error('Invalid certificate configuration. Configure networking again in Settings.');
     const base = credentials ? `${directory}/${credentials}` : directory;

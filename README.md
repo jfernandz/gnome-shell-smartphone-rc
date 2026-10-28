@@ -34,9 +34,9 @@ Log out and back in, then enable if needed:
 gnome-extensions enable smartphone-rc@jfaparicio.github.io
 ```
 
-In **Settings → Network**, choose an active private IPv4 address and port (default **8844**), then press **Apply**. This creates a private key and 90-day self-signed certificate under `$XDG_CONFIG_HOME/smartphone-rc/` (normally `~/.config/smartphone-rc/`). It neither starts control nor changes the firewall. Failed or cancelled setup preserves the previous configuration.
+In **Settings → Service → Network**, choose an active private IPv4 address and port (default **8844**), then press **Apply**. This creates a private key and 90-day self-signed certificate under `$XDG_CONFIG_HOME/smartphone-rc/` (normally `~/.config/smartphone-rc/`). It neither starts control nor changes the firewall. Failed or cancelled setup preserves the previous configuration.
 
-**Settings → Security** shows the certificate fingerprint and expiry. **Renew certificate…** opens Network; renewal occurs only after Apply. If the address changes or the certificate expires, stop control, configure again and restart.
+**Settings → Security** shows the certificate fingerprint and expiry. **Renew certificate…** opens Service; renewal occurs only after Apply. If the address changes or the certificate expires, stop control, configure again and restart.
 
 For development updates without logging out, see the [source and ZIP reload workflows](scripts/README.md). Both stop existing remote connections.
 
@@ -71,7 +71,7 @@ These actions never unlock, wake the PC or restart control automatically.
 
 ## Automatic stop
 
-In **Settings → Security → Automatic stop**, enable the timer and choose
+In **Settings → Service → Automatic stop**, enable the timer and choose
 1–1440 minutes (default 30). The PC stays on. Settings apply at the next
 successful service start.
 
@@ -81,8 +81,16 @@ time and offers **Add 15 minutes** (up to 24 hours remaining) or **Cancel
 automatic stop** for this run. Cancelling does not change the next-start setting.
 
 Expiry performs the normal **Stop** cleanup, disconnects browsers and revokes
-temporary approval. Remembered trust is preserved. Starting control again is
-always a local action.
+temporary approval. Remembered trust is preserved. Starting control again requires a local action or the configured automatic start described below.
+
+## Automatic start
+
+In **Settings → Service → Automatic start**, two independent options are off by default:
+
+- **Start after login:** starts on the first extension activation in the session, including enabling the extension manually.
+- **Restart after unlock:** restarts only if control was active before locking. Manual Stop, timer expiry and remote **Lock PC**/**Suspend PC** leave it off.
+
+Automatic starts do not open the QR dialog. Reopen the plain PC address in a remembered browser; new browsers still need pairing and approval. Configure Network in Service first. Setup failures produce a desktop notification without retrying. Each successful start uses the configured automatic stop timer.
 
 ## Reconnect and remembered browsers
 
@@ -94,12 +102,12 @@ Temporary approval can recover across tabs/browser restarts for 30 minutes of in
 
 **Disconnect phone** preserves remembered trust. **Settings → Devices → Forget** revokes it and immediately disconnects that browser; **Forget all** revokes every browser. Names are labels, not identity checks.
 
-After lock, login or service restart, start control manually and reopen the plain PC address on the phone. There is no automatic startup, remote unlock or login-screen control. Anyone with access to an authorized browser can control the unlocked desktop while the service runs.
+After lock, login or service restart, reopen the plain PC address on the phone once control is running. Start it manually unless automatic start is enabled. Remote unlock and login-screen control are unavailable. Anyone with access to an authorized browser can control the unlocked desktop while the service runs.
 
 ## Troubleshooting and limits
 
 - **Page unavailable:** check the selected address, network isolation and firewall access to the configured TCP port. The extension does not configure firewall/router rules or listen on all interfaces.
-- **Port occupied or certificate expired:** stop control, review Network settings, Apply and restart.
+- **Port occupied or certificate expired:** stop control, review Service → Network settings, Apply and restart.
 - **Missing tools:** install the dependencies listed above; Network reports OpenSSL/iproute2 errors and startup requires `prlimit`.
 - **Connect disabled:** an unapproved browser needs a fresh QR. Browser profiles and embedded Lens windows may use separate cookie stores.
 - **Typing:** compatibility depends on the application, input method and layout. Dragging, modifier shortcuts and bidirectional cursor synchronization are unsupported. The editor is limited to 65,536 UTF-16 units.

@@ -6,7 +6,7 @@ try {
     await service.start();
     throw Error('Occupied port was accepted');
 } catch (error) {
-    if (!error.message.includes(`Port ${options.port} is already in use`) || !error.message.includes('Settings → Network'))
+    if (!error.message.includes(`Port ${options.port} is already in use`) || !error.message.includes('Settings → Service → Network'))
         throw error;
 }
 if (service._process !== null || service._peer !== null || service._startup !== 0 || service._state !== 'off')

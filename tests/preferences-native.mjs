@@ -38,7 +38,7 @@ app.connect('activate', () => {
             try {
                 if (scheme && Adw.StyleManager.get_default().dark !== (scheme === 'dark'))
                     throw Error('Requested native color scheme was not applied');
-                const expectedPages = ['network', 'pointer', 'security', 'devices', 'about'];
+                const expectedPages = ['service', 'pointer', 'security', 'devices', 'about'];
                 const pages = widgets(window).filter(widget => widget instanceof Adw.PreferencesPage && expectedPages.includes(widget.name));
                 if (pages.map(page => page.name).join(',') !== expectedPages.join(','))
                     throw Error(`Settings pages are missing or out of order: ${pages.map(page => page.name)}`);
@@ -47,15 +47,15 @@ app.connect('activate', () => {
                     if (window.get_visible_page() !== page || !page.title || !page.icon_name)
                         throw Error('Settings page navigation failed');
                 }
-                const networkPage = pages.find(page => page.name === 'network');
+                const servicePage = pages.find(page => page.name === 'service');
                 const securityPage = pages.find(page => page.name === 'security');
                 for (const title of ['Certificate SHA-256', 'Certificate expires', 'Verify the PC certificate before approval']) {
-                    if (widgets(networkPage).some(widget => widget instanceof Adw.ActionRow && widget.title === title) ||
+                    if (widgets(servicePage).some(widget => widget instanceof Adw.ActionRow && widget.title === title) ||
                         !widgets(securityPage).some(widget => widget instanceof Adw.ActionRow && widget.title === title))
                         throw Error('Certificate details must appear only on the Security page');
                 }
-                const autoStop = widgets(securityPage).find(w => w instanceof Adw.SwitchRow && w.title === 'Stop remote control automatically');
-                const stopDuration = widgets(securityPage).find(w => w instanceof Adw.SpinRow && w.title === 'Duration (minutes)');
+                const autoStop = widgets(servicePage).find(w => w instanceof Adw.SwitchRow && w.title === 'Stop remote control automatically');
+                const stopDuration = widgets(servicePage).find(w => w instanceof Adw.SpinRow && w.title === 'Duration (minutes)');
                 if (!autoStop || !stopDuration || autoStop.active || stopDuration.value !== 30 || stopDuration.sensitive)
                     throw Error('Automatic stop must default to off with a disabled 30-minute duration');
                 autoStop.active = true;
@@ -70,7 +70,7 @@ app.connect('activate', () => {
                 stopSettings.reset('auto-stop-minutes');
                 print('PASS: automatic stop defaults, native controls and external settings synchronization');
                 for (const [key, title] of [['start-after-login', 'Start after login'], ['restart-after-unlock', 'Restart after unlock']]) {
-                    const row = widgets(securityPage).find(w => w instanceof Adw.SwitchRow && w.title === title);
+                    const row = widgets(servicePage).find(w => w instanceof Adw.SwitchRow && w.title === title);
                     if (!row || row.active || stopSettings.get_boolean(key))
                         throw Error('Automatic startup must default to off');
                     row.active = true;
@@ -99,7 +99,7 @@ app.connect('activate', () => {
                     if (screenshot)
                         capture(screenshot.replace(/\.png$/, `-${name}.png`));
                 }
-                window.set_visible_page_name('network');
+                window.set_visible_page_name('service');
                 await delay();
                 if (screenshot) {
                     capture(screenshot);
@@ -139,8 +139,8 @@ app.connect('activate', () => {
                 window.set_visible_page_name('security');
                 all.find(widget => widget instanceof Adw.ButtonRow && widget.title === 'Renew certificate…').emit('activated');
                 await delay();
-                if (window.get_visible_page_name() !== 'network' || !window.get_focus()?.is_ancestor(networkPage))
-                    throw Error('Certificate renewal must navigate to Network and focus the address');
+                if (window.get_visible_page_name() !== 'service' || !window.get_focus()?.is_ancestor(servicePage))
+                    throw Error('Certificate renewal must navigate to Service and focus the address');
                 window.set_visible_page_name('security');
                 const duration = all.find(w => w instanceof Adw.ComboRow && w.title === 'Remember new browsers for');
                 if (!duration) throw Error('Trust duration setting missing');
