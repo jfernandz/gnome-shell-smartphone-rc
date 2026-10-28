@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 — 2026-10-29
+
+- Group Network, Automatic start and Automatic stop under Service; keep certificates and browser authorization in Security. Adapt the initial settings window to the monitor size and scaling, with a taller layout on larger screens.
+
+- Add independent, default-off startup after login and restart after unlock settings. Unlock restart requires control to have been active before locking; Stop, timer expiry and remote lock/suspend leave it off.
+- Start automatically without opening pairing dialogs, preserve approval/trust boundaries and report configuration failures without retrying.
+
 ## 0.8.0 — 2026-10-28
 
 - Add confirmed Lock PC and Suspend PC controls. Discard pending phone input, stop/revoke temporary control, then lock; suspension respects GNOME/logind availability, authorization and inhibitors. Resume/unlock requires local service reactivation.
