@@ -87,6 +87,12 @@ Review the generated text and images before uploading them.
 The **Publication preparation** GitHub Actions workflow also runs on pushed
 `v*` tags, or manually with an existing version tag. It uses current tooling
 from the default branch and archives the selected release tag, then retains
-the bundle for 30 days. Chromium runs as an unprivileged user in its container.
-Hosted execution remains pending until this workflow is committed and run.
+the bundle for 30 days. Chromium runs as an unprivileged user in its disposable
+container. Only that CI wrapper supplies `--no-sandbox` to avoid requiring
+host namespace privileges; local invocations keep Chromium's
+default sandbox. The wrapper also retains browser stderr in
+`logs/chromium-startup.txt`, including when running an older tag's harness.
+Failed steps print the tail of their logs to the Actions console.
+The first hosted run reached browser startup but timed out before DevTools;
+the container-browser correction still requires a hosted rerun.
 The separate CI workflow continues to create GitHub draft releases.

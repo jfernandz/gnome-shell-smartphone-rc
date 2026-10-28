@@ -84,17 +84,31 @@ try {
     let debugOrigin;
     async function launchBrowser() {
         let browserUrl;
+        let startupError = null;
+        let startupStderr = '';
         browser = spawn(process.env.SMARTPHONE_RC_CHROMIUM_BIN ?? 'chromium', [
             '--headless', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
             `--ignore-certificate-errors-spki-list=${pin}`, `--user-data-dir=${directory}/profile`,
             '--remote-debugging-port=0', 'about:blank',
         ], {stdio: ['ignore', 'ignore', 'pipe']});
         children.push(browser);
+        browser.once('error', error => startupError = error);
+        browser.once('exit', (code, signal) => {
+            startupError = new Error(`Chromium exited before debugging connected (code=${code}, signal=${signal}).`);
+        });
         browser.stderr.on('data', data => {
+            startupStderr = (startupStderr + data.toString()).slice(-16384);
             const match = data.toString().match(/DevTools listening on (ws:\/\/[^\s]+)/);
             if (match) browserUrl = match[1];
         });
-        await waitFor(() => browserUrl);
+        try {
+            await waitFor(() => {
+                if (startupError) throw startupError;
+                return browserUrl;
+            });
+        } catch (error) {
+            throw new Error(`Chromium startup failed: ${error.message}\n${startupStderr}`, {cause: error});
+        }
         control = await debuggerConnection(browserUrl);
         debugOrigin = browserUrl.replace(/^ws:/, 'http:').split('/devtools/')[0];
     }

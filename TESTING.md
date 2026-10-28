@@ -2,6 +2,15 @@
 
 ## Current evidence
 
+**Publication CI follow-up, 2026-10-28:** The first hosted v0.6.2 preparation
+passed automated tests, packaging and ZIP validation, but Chromium never
+exposed DevTools. The retained log showed a startup timeout; the old harness
+did not retain browser stderr, so it does not establish the exact launch error.
+The CI wrapper now uses a container-only `--no-sandbox` invocation and retains
+startup stderr. Local Chromium checks pass with default sandbox settings;
+a synthetic exit-42 browser fixture verifies immediate exit/stderr reporting.
+Hosted validation of the correction remains pending.
+
 **v0.6.1, 2026-10-28:** The Controls-panel revision passes ESLint, all
 93 automated tests and Chromium remembered-browser/accessibility checks
 through the real D-Bus helper.

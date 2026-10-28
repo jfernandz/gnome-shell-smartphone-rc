@@ -33,8 +33,13 @@ function run(label, command, args, options = {}) {
         closeSync(descriptor);
     }
     checks.push({name: label, passed: result.status === 0 && !result.error});
-    if (result.status !== 0 || result.error)
+    if (result.status !== 0 || result.error) {
+        console.error(readFileSync(log, 'utf8').split('\n').slice(-80).join('\n'));
+        const browserLog = process.env.SMARTPHONE_RC_CHROMIUM_LOG;
+        if (label === 'browser-accessibility' && browserLog && existsSync(browserLog))
+            console.error(readFileSync(browserLog, 'utf8').split('\n').slice(-80).join('\n'));
         throw new Error(`${label} failed (${result.error?.message ?? result.status}); see ${log}`);
+    }
 }
 try {
     mkdirSync(source);

@@ -36,6 +36,17 @@ jobs:
         run: |
           useradd --create-home publication
           chown -R publication:publication "$GITHUB_WORKSPACE"
+          # Allow Chromium in the disposable container without host namespace privileges.
+          # Keep this exception in CI; tagged source and local browser defaults stay intact.
+          install -d -o publication -g publication /tmp/publication-browser
+          cat > /tmp/publication-browser/chromium <<'BROWSER'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          exec /usr/bin/chromium --no-sandbox "$@" 2> >(tee -a "$SMARTPHONE_RC_CHROMIUM_LOG" >&2)
+          BROWSER
+          chmod 755 /tmp/publication-browser/chromium
+          export SMARTPHONE_RC_CHROMIUM_BIN=/tmp/publication-browser/chromium
+          export SMARTPHONE_RC_CHROMIUM_LOG="$GITHUB_WORKSPACE/dist/publication/logs/chromium-startup.txt"
           runuser -u publication -- node scripts/prepare-publication.mjs "$PUBLICATION_TAG" dist/publication
       - name: Upload preparation bundle
         if: always()

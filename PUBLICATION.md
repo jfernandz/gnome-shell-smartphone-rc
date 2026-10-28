@@ -9,7 +9,7 @@ The earlier v0.6.0 preparation recorded no EGO submission. External submission/r
 
 Prepare the current release with `node scripts/prepare-publication.mjs v0.6.2`; its generated report is `dist/publication-v0.6.2/REVIEW.md`.
 
-A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its hosted execution is pending; it never submits to EGO or publishes a release.
+A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its first hosted v0.6.2 run passed automated tests and ZIP checks, then failed during Chromium startup before browser checks; the CI-only browser-wrapper correction awaits hosted verification. It never submits to EGO or publishes a release.
 
 ## In place
 

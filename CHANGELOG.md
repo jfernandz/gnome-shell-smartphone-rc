@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Launch the publication browser with a CI-only container wrapper and retain Chromium startup stderr, including when preparing an older tag.
+- Print failing publication logs in Actions and report Chromium early-exit codes and stderr directly from the browser harness.
+
 ## 0.6.2 — 2026-10-28
 
 - Add a publication-preparation command that archives an exact version tag, runs its automated and browser checks, verifies the packaged files against the tagged source, and generates screenshots, a PNG icon, release notes, listing text and evidence with checksums.
