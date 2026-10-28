@@ -19,7 +19,7 @@ body.typing .hint, body.typing #touchpad span { display: none; }
 #controls { position: fixed; top: calc(var(--app-top, 0px) + 60px + env(safe-area-inset-top, 0px)); bottom: auto; margin: 0 auto; width: min(480px, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); padding: 20px; border: 1px solid #666; border-radius: 20px; background: #202020; color: inherit; }
 #controls:popover-open { display: grid; gap: 20px; }
 #controls::backdrop { background: #0006; }
-nav, .volume-controls { display: flex; gap: 12px; flex-wrap: wrap; }
+nav, .volume-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 nav button { flex: 1 1 auto; }
 .pointer-settings div, .volume-heading { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: #bbb; flex-wrap: wrap; }
 input[type="range"] { display: block; padding: 0; border: 0; min-height: 44px; background: transparent; accent-color: #6bba83; }
@@ -47,5 +47,5 @@ input[type="range"] { display: block; padding: 0; border: 0; min-height: 44px; b
 /* Tall font metrics can otherwise push the card below a narrow viewport. */
 @media (max-width: 360px) and (orientation: portrait) {
     #controls { top: calc(var(--app-top, 0px) + max(8px, env(safe-area-inset-top, 0px))); padding: 16px; }
-    #controls:popover-open { gap: 12px; }
+    #controls:popover-open { gap: 8px; }
 }

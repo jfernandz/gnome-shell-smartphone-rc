@@ -153,6 +153,58 @@ try {
     evaluate(`${base}._settings.reset('auto-stop-enabled'); ${base}._settings.reset('auto-stop-minutes')`);
     console.log('PASS: automatic stop starts once, extends/cancels locally, fully stops connected control and does not restart');
 
+    // Inject the session backend in this isolated Shell. Never invoke screenShield
+    // or logind here: neither the real desktop nor the host may lock/suspend.
+    for (const action of ['lock', 'suspend']) {
+        await connect();
+        evaluate(`${base}._approveRequest(false)`);
+        await wait(`${base}._dialogs._verification !== null`);
+        evaluate(`(()=>{
+            const dialog = ${base}._dialogs._verification;
+            dialog.contentLayout.get_children().find(actor => actor.toggle_mode).checked = true;
+            dialog.buttonLayout.get_last_child().emit('clicked', 1);
+            return true;
+        })()`);
+        await wait(`${base}._server?._state === 'connected'`);
+        evaluate(`(()=>{
+            const extension = ${base};
+            const actions = extension._sessionActions;
+            global._sessionBackend = {canLock: actions._canLock, lock: actions._lock, isLocked: actions._isLocked, call: actions._call, notify: actions._notify};
+            global._sessionCalls = [];
+            global._sessionError = null;
+            actions._canLock = () => true;
+            actions._lock = () => {
+                if (extension._server || extension._input || extension._focus || extension._volume || extension._autoStopTimer._source)
+                    throw Error('Session lock happened before Stop cleanup');
+                global._sessionCalls.push('lock');
+            };
+            actions._isLocked = () => global._sessionCalls.includes('lock');
+            actions._notify = message => global._sessionError = message;
+            actions._call = async (_bus, method, _signature, args) => {
+                global._sessionCalls.push(method);
+                if (method === 'SuspendWithFlags' && args[0] !== 1) throw Error('Unsafe suspend flags');
+                return {CanSuspend: ['yes'], ListInhibitors: [[]], IsInhibited: [false], SuspendWithFlags: []}[method];
+            };
+            extension._autoStopTimer.start(1);
+            extension._handleInput({type: 'session-action', action: '${action}'});
+            return true;
+        })()`);
+        await wait(`global._sessionCalls.includes('${action === 'lock' ? 'lock' : 'SuspendWithFlags'}')`);
+        assert.ok(evaluate(`${base}._server === null && ${base}._input === null && global._sessionError === null`).includes("'true'"));
+        evaluate(`(()=>{
+            const actions = ${base}._sessionActions;
+            actions._canLock = global._sessionBackend.canLock;
+            actions._lock = global._sessionBackend.lock;
+            actions._isLocked = global._sessionBackend.isLocked;
+            actions._call = global._sessionBackend.call;
+            actions._notify = global._sessionBackend.notify;
+            return true;
+        })()`);
+        socket.destroy();
+    }
+    console.log('PASS: approved session actions stop real helper/input/timer before the injected lock/suspend backend');
+
+
 
     await connect();
     evaluate(`${base}._approveRequest(false)`);

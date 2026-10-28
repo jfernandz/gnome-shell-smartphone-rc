@@ -7,6 +7,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 import {trustDurationDays, sensitivityRange, autoStopMinutes, AUTO_STOP} from './settings.js';
 import {AutoStopTimer, formatRemaining} from './auto-stop.js';
+import {SessionActions} from './session-actions.js';
+import * as SystemActions from 'resource:///org/gnome/shell/misc/systemActions.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {RemoteDialogs} from './dialogs.js';
 
@@ -26,6 +28,13 @@ export default class SmartphoneRemoteControl extends Extension {
         this._volume = null;
         this._focus = null;
         this._dialogs = new RemoteDialogs();
+        this._sessionActions = new SessionActions({
+            stop: () => this._stop(),
+            canLock: () => SystemActions.getDefault().canLockScreen && !Main.sessionMode.isLocked,
+            lock: () => Main.screenShield.lock(false),
+            isLocked: () => Main.screenShield.locked,
+            notify: message => Main.notifyError('Smartphone Remote Control', message),
+        });
         this._indicator = new PanelMenu.Button(0.0, 'Smartphone Remote Control');
         this._indicator.add_child(new St.Icon({
             gicon: new Gio.FileIcon({file: this.dir.get_child('icons/remote-touchpad-symbolic.svg')}),
@@ -279,6 +288,11 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _handleInput(input) {
+        if (input.type === 'session-action') {
+            if (this._server?._state === 'connected')
+                this._sessionActions.request(input.action);
+            return;
+        }
         if (input.type === 'volume' || input.type === 'mute') {
             this._volume?.handle(input);
             return;
@@ -300,6 +314,7 @@ export default class SmartphoneRemoteControl extends Extension {
     }
 
     _stop() {
+        this._sessionActions.cancel();
         this._autoStopTimer.cancel();
         this._volume?.destroy();
         this._volume = null;
@@ -344,6 +359,8 @@ export default class SmartphoneRemoteControl extends Extension {
 
     disable() {
         this._stop();
+        this._sessionActions.destroy();
+        this._sessionActions = null;
         this._autoStopTimer.destroy();
         this._autoStopTimer = null;
         this._settings.disconnect(this._settingsId);

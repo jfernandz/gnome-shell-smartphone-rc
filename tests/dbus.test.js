@@ -9,7 +9,7 @@ for (const mode of ['typed', 'wrong-parent', 'size', 'rate', 'queue']) {
     });
 }
 
-for (const mode of ['cancel', 'early-state', 'invalid-input']) {
+for (const mode of ['cancel', 'early-state', 'invalid-input', 'invalid-session-action']) {
     test(`service D-Bus boundary: ${mode}`, async t => {
         const {mkdtempSync, writeFileSync, rmSync} = await import('node:fs');
         const {tmpdir} = await import('node:os');
@@ -27,7 +27,7 @@ const peer = new DBusPeer(connection, 'service', command => {
         peer.send({type:'state',state:'listening',peer:null,browserName:null});
         peer.send({type:'started',url:'http://127.0.0.1:12345/#'+'ab'.repeat(32),fingerprint:null});
         peer.send({type:'state',state:'connected',peer:'127.0.0.1',browserName:null});
-        peer.send({type:'input',input:{type:'move',dx:501,dy:0}});
+        peer.send(${mode === 'invalid-session-action' ? "{type:'input',input:{type:'session-action',action:'reboot'}}" : "{type:'input',input:{type:'move',dx:501,dy:0}}"});
     }
 }, () => loop.quit());
 connection.start_message_processing();

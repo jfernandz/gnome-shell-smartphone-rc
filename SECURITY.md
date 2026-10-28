@@ -35,6 +35,30 @@ Network limits include:
 
 D-Bus application-size checks occur **after** native GDBus reception/deserialization. They are not pre-allocation byte caps. UID/PID checks restrict the private endpoint but do not sandbox compromised same-user code or prove native-parser denial-of-service resilience. Binding a private address also does not prevent separately configured router/VPN forwarding or replace firewall policy.
 
+## Remote session actions
+
+Only an approved, non-suspended connection may send the bounded
+`session-action` request (`lock` or `suspend`), validated in the network child
+and again in Shell. The phone confirms, discards pending input and disables
+recovery; the child ignores later input/resume packets after accepting the
+terminal request. Shell executes Stop before session checks or locking.
+Remembered trust retains the normal Stop semantics; local restart is required.
+
+Lock follows GNOME lock availability/lockdown and verifies the shield is
+locked. Suspension requires CanSuspend=yes, no GNOME suspend inhibitor and
+no logind sleep block/block-weak inhibitor. It locks first, then calls
+SuspendWithFlags(1), enforcing inhibitors without skip-inhibitor or interactive
+authentication flags. Unsupported systems, authorization requirements, failed
+locks and denied calls leave control stopped and notify the PC. See the
+[logind interface](https://www.freedesktop.org/software/systemd/man/latest/org.freedesktop.login1.html).
+
+Stop, a new local Start or disable cancels asynchronous preflight, preventing
+stale checks from locking a later session. Immediately before intentional
+locking, the action commits: the lock-triggered extension disable must not
+cancel the already confirmed, bounded system request. No input or service
+resources survive; no application timer/signal waits for resume or restarts
+control. Requests have ten-second D-Bus call deadlines.
+
 ## Automatic stop
 
 The optional timer is owned by Shell and starts after successful service

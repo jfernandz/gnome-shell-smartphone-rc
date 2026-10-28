@@ -1,19 +1,20 @@
 # Publication readiness
 
-Latest version: **v0.7.0**, adding the optional automatic stop timer. Its
-pre-release source passed automated and isolated native checks; the user
-reports the feature works. The consolidated release workflow awaits hosted
-validation. Earlier hosted evidence is in the [v0.6.3 report](docs/publication-review-v0.6.3.md).
+Latest version: **v0.8.0**, adding confirmed remote lock and suspend actions.
+Automated/browser and isolated native checks pass with injected power/lock
+backends; the user reports the features work. The consolidated workflow
+[passed for v0.7.0](https://github.com/jfernandz/gnome-shell-smartphone-rc/actions/runs/40767357581);
+v0.8.0 still needs its hosted run. Earlier evidence is in the [v0.6.3 report](docs/publication-review-v0.6.3.md).
 Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
 
 ## Prepare and retrieve artifacts
 
 ```sh
 bash scripts/prepare-env.sh --install --publication
-node scripts/prepare-publication.mjs v0.7.0
+node scripts/prepare-publication.mjs v0.8.0
 ```
 
-The default output is dist/publication-v0.7.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
+The default output is dist/publication-v0.8.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
 
 On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach only the installable ZIP and publication ZIP to a **draft** under Releases. Captures, icon, release notes and SHA256SUMS stay inside the publication ZIP. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
 

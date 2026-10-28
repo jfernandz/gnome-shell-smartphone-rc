@@ -251,6 +251,22 @@ try {
     assert.equal((await revoked.call('Network.getCookies', {urls: [origin]})).cookies.some(cookie => cookie.name === '__Host-smartphone_rc'), false);
     console.log('PASS: explicit disconnect revokes the cookie and prevents recovery in a new tab');
     }
+    // The helper fixture logs actions; it never imports Shell session actions or
+    // calls the system power/lock APIs. Exercise both confirmations end to end.
+    for (const action of ['lock', 'suspend']) {
+        const invitations = events.filter(event => event.url).length;
+        server.kill('SIGUSR1');
+        await waitFor(() => events.filter(event => event.url).length > invitations);
+        const terminal = await tab(events.filter(event => event.url).at(-1).url);
+        await terminal.evaluate('document.querySelector("#connect").click()');
+        await waitFor(() => terminal.evaluate('document.querySelector("#status").textContent === "Connected"'));
+        await terminal.evaluate(`window.confirm = () => true; document.querySelector('#${action}-pc').click()`);
+        await waitFor(() => events.some(event => event.input?.type === 'session-action' && event.input.action === action));
+        assert.equal(await terminal.evaluate('document.querySelector("#connect").disabled && document.querySelector("#lock-pc").disabled && document.querySelector("#suspend-pc").disabled'), true);
+        assert.match(await terminal.evaluate('document.querySelector("#status").textContent'), /locally on the PC/);
+        await control('Target.closeTarget', {targetId: terminal.targetId});
+    }
+    console.log('PASS: confirmed lock/suspend requests traverse Chromium and the authenticated helper without executing host power actions');
 } finally {
     for (const socket of debuggers) socket.close();
     for (const child of children.reverse()) {

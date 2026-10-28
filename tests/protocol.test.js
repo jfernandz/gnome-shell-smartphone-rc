@@ -54,3 +54,11 @@ test('volume and mute commands require bounded values and an explicit output ide
         assert.equal(validateInput({type: 'volume', output: 4, level}), null);
     assert.equal(validateInput({type: 'mute', output: 4, muted: 1}), null);
 });
+
+test('session actions allow only lock/suspend and remain distinct from transport pause', () => {
+    for (const action of ['lock', 'suspend'])
+        assert.deepEqual(validateInput({type: 'session-action', action, command: 'ignored'}), {type: 'session-action', action});
+    for (const action of [undefined, 'reboot', 'unlock', 'hibernate', 'poweroff', [], true])
+        assert.equal(validateInput({type: 'session-action', action}), null);
+    assert.deepEqual(validateInput({type: 'suspend'}), {type: 'suspend'});
+});

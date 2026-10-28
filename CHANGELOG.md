@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 — 2026-10-28
 
+- Add confirmed Lock PC and Suspend PC controls. Discard pending phone input, stop/revoke temporary control, then lock; suspension respects GNOME/logind availability, authorization and inhibitors. Resume/unlock requires local service reactivation.
+- Keep PC suspension distinct from phone-background transport pause, reject later packets after a terminal request, and cancel stale system preflight on local Stop/Start/disable.
+- Add protocol, browser, real helper/D-Bus and session-policy regressions; isolated native checks inject the power/lock backend without affecting the host session.
 - Attach only the installable and publication ZIPs to GitHub releases; retain images, notes, checksums and reports inside the publication bundle.
 
 ## 0.7.0 — 2026-10-28

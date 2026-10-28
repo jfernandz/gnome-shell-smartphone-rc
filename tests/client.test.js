@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createClient} from '../app/web/client.js';
 
-function page({fetchSession = null, hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
+function page({confirm = () => false, fetchSession = null, hash = '', storage = new Map(), preferences = new Map(), blockedStorage = false, cookieJar = {authenticated: false}} = {}) {
     const elements = new Map();
     function element(id) {
         if (!elements.has(id)) {
@@ -52,6 +52,7 @@ function page({fetchSession = null, hash = '', storage = new Map(), preferences 
     const viewportStyle = new Map();
     const bodyClasses = new Set();
     const context = {
+        confirm,
         visualViewport: viewport, innerHeight: 709, addEventListener() {},
         navigator: {virtualKeyboard: {show() {}, boundingRect: keyboardBounds, addEventListener(type, callback) { keyboardEvents[type] = callback; }}},
         document: {
@@ -689,4 +690,46 @@ test('movement, multitouch, cancellation, backgrounding and disconnect cancel a 
         assert.equal(browser.timeouts.has(hold), false, action);
         assert.ok(!browser.sockets[0].sent.some(message => message.type === 'click' && message.button === 3));
     }
+});
+
+test('PC session actions require confirmation and do not reuse background suspend', () => {
+    const browser = connectedPage();
+    browser.element('lock-pc').handlers.click();
+    browser.element('suspend-pc').handlers.click();
+    assert.deepEqual(browser.sockets[0].sent, []);
+    assert.equal(browser.element('lock-pc').disabled, false);
+});
+
+test('confirmed session actions drop pending input and never reconnect automatically', async () => {
+    for (const action of ['lock', 'suspend']) {
+        const browser = connectedPage({confirm: () => true});
+        const socket = browser.sockets[0];
+        const pad = browser.element('touchpad');
+        pad.handlers.pointerdown({pointerId: 1, clientX: 1, clientY: 1});
+        pad.handlers.pointermove({pointerId: 1, clientX: 20, clientY: 1});
+        browser.element('text').value = 'unfinished';
+        browser.element(`${action}-pc`).handlers.click();
+        browser.flushFrames();
+        assert.deepEqual(socket.sent, [{type: 'session-action', action}]);
+        assert.equal(browser.element('text').value, '');
+        assert.equal(browser.frames.size, 0);
+        assert.equal(browser.timeouts.size, 0);
+        assert.equal(browser.element('lock-pc').disabled, true);
+        assert.equal(browser.element('suspend-pc').disabled, true);
+        assert.equal(browser.element('connect').disabled, true);
+        socket.emit('message', {data: JSON.stringify({type: 'resumed'})});
+        for (const callback of browser.documentEvents.get('visibilitychange')) callback();
+        await browser.settle();
+        assert.equal(browser.sockets.length, 1);
+        assert.match(browser.element('status').textContent, /locally on the PC/);
+    }
+});
+
+test('session action confirmation cannot authorize a connection replaced or hidden meanwhile', () => {
+    let browser;
+    browser = connectedPage({confirm: () => { browser.document.hidden = true; return true; }});
+    browser.element('suspend-pc').handlers.click();
+    assert.deepEqual(browser.sockets[0].sent, []);
+    const disconnected = page({confirm: () => { throw Error('Confirmation must not open'); }});
+    disconnected.element('lock-pc').handlers.click();
 });

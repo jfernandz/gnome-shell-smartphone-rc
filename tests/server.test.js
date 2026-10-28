@@ -162,6 +162,7 @@ for (const tls of [false, true]) {
     let {socket, head} = await connect(url.origin, url.hash.slice(1));
     let packets = observe(socket, head);
     t.after(() => socket.destroy());
+    send(socket, {type: 'session-action', action: 'lock'});
     send(socket, {type: 'click', button: 1});
     send(socket, {type: 'volume', output: 7, level: 90});
     const cookie = await remember(packets);
@@ -173,6 +174,7 @@ for (const tls of [false, true]) {
     assert.deepEqual(events.find(event => event.input).input, {type: 'move', dx: 10, dy: -5});
     send(socket, {type: 'suspend'});
     await waitFor(() => events.some(event => event.state === 'suspended'));
+    send(socket, {type: 'session-action', action: 'suspend'});
     send(socket, {type: 'move', dx: 333, dy: 0});
     send(socket, {type: 'mute', output: 7, muted: true});
     send(socket, {type: 'resume'});
@@ -232,5 +234,18 @@ for (const tls of [false, true]) {
     await waitFor(() => events.filter(event => event.state === 'expired').length > expiryCount);
     replacement.socket.destroy();
     await deniedCookie(replacement.cookie);
+    for (const action of ['lock', 'suspend']) {
+        const terminal = await freshSession();
+        const count = events.filter(event => event.input).length;
+        send(terminal.socket, {type: 'session-action', action});
+        send(terminal.socket, {type: 'move', dx: 44, dy: 0});
+        send(terminal.socket, {type: 'resume'});
+        send(terminal.socket, {type: 'session-action', action});
+        await waitFor(() => events.filter(event => event.input).length > count);
+        await new Promise(resolve => setTimeout(resolve, 60));
+        assert.deepEqual(events.filter(event => event.input).slice(count).map(event => event.input), [{type: 'session-action', action}]);
+        terminal.socket.destroy();
+    }
+
  });
 }

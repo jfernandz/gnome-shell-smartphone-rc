@@ -37,6 +37,8 @@ Start carries bounded configuration dictionaries. Input carries a dictionary of 
 
 Volume carries output availability, the current output ID, a 0–100 percentage and mute state. Output IDs use doubles with integer/uint32 validation; -1 represents no output. Volume/mute input carries the intended output ID so delayed commands cannot change a new default sink. Only connected sessions own mixer observers; state updates are coalesced to at most 20 per second.
 
+Session actions use Input dictionaries with type=session-action and action=lock/suspend; no new private D-Bus method is exported. The child accepts them only from the active approved controller and blocks subsequent input. Shell stops control before invoking local GNOME/logind APIs. The existing type=suspend remains a phone-background transport pause.
+
 Shell validates startup ordering, URL/address/certificate details and every input event independently. Desktop approval and cookie/trust decisions remain in the existing state machine. Selecting D-Bus does not itself authorize a browser.
 
 ## Bounds and cleanup

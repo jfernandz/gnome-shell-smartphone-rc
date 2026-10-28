@@ -42,7 +42,9 @@ try {
             controller.send({type: 'send', message: {type: 'focus', active: true, sensitive: false, context: 123}});
             controller.send({type: 'send', message: {type: 'volume-state', available: true, output: 0xffffffff, level: 100, muted: false}});
             client.send({type: 'input', input: {type: 'mute', output: 7, muted: true}});
-            await waitFor(() => received.length === 3 && commands.length === 3);
+            client.send({type: 'input', input: {type: 'session-action', action: 'lock'}});
+            await waitFor(() => received.length === 4 && commands.length === 3);
+            check(received[3].input.type === 'session-action' && received[3].input.action === 'lock', 'Session action did not round-trip');
             check(commands[2].message.output === 0xffffffff && commands[2].message.level === 100 &&
                 commands[2].message.muted === false && received[2].input.muted === true, 'Volume values did not round-trip');
             check(received[1].input.text === 'España 🐧' && commands[0].options.sensitivity.min === 0.5 && commands[1].message.context === 123,

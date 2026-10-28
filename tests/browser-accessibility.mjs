@@ -55,6 +55,18 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
         const {nodes} = await page.call('Accessibility.getFullAXTree');
         assert.ok(nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Volume'));
         assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === 'Mute'));
+        for (const label of ['Lock PC', 'Suspend PC'])
+            assert.ok(nodes.some(node => node.role?.value === 'button' && node.name?.value === label));
+        const cancelled = await page.evaluate(`(() => {
+            const confirm = window.confirm;
+            window.confirm = () => false;
+            try {
+                document.querySelector('#lock-pc').click();
+                document.querySelector('#suspend-pc').click();
+            } finally { window.confirm = confirm; }
+            return document.querySelector('#status').textContent;
+        })()`);
+        assert.equal(cancelled, 'Connected');
         await group('pointer');
         const tree = await page.call('Accessibility.getFullAXTree');
         assert.ok(tree.nodes.some(node => node.role?.value === 'slider' && node.name?.value === 'Sensitivity'));

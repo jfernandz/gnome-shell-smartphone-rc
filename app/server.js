@@ -63,6 +63,7 @@ export class RemoteServer {
     }
 
     start() {
+        this._terminalAction = false;
         this._token = this._newSecret();
         this._deadline = GLib.get_monotonic_time() + PAIRING_LIFETIME_SECONDS * 1000000;
         this._server = new Soup.Server();
@@ -255,6 +256,8 @@ export class RemoteServer {
         }
         if (!this._approved)
             return;
+        if (this._terminalAction)
+            return;
         let input;
         try {
             const packet = JSON.parse(new TextDecoder().decode(bytes.get_data()));
@@ -284,6 +287,8 @@ export class RemoteServer {
             this.send({type: 'resumed', exchangeToken: this._authorization.issueExchange()});
             this._onState('connected');
         } else if (!this._suspended) {
+            if (input.type === 'session-action')
+                this._terminalAction = true;
             this._onInput(input);
         }
     }

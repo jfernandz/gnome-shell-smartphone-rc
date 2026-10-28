@@ -150,8 +150,10 @@ export function createClient(environment = globalThis) {
         state = next;
         const connected = state === 'connected';
         $('status').textContent = status;
-        for (const id of ['keyboard', 'disconnect'])
+        for (const id of ['keyboard', 'disconnect', 'lock-pc', 'suspend-pc'])
             $(id).disabled = !connected;
+        $('connect').hidden = connected;
+        $('disconnect').hidden = !connected;
         $('connect').disabled = socket !== null || (!token && !cookieSession);
         $('touchpad').classList.toggle('active', connected);
         if (!connected) {
@@ -282,6 +284,34 @@ export function createClient(environment = globalThis) {
                 $('status').textContent = 'Connection interrupted. Waiting to reconnect…';
         });
     }
+
+    function sessionAction(action) {
+        if (state !== 'connected' || document.hidden || socket?.readyState !== WebSocket.OPEN)
+            return;
+        const connection = socket;
+        const epoch = connectionEpoch;
+        const label = action === 'lock' ? 'Lock the PC?' : 'Lock and suspend the PC?';
+        if (!environment.confirm(`${label} Remote control will stop. Unlock and start it again locally on the PC.`))
+            return;
+        if (socket !== connection || connectionEpoch !== epoch || state !== 'connected' || document.hidden)
+            return;
+        userDisconnected = true;
+        clearRetry();
+        clearCookieTimer();
+        cookieSession = false;
+        forgetToken();
+        socket = null;
+        invalidateConnection();
+        transition('disconnected', 'Session action requested. Unlock and start remote control locally on the PC.');
+        try {
+            connection.send(JSON.stringify({type: 'session-action', action}));
+        } catch {
+            $('status').textContent = 'Request could not be delivered. Check the PC locally.';
+        }
+        connection.close(1000, 'Session action requested');
+    }
+    $('lock-pc').addEventListener('click', () => sessionAction('lock'));
+    $('suspend-pc').addEventListener('click', () => sessionAction('suspend'));
 
     $('connect').addEventListener('click', () => connect(Boolean(cookieSession)));
     $('disconnect').addEventListener('click', () => {

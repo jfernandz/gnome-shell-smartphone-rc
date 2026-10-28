@@ -6,9 +6,10 @@ Recorded on 2026-10-28. Results apply to the stated revision, not every later bu
 
 | Revision/check | Result | Limit |
 | --- | --- | --- |
+| v0.8.0 session actions, pre-release source | ESLint and all 124 automated tests pass. Chromium checks pass with default and Noto Sans fonts; confirmed lock/suspend requests traverse the real helper. A 48-file source ZIP passes isolated installation/lifecycle/preferences tests with injected session-action backends. | Automated runs did not lock/suspend the host. The user reports the features work; exhaustive hardware sleep/resume and real logind-policy/inhibitor coverage remain unestablished. |
 | v0.7.0 automatic stop, pre-release source | ESLint and all 112 automated tests pass. A 47-file source ZIP passes isolated installation/lifecycle/preferences checks, including configured start, extend/cancel, expiry of connected control and lock cleanup. Native settings pass light/dark/enlarged-font runs. | Test expiry shortens the internal deadline in the isolated Shell. The user reports the timer works. Final versioned-package acceptance remains separate; the source ZIP used the previous version metadata. |
 | Earlier development tooling | ESLint, actionlint 1.7.12 and all 105 automated tests pass. Environment setup, CI receipts and release-note generation are covered. | Setup installation commands and draft-release operations were simulated; no system installation or remote release mutation was performed by those tests. |
-| Consolidated release tooling | Local tag preparation passes with fresh tagged tests and with imported successful Node 22/24 evidence; ZIP checksums pass. | The new consolidated workflow awaits its first hosted run. |
+| Consolidated release tooling | Local tag preparation passes with fresh tagged tests and with imported successful Node 22/24 evidence; ZIP checksums pass. | [The consolidated v0.7.0 run passed](https://github.com/jfernandz/gnome-shell-smartphone-rc/actions/runs/40767357581); v0.8.0 hosted validation remains pending. |
 | v0.6.3 | Hosted Node 22/24 CI and Chromium publication preparation pass; all 45 ZIP entries match tagged source. The 320×568/200%-text case passes with CI fonts. | Synthetic approval/audio fixtures; physical-phone and isolated native acceptance of this package remain pending. |
 | v0.6.0 | Isolated ZIP installation, Shell lifecycle and preferences checks passed. | Historical native evidence, not acceptance of v0.6.3 or later code. |
 
@@ -54,12 +55,12 @@ Use the isolated launcher with an explicit built ZIP:
 
 ```sh
 bash scripts/package.sh dist/native-check
-node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.7.0.zip
+node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.8.0.zip
 ```
 
 It creates a headless software-rendered GNOME Shell, private D-Bus session, XDG directories and a test-only evaluation driver; verifies that isolation; then exercises installation/rollback, lifecycle and preferences. It stops only its own process group. Failures retain the profile/logs; preference screenshots default to dist/publication/. Network setup checks need an active private LAN address.
 
-Never point Shell tests at the working desktop's bus, lock/restart that desktop or enable its unsafe mode. The `SMARTPHONE_RC_ISOLATED_SHELL` flag alone does not establish isolation. Use the launcher unless you have an equivalently verified disposable session.
+Never point Shell tests at the working desktop's bus, lock/restart that desktop or enable its unsafe mode. Session-action tests must inject lock/power backends and must never invoke real screenShield/logind actions, even inside the isolated compositor. The `SMARTPHONE_RC_ISOLATED_SHELL` flag alone does not establish isolation. Use the launcher unless you have an equivalently verified disposable session.
 
 | Individual harness | Requirements inside that isolated session |
 | --- | --- |

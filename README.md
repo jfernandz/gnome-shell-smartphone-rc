@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.7.0 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.8.0 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -13,6 +13,7 @@ Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME deskto
 - Default-output volume/mute controls, synchronized with the PC and limited to 0–100%.
 - HTTPS/WSS QR pairing with desktop approval and optional remembered browsers.
 - One controlling browser; lock, Stop or disabling the extension ends control.
+- Lock/suspend the PC from the controls card with confirmation.
 - Optional automatic stop timer, configured locally and disabled by default.
 
 ## Install and configure
@@ -23,7 +24,7 @@ Both devices must be on a network that permits communication. The PC may use Eth
 
 ```sh
 # Choose one:
-gnome-extensions install --force /path/to/smartphone-rc-0.7.0.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.8.0.zip
 bash scripts/install.sh
 ```
 
@@ -52,6 +53,21 @@ Focus a desktop text field to request the phone keyboard. If it stays closed, us
 The editor shows only text entered from the phone, resets on detected field changes and masks fields GNOME reports as sensitive. It does not mirror existing desktop text or cursor selections. Avoid editing the same field from both devices during corrections. An unacknowledged edit pauses typing after one second; refocus the PC field to resume. Pointer control remains connected.
 
 Volume and mute affect GNOME's default audio output. Setting volume to zero mutes; raising it unmutes. Controls are disabled when disconnected or no output is available. Desktop changes and output switches are reflected on the phone.
+
+## Lock and suspend
+
+Open **••• → Lock PC** or **Suspend PC** and confirm on the phone. Cancelling
+the confirmation leaves the connection unchanged. A confirmed request stops
+remote control and discards unfinished input before performing the action.
+
+Suspension requires a lockable GNOME session, systemd-logind support and
+permission without an additional authentication prompt. Application/system
+inhibitors are respected. The desktop must actually lock before sleep is
+requested. If a check or action fails, a PC notification explains it and
+control stays stopped.
+
+Unlock/resume and start remote control locally, then reopen the phone page.
+These actions never unlock, wake the PC or restart control automatically.
 
 ## Automatic stop
 

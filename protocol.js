@@ -8,6 +8,10 @@ export function validateInput(message) {
     case 'resume':
     case 'disconnect':
         return {type: message.type};
+    case 'session-action':
+        if (message.action === 'lock' || message.action === 'suspend')
+            return {type: 'session-action', action: message.action};
+        break;
     case 'volume':
     case 'mute':
         if (!Number.isInteger(message.output) || message.output < 0 || message.output > 0xffffffff)

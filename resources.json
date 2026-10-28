@@ -36,7 +36,8 @@
     "preferences/about.js",
     "volume.js",
     "auto-stop.js",
-    "preferences/auto-stop.js"
+    "preferences/auto-stop.js",
+    "session-actions.js"
   ],
   "web": {
     "/": {
