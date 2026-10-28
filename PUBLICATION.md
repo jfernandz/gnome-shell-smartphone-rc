@@ -11,6 +11,20 @@ Prepare the current release with `node scripts/prepare-publication.mjs v0.6.3`; 
 
 A separate Publication preparation workflow generates the tagged bundle on version-tag pushes or manual dispatch and retains it as a GitHub artifact. Its first hosted v0.6.2 run passed automated tests and ZIP checks, then failed during Chromium startup before browser checks; the next hosted run confirmed Chromium starts and exposed the narrow-screen enlarged-text overflow corrected in v0.6.3. Hosted v0.6.3 publication preparation and the separate Node 22/24 CI now pass; see the [v0.6.3 evidence](docs/publication-review-v0.6.3.md). It never submits to EGO or publishes a release.
 
+## Publication icon
+
+The tracked [128×128 transparent PNG](icons/smartphone-rc-icon.png) is for the
+extensions.gnome.org listing. The [symbolic SVG](icons/remote-touchpad-symbolic.svg)
+remains the source and the runtime icon. Regenerate the PNG with:
+
+```sh
+magick -background none -density 2304 icons/remote-touchpad-symbolic.svg \
+  -resize 128x128 -strip icons/smartphone-rc-icon.png
+```
+
+The PNG is intentionally absent from resources.json and the extension ZIP;
+the publication generator also renders it from each selected tag's SVG.
+
 ## In place
 
 - Native Settings/network setup; declared clipboard use only on explicit request.
