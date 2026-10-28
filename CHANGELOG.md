@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Populate GitHub release bodies with the full version-specific changelog and a commit-comparison link, including when refreshing drafts.
+
 ## 0.6.3 — 2026-10-28
 
 - Keep the controls card inside narrow portrait viewports with taller system fonts and 200% text by reducing gaps and moving it toward the safe top edge.

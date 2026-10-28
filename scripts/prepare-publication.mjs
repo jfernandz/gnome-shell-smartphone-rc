@@ -5,6 +5,7 @@ import {copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, closeSync, r
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {releaseNotes} from './lib/release-notes.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [tag, destination, ...extra] = process.argv.slice(2);
@@ -88,9 +89,13 @@ try {
     const icon = 'smartphone-rc-icon.png';
     run('icon', 'magick', ['-background', 'none', '-density', '2304', 'icons/remote-touchpad-symbolic.svg', '-resize', '128x128', '-strip', join(output, icon)]);
     const changelog = readFileSync(join(source, 'CHANGELOG.md'), 'utf8');
-    const section = changelog.split(/^## /m).find(part => part.startsWith(`${version} `) || part.startsWith(`${version}\n`));
-    if (!section) throw new Error(`No changelog section for ${version}`);
-    writeFileSync(join(output, 'release-notes.md'), '## ' + section.trim() + '\n');
+    let previousTag = null;
+    try {
+        previousTag = execFileSync('git', ['-C', root, 'describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*', `${commit}^`], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']}).trim();
+    } catch {
+        // The first version tag has no earlier tagged ancestor.
+    }
+    writeFileSync(join(output, 'release-notes.md'), releaseNotes(changelog, tag, metadata.url, previousTag));
     const readme = readFileSync(join(source, 'README.md'), 'utf8');
     const features = readme.match(/## Features\n([\s\S]*?)(?=\n## )/)?.[1]?.trim();
     if (!features) throw new Error('No Features section in tagged README.');
