@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.6.3 — 2026-10-28
+
+- Keep the controls card inside narrow portrait viewports with taller system fonts and 200% text by reducing gaps and moving it toward the safe top edge.
+- Measure accessibility bounds after the opening animation finishes and include card geometry in layout-failure diagnostics.
 
 - Launch the publication browser with a CI-only container wrapper and retain Chromium startup stderr, including when preparing an older tag.
 - Print failing publication logs in Actions and report Chromium early-exit codes and stderr directly from the browser harness.

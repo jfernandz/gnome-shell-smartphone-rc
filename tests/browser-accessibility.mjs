@@ -8,6 +8,8 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
             const panel = document.querySelector('#controls');
             if (!panel.matches(':popover-open')) document.querySelector('#controls-toggle').click();
         })()`);
+        // Measure the final card, not its opening animation.
+        await page.evaluate("Promise.all(document.getAnimations().map(animation => animation.finished))");
     }
     async function screenshot(name) {
         if (!outputDirectory) return;
@@ -27,7 +29,7 @@ export async function checkBrowserAccessibility(page, outputDirectory = null) {
                     const panel = document.querySelector('#controls');
                     const box = panel.getBoundingClientRect();
                     const controls = [...panel.querySelectorAll('button, input, select')].filter(node => node.getClientRects().length);
-                    return {fits: box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth,
+                    return {bounds: box.toJSON(), font: getComputedStyle(panel).font, fits: box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth,
                         scroll: panel.scrollHeight > panel.clientHeight + 1 || document.body.scrollHeight > document.body.clientHeight + 1,
                         targets: controls.map(node => {const rect = node.getBoundingClientRect(); return {id: node.id, height: rect.height, fits: rect.top >= box.top && rect.bottom <= box.bottom && rect.left >= box.left && rect.right <= box.right};})};
                 })()`);

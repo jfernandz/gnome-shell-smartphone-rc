@@ -94,5 +94,7 @@ default sandbox. The wrapper also retains browser stderr in
 `logs/chromium-startup.txt`, including when running an older tag's harness.
 Failed steps print the tail of their logs to the Actions console.
 The first hosted run reached browser startup but timed out before DevTools;
-the container-browser correction still requires a hosted rerun.
+the container-browser correction was verified by the next hosted run, which
+then exposed a narrow-screen layout failure at 200% text. That layout fix is
+included in v0.6.3; earlier immutable tags still reproduce their original UI.
 The separate CI workflow continues to create GitHub draft releases.
