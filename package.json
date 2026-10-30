@@ -10,7 +10,7 @@
     "test:accessibility": "node tests/cookie-browser.mjs --trusted --helper --accessibility",
     "lint:actions": "actionlint -shellcheck= -pyflakes="
   },
-  "version": "0.9.0",
+  "version": "0.10.0",
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "eslint": "10.13.0",

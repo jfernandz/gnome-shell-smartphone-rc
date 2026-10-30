@@ -22,7 +22,7 @@ for (const tls of [false, true]) {
         certificate = readFileSync(`${directory}/cert.pem`);
         args.push('127.0.0.1', `${directory}/cert.pem`, `${directory}/key.pem`);
     }
-    const child = spawn('gjs', args);
+    const child = spawn('gjs', args, {env: {...process.env, SMARTPHONE_RC_TEST_CLOSED: '1'}});
     const events = [];
     let errors = '';
     child.stderr.on('data', data => errors += data);
@@ -103,6 +103,15 @@ for (const tls of [false, true]) {
         const masked = Buffer.from(payload.map((byte, i) => byte ^ mask[i % 4]));
         socket.write(Buffer.concat([Buffer.from([0x81, 0x80 | payload.length]), mask, masked]));
     }
+    assert.equal(url.hash, '');
+    const closed = await connect(url.origin);
+    const closedFrame = closed.head.length ? closed.head : (await once(closed.socket, 'data'))[0];
+    assert.equal(closedFrame[0] & 15, 8);
+    closed.socket.destroy();
+    assert.equal(events.some(event => event.state === 'pending'), false);
+    child.kill('SIGWINCH');
+    await waitFor(() => events.some(event => event.pairingUrl));
+    url.hash = new URL(events.find(event => event.pairingUrl).pairingUrl).hash;
     assert.equal((await connect(url.origin, url.hash.slice(1), null, 'https://example.org')).status, 403);
     const bad = await connect(url.origin, 'wrong');
     const badFrame = bad.head.length ? bad.head : (await once(bad.socket, 'data'))[0];

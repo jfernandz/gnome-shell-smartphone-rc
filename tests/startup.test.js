@@ -95,3 +95,17 @@ test('stopped or remotely locked sessions stay off despite unlock opt-in', () =>
     f.flush();
     assert.equal(f.starts.length, 1);
 });
+
+
+test('pairing at startup is opt-in, with a QR only for manual starts', () => {
+    for (const enabled of [false, true]) {
+        for (const showQr of [false, true]) {
+            const f = fixture({'pairing-on-start': enabled});
+            let opened = 0;
+            f.extension._server = {openPairing() { opened++; }};
+            f.extension._openStartupPairing(showQr);
+            assert.equal(opened, enabled ? 1 : 0);
+            if (enabled) assert.equal(f.extension._pairingShowQr, showQr);
+        }
+    }
+});

@@ -82,7 +82,13 @@ export class RemoteService {
             this._startup = 0;
             const resolve = this._resolve;
             this._resolve = this._reject = null;
+            this._fingerprint = message.fingerprint;
+            this._origin = message.url.split('/#')[0];
             resolve({url: message.url, fingerprint: message.fingerprint});
+        } else if (message.type === 'pairing' && !this._resolve && this._ready &&
+            (message.url === null || (typeof message.url === 'string' && message.url.startsWith(`${this._origin}#`) &&
+                isStartupResponse({...message, fingerprint: this._fingerprint}, this._options)))) {
+            this.onPairing?.(message.url);
         } else if (message.type === 'state' && STATES.has(message.state) &&
             (message.peer === null || (typeof message.peer === 'string' && message.peer.length <= 64)) &&
             (message.browserName === null || (typeof message.browserName === 'string' && message.browserName.length <= 80))) {
@@ -119,6 +125,8 @@ export class RemoteService {
         if (this._state === 'pending' && typeof remember === 'boolean')
             this._peer?.send({type: 'approve', remember});
     }
+    openPairing() { this._peer?.send({type: 'open-pairing'}); }
+    closePairing() { this._peer?.send({type: 'close-pairing'}); }
     disconnect() { this._peer?.send({type: 'disconnect'}); }
     setSensitivity(sensitivity) {
         if (isSensitivityRange(sensitivity)) {

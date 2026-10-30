@@ -5,7 +5,7 @@ const FINGERPRINT = /^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/;
 
 // Validate independently of the helper at the Shell trust boundary.
 export function isStartupResponse(message, options) {
-    const match = /^(https?):\/\/([0-9.]+):(\d+)\/#([a-f0-9]{64})$/.exec(message.url);
+    const match = /^(https?):\/\/([0-9.]+):(\d+)\/(?:#([a-f0-9]{64}))?$/.exec(message.url);
     if (!match)
         return false;
     const [, scheme, address, portText] = match;

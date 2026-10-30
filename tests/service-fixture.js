@@ -37,7 +37,11 @@ async function start() {
         if (service._dbusServer) print(JSON.stringify({startingAddress: service._dbusServer.get_client_address()}));
         const result = await startup;
         options.port = Number(result.url.split('/')[2].split(':')[1]);
-        print(JSON.stringify({url: result.url, pid: Number(service._process.get_identifier()),
+        const url = await new Promise(resolve => {
+            service.onPairing = value => { if (value) resolve(value); };
+            service.openPairing();
+        });
+        print(JSON.stringify({url, pid: Number(service._process.get_identifier()),
             address: service._dbusServer.get_client_address(), peerDirectory: service._peerDirectory}));
     } catch (error) {
         print(JSON.stringify({failure: error.message}));

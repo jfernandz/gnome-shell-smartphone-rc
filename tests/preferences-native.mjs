@@ -79,6 +79,14 @@ app.connect('activate', () => {
                     if (row.active) throw Error('Startup switch did not follow external settings');
                 }
                 print('PASS: independent startup switches default off and synchronize both ways');
+                const pairing = widgets(securityPage).find(w => w instanceof Adw.SwitchRow && w.title === 'Open pairing when remote control starts');
+                if (!pairing || pairing.active || stopSettings.get_boolean('pairing-on-start'))
+                    throw Error('Startup pairing must default off');
+                pairing.active = true;
+                if (!stopSettings.get_boolean('pairing-on-start')) throw Error('Pairing switch did not save');
+                stopSettings.set_boolean('pairing-on-start', false);
+                if (pairing.active) throw Error('Pairing switch did not follow external settings');
+                print('PASS: configurable startup pairing defaults off and synchronizes both ways');
                 const screenshot = GLib.getenv('SMARTPHONE_RC_TEST_SCREENSHOT');
                 const delay = () => new Promise(resolve => GLib.timeout_add(GLib.PRIORITY_DEFAULT, 180, () => {
                     resolve(); return GLib.SOURCE_REMOVE;

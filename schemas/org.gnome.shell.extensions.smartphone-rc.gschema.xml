@@ -29,6 +29,11 @@
       <range min="1" max="1440"/>
       <summary>Total service running duration in minutes</summary>
     </key>
+    <key name="pairing-on-start" type="b">
+      <default>false</default>
+      <summary>Open a two-minute pairing window when remote control starts</summary>
+      <description>Applies at the next service start, including automatic starts. New browsers still require local approval. Automatic starts do not display a QR dialog.</description>
+    </key>
     <key name="trust-duration-days" type="u">
       <default>90</default>
       <range min="7" max="90"/>

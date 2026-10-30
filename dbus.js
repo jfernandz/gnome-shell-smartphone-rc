@@ -5,8 +5,8 @@ const PATH = '/io/github/jfernandz/SmartphoneRC';
 const CONTROL = 'io.github.jfernandz.SmartphoneRC.Control1';
 const EVENTS = 'io.github.jfernandz.SmartphoneRC.Events1';
 const METHODS = {
-    [CONTROL]: {Start: 'a{sv}', Approve: 'b', Disconnect: '', Sensitivity: 'dd', Focus: 'bbd', TypingPaused: 's', Volume: 'bddb'},
-    [EVENTS]: {Ready: '', Started: 'ss', State: 'sss', Input: 'a{sv}', Failed: 's'},
+    [CONTROL]: {Start: 'a{sv}', OpenPairing: '', ClosePairing: '', Approve: 'b', Disconnect: '', Sensitivity: 'dd', Focus: 'bbd', TypingPaused: 's', Volume: 'bddb'},
+    [EVENTS]: {Ready: '', Pairing: 's', Started: 'ss', State: 'sss', Input: 'a{sv}', Failed: 's'},
 };
 function xml(iface) {
     const methods = Object.entries(METHODS[iface]).map(([name, signature]) => {
@@ -34,6 +34,8 @@ function encode(message, role) {
     if (role === 'controller') {
         switch (message.type) {
         case 'start': return ['Start', [dictionary(message.options)]];
+        case 'open-pairing': return ['OpenPairing', []];
+        case 'close-pairing': return ['ClosePairing', []];
         case 'approve': return ['Approve', [message.remember]];
         case 'disconnect': return ['Disconnect', []];
         case 'settings': return ['Sensitivity', [message.sensitivity.min, message.sensitivity.max]];
@@ -51,6 +53,7 @@ function encode(message, role) {
         }
     } else {
         switch (message.type) {
+        case 'pairing': return ['Pairing', [message.url ?? '']];
         case 'ready': return ['Ready', []];
         case 'started': return ['Started', [message.url, message.fingerprint ?? '']];
         case 'state': return ['State', [message.state, message.peer ?? '', message.browserName ?? '']];
@@ -63,6 +66,9 @@ function encode(message, role) {
 function decode(method, args) {
     switch (method) {
     case 'Start': return {type: 'start', options: args[0]};
+    case 'OpenPairing': return {type: 'open-pairing'};
+    case 'ClosePairing': return {type: 'close-pairing'};
+    case 'Pairing': return {type: 'pairing', url: args[0] || null};
     case 'Approve': return {type: 'approve', remember: args[0]};
     case 'Disconnect': return {type: 'disconnect'};
     case 'Sensitivity': return {type: 'settings', sensitivity: {min: args[0], max: args[1]}};

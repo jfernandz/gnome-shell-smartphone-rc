@@ -30,8 +30,8 @@ Object path: /io/github/jfernandz/SmartphoneRC. All methods reply with an empty 
 
 | Interface | Methods | Direction |
 | --- | --- | --- |
-| io.github.jfernandz.SmartphoneRC.Control1 | Start(a{sv}), Approve(b), Disconnect(), Sensitivity(dd), Focus(bbd), TypingPaused(s), Volume(bddb) | Shell → child |
-| io.github.jfernandz.SmartphoneRC.Events1 | Ready(), Started(ss), State(sss), Input(a{sv}), Failed(s) | Child → Shell |
+| io.github.jfernandz.SmartphoneRC.Control1 | Start(a{sv}), OpenPairing(), ClosePairing(), Approve(b), Disconnect(), Sensitivity(dd), Focus(bbd), TypingPaused(s), Volume(bddb) | Shell → child |
+| io.github.jfernandz.SmartphoneRC.Events1 | Ready(), Started(ss), Pairing(s), State(sss), Input(a{sv}), Failed(s) | Child → Shell |
 
 Start carries bounded configuration dictionaries. Input carries a dictionary of validated control fields. Nested dictionaries are bounded; numeric dictionary values use doubles and existing integer/safe-integer checks still apply where appropriate. Empty strings represent absent optional state/fingerprint labels because D-Bus has no null type. Pairing secrets and input travel only through directed calls on this private peer connection.
 
@@ -58,3 +58,5 @@ Stop, disable, lock, malformed/excessive requests, connection loss and helper fa
 See [TESTING.md](TESTING.md) for identity/contract/limits tests, browser coverage and isolated Shell evidence. Regression tests include comma-containing temporary paths, escaped using `Gio.dbus_address_escape_value()`.
 
 References: [GJS D-Bus guide](https://gjs.guide/guides/gio/dbus.html), [GIO peer credentials](https://docs.gtk.org/gio/method.DBusConnection.get_peer_credentials.html), and [maintainer feedback](https://discourse.gnome.org/t/ego-submission-bundled-mobile-web-interface-and-gjs-network-helper/39605/4). See [SECURITY.md](SECURITY.md) for the wider threat model.
+
+Local pairing uses Control1.OpenPairing/ClosePairing with no arguments and Events1.Pairing(s) with a validated invitation URL or an empty string for closure. Started returns the plain service URL; the helper does not create an invitation at startup. The controller may explicitly open one after startup when the local Security setting is enabled. These methods are available only on the authenticated private peer.

@@ -6,6 +6,7 @@ Recorded on 2026-10-28. Results apply to the stated revision, not every later bu
 
 | Revision/check | Result | Limit |
 | --- | --- | --- |
+| v0.10.0 local pairing windows, source (2026-10-30) | ESLint, actionlint and all 132 automated tests pass. Chromium accessibility/trusted-browser checks pass through the real helper; isolated GNOME installation/lifecycle/preferences checks pass. | Physical-phone acceptance and hosted validation of this version remain pending. |
 | v0.9.0 automatic startup, pre-release source (2026-10-29) | ESLint and all 128 automated tests pass. Isolated GNOME checks cover actual helper restart after unlock, no pairing popup, Stop surviving unlock and both settings binding in light/dark/enlarged-font preferences. | Uses simulated lock-mode transitions in a disposable compositor; fresh physical login and real screen-lock acceptance remain to be checked. Native checks used a 49-file source ZIP with 0.8.0 metadata before the version bump. |
 | v0.8.0 session actions, pre-release source | ESLint and all 124 automated tests pass. Chromium checks pass with default and Noto Sans fonts; confirmed lock/suspend requests traverse the real helper. A 48-file source ZIP passes isolated installation/lifecycle/preferences tests with injected session-action backends. | Automated runs did not lock/suspend the host. The user reports the features work; exhaustive hardware sleep/resume and real logind-policy/inhibitor coverage remain unestablished. |
 | v0.7.0 automatic stop, pre-release source | ESLint and all 112 automated tests pass. A 47-file source ZIP passes isolated installation/lifecycle/preferences checks, including configured start, extend/cancel, expiry of connected control and lock cleanup. Native settings pass light/dark/enlarged-font runs. | Test expiry shortens the internal deadline in the isolated Shell. The user reports the timer works. Final versioned-package acceptance remains separate; the source ZIP used the previous version metadata. |
@@ -56,7 +57,7 @@ Use the isolated launcher with an explicit built ZIP:
 
 ```sh
 bash scripts/package.sh dist/native-check
-node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.9.0.zip
+node tests/run-isolated-native.mjs dist/native-check/smartphone-rc-0.10.0.zip
 ```
 
 It creates a headless software-rendered GNOME Shell, private D-Bus session, XDG directories and a test-only evaluation driver; verifies that isolation; then exercises installation/rollback, lifecycle and preferences. It stops only its own process group. Failures retain the profile/logs; preference screenshots default to dist/publication/. Network setup checks need an active private LAN address.

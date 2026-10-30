@@ -1,5 +1,6 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
+import Gio from 'gi://Gio';
 import {TRUST_DURATIONS, trustDurationDays} from '../settings.js';
 
 export function createSecurityGroup(settings, onRenew = null) {
@@ -18,6 +19,10 @@ export function createSecurityGroup(settings, onRenew = null) {
         subtitle: 'Compare the SHA-256 fingerprint in the PC dialog with the certificate details in the phone browser. A fingerprint displayed by a web page is not proof. Verify again after renewing the certificate.'}));
     const group = new Adw.PreferencesGroup({title: 'Browser trust',
         description: 'A remembered browser can control your unlocked desktop while the service is running.'});
+    const pairing = new Adw.SwitchRow({title: 'Open pairing when remote control starts',
+        subtitle: 'Allow new browsers to request approval for two minutes after each start, including automatic starts. Applies at the next start. Off: enable pairing locally from the PC menu.'});
+    settings.bind('pairing-on-start', pairing, 'active', Gio.SettingsBindFlags.DEFAULT);
+    group.add(pairing);
     const duration = new Adw.ComboRow({title: 'Remember new browsers for',
         subtitle: 'Existing devices keep their expiry. Forget and pair again to change it.',
         model: Gtk.StringList.new(TRUST_DURATIONS.map(days => `${days} days`))});
@@ -36,6 +41,9 @@ export function createSecurityGroup(settings, onRenew = null) {
             expiry.subtitle = config?.expires ?? 'Not available';
             certificateStatus.subtitle = config?.fingerprint ? 'Configured' : error ?? 'Not configured. Open Service → Network to configure a certificate.';
         },
-        destroy: () => settings.disconnect(changed),
+        destroy() {
+            Gio.Settings.unbind(pairing, 'active');
+            settings.disconnect(changed);
+        },
     };
 }

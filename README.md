@@ -2,7 +2,7 @@
 
 Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME desktop over the local network. No mobile app is required.
 
-**v0.9.0 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
+**v0.10.0 · GNOME Shell 51 · tested on 51.1/Wayland.** Chrome on Android is the initial mobile target; iOS Safari is unvalidated.
 
 ## Features
 
@@ -11,7 +11,7 @@ Use a smartphone browser as a touchpad and keyboard for an unlocked GNOME deskto
 - Live typing and corrections, with desktop text-focus detection and a manual **Keyboard** fallback.
 - Pointer sensitivity in half steps: default 0.5×–10×, configurable up to 20×; independent scrolling speed.
 - Default-output volume/mute controls, synchronized with the PC and limited to 0–100%.
-- HTTPS/WSS QR pairing with desktop approval and optional remembered browsers.
+- HTTPS/WSS QR pairing with desktop approval and optional remembered browsers. New pairing stays closed by default; enable a two-minute window locally or opt into opening it at startup.
 - One controlling browser; lock, Stop or disabling the extension ends control.
 - Lock/suspend the PC from the controls card with confirmation.
 - Optional automatic stop timer, configured locally and disabled by default.
@@ -24,7 +24,7 @@ Both devices must be on a network that permits communication. The PC may use Eth
 
 ```sh
 # Choose one:
-gnome-extensions install --force /path/to/smartphone-rc-0.9.0.zip
+gnome-extensions install --force /path/to/smartphone-rc-0.10.0.zip
 bash scripts/install.sh
 ```
 
@@ -43,7 +43,7 @@ For development updates without logging out, see the [source and ZIP reload work
 ## Connect and control
 
 1. Choose **Start remote control** from the top-bar touchpad menu.
-2. Scan the QR and open the complete link in Chrome. In Lens, choose **Open in Chrome**. The desktop menu also provides **Show pairing QR** and **Copy pairing link**.
+2. Choose **Allow pairing for 2 minutes** in the PC menu, then scan the QR and open the complete link in Chrome. In Lens, choose **Open in Chrome**. While pairing is open, the desktop menu provides **Show pairing QR**, **Copy pairing link** and **Close pairing**.
 3. At the certificate warning, compare the browser certificate's SHA-256 fingerprint with **Show certificate fingerprint** on the PC before allowing an exception. Do not trust a fingerprint shown only inside the web page or disable certificate checks globally.
 4. On the phone, open **••• → Connect**. On the PC, acknowledge the certificate comparison and choose **Accept**, **Accept and remember** or **Reject**.
 5. Slide to move, tap to click, hold still for a right click, or use two fingers to scroll. Moving or adding a finger cancels the hold. Tap **•••** for controls and tap outside the card to close it.
@@ -94,7 +94,9 @@ Automatic starts do not open the QR dialog. Reopen the plain PC address in a rem
 
 ## Reconnect and remembered browsers
 
-Invitations expire after two minutes; approval is required within 30 seconds of connecting. Approval consumes the invitation. **New pairing QR** ends the old connection. Never share pairing links publicly.
+Starting control leaves new pairing closed by default, including automatic starts. In **Settings → Security → Browser trust**, **Open pairing when remote control starts** opens a two-minute window on each subsequent start. Manual starts also show the QR; automatic starts keep the dialog hidden. Authorized browsers can still reconnect. With this setting off, enable pairing locally when adding a browser; acceptance, rejection or expiry closes the window. Unknown browsers are rejected without approval notifications while closed. Revoking a browser in Devices keeps it out unless you explicitly open pairing and approve it again. This does not prevent network traffic; connection and request limits still apply.
+
+Invitations expire after two minutes; approval is required within 30 seconds of connecting. Approval consumes the invitation. Opening a new pairing window does not restart the service and is unavailable while a phone is connected. Never share pairing links publicly.
 
 Temporary approval can recover across tabs/browser restarts for 30 minutes of inactivity while the same service runs. Bookmark the plain PC address. Backgrounding pauses input; returning resumes or reconnects without replaying unfinished edits. Disconnect, service stop/restart, lock or disable revokes temporary approval.
 

@@ -43,6 +43,9 @@ try {
             const extension = ${base};
             extension._networkOptions = () => (${JSON.stringify(options)});
             await extension._start();
+            if (extension._url !== null || extension._dialogs._pairing !== null)
+                throw Error('Service startup opened pairing');
+            extension._showPairing();
             return extension._server !== null;
         })()`);
         await wait(`typeof ${base}._url === 'string'`);
@@ -235,7 +238,7 @@ try {
         Main.sessionMode.popMode('unlock-dialog'); return GLib.SOURCE_REMOVE;
     }); true;`);
     await new Promise(resolve => setTimeout(resolve, 1200));
-    await wait(`${base}._server?._state === 'listening' && typeof ${base}._url === 'string'`);
+    await wait(`${base}._server?._state === 'listening' && ${base}._url === null`);
     assert.ok(evaluate(`${base}._dialogs._pairing === null`).includes("'true'"));
     evaluate(`${base}._stop(); Main.sessionMode.pushMode('unlock-dialog'); GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         Main.sessionMode.popMode('unlock-dialog'); return GLib.SOURCE_REMOVE;
@@ -244,6 +247,20 @@ try {
     assert.ok(evaluate(`${base}._server === null && !${base}._autoStartId`).includes("'true'"));
     evaluate(`${base}._settings.reset('restart-after-unlock')`);
     console.log('PASS: opt-in unlock restarts the real helper without QR; manual stop survives unlock');
+    for (const showQr of [false, true]) {
+        evaluate(`(async()=>{
+            const extension = ${base};
+            extension._settings.set_boolean('pairing-on-start', true);
+            await extension._start(${showQr});
+        })()`);
+        await wait(`typeof ${base}._url === 'string'`);
+        assert.ok(evaluate(`Boolean(${base}._dialogs._pairing) === ${showQr}`).includes("'true'"));
+        evaluate(`${base}._server.closePairing()`);
+        await wait(`${base}._url === null && ${base}._dialogs._pairing === null`);
+        evaluate(`${base}._stop()`);
+    }
+    evaluate(`${base}._settings.reset('pairing-on-start')`);
+    console.log('PASS: startup pairing opens only when configured, automatic starts hide QR, and local closure clears invitation UI');
     evaluate(`(()=>{
         const extension = ${base};
         global._remotePendingRead = false;

@@ -9,6 +9,7 @@ const message = (address, port = 8844, scheme = 'https') => ({url: `${scheme}://
 test('Shell validates helper startup address, port, transport and fingerprint independently', () => {
     const options = {address: '192.168.1.2', port: 8844};
     assert.equal(isStartupResponse(message(options.address), options), true);
+    assert.equal(isStartupResponse({...message(options.address), url: `https://${options.address}:8844/`}, options), true);
     for (const candidate of [message('192.168.1.3'), message(options.address, 8845),
         message(options.address, 8844, 'http'), {...message(options.address), fingerprint: 'AB'},
         {...message(options.address), url: `https://${options.address}:8844/#wrong`}])

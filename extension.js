@@ -48,13 +48,15 @@ export default class SmartphoneRemoteControl extends Extension {
         this._address = new PopupMenu.PopupMenuItem('', {reactive: false});
         this._address.visible = false;
         this._indicator.menu.addMenuItem(this._address);
-        this._pairing = this._indicator.menu.addAction('Show pairing QR', () => this._showPairing());
+        this._pairing = this._indicator.menu.addAction('Allow pairing for 2 minutes', () => this._showPairing());
         this._pairing.visible = false;
         this._copy = this._indicator.menu.addAction('Copy pairing link', () => {
             St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, this._url);
             Main.notify('Smartphone Remote Control', 'Pairing link copied. Open it on the phone before it expires.');
         });
         this._copy.visible = false;
+        this._closePairing = this._indicator.menu.addAction('Close pairing', () => this._server?.closePairing());
+        this._closePairing.visible = false;
         this._showCertificate = this._indicator.menu.addAction('Show certificate fingerprint', () => this._dialogs.showFingerprint(this._fingerprint));
         this._showCertificate.visible = false;
         this._remember = new PopupMenu.PopupSwitchMenuItem(`Remember this browser for ${trustDurationDays(this._settings)} days`, false);
@@ -160,6 +162,23 @@ export default class SmartphoneRemoteControl extends Extension {
                         Main.notifyError('Smartphone Remote Control', message);
                     }
                 });
+            service.onPairing = url => {
+                if (this._server !== service) return;
+                this._url = url;
+                this._copy.visible = Boolean(url);
+                this._closePairing.visible = Boolean(url);
+                this._pairing.label.text = url ? 'Show pairing QR' : 'Allow pairing for 2 minutes';
+                if (['listening', 'disconnected', 'expired'].includes(service._state))
+                    this._status.label.text = url ? 'Pairing open for 2 minutes' : 'New pairing is closed';
+                if (url) {
+                    this._writeSessionFile();
+                    if (this._pairingShowQr) this._dialogs.showPairing(url);
+                    this._pairingShowQr = false;
+                } else {
+                    this._removeSessionFile();
+                    this._dialogs.closePairing();
+                }
+            };
             starting = service;
             this._server = service;
             this._status.label.text = 'Starting remote control…';
@@ -172,17 +191,15 @@ export default class SmartphoneRemoteControl extends Extension {
             this._startingCancel = null;
             if (this._settings.get_boolean('auto-stop-enabled'))
                 this._autoStopTimer.start(autoStopMinutes(this._settings));
-            this._url = started.url;
+            this._url = null;
             this._fingerprint = started.fingerprint;
             this._showCertificate.visible = Boolean(this._fingerprint);
-            this._address.label.text = this._url.split('/#')[0];
+            this._address.label.text = started.url;
             this._address.visible = true;
-            this._copy.visible = true;
+            this._copy.visible = false;
             this._pairing.visible = true;
-            // Native development checks read this temporary URL through a user-only file.
-            this._writeSessionFile();
-            if (showPairing)
-                this._dialogs.showPairing(this._url);
+            this._pairing.label.text = 'Allow pairing for 2 minutes';
+            this._openStartupPairing(showPairing);
         } catch (error) {
             if (starting && this._server !== starting)
                 return;
@@ -202,15 +219,15 @@ export default class SmartphoneRemoteControl extends Extension {
     _updateSessionMenu(state) {
         this._updateServiceActions(state);
         this._status.label.text = {
-            listening: 'Waiting for phone', pending: `Control requested from ${this._server.peer}`,
+            listening: this._url ? 'Pairing open for 2 minutes' : 'New pairing is closed', pending: `Control requested from ${this._server.peer}`,
             connected: `Connected: ${this._server.browserName ?? this._server.peer}`, disconnected: 'Disconnected',
             expired: 'Invitation or session expired',
             suspended: 'Phone paused in background', reconnecting: 'Waiting for phone to reconnect',
         }[state];
         this._approve.visible = state === 'pending';
         this._remember.visible = state === 'pending';
-        this._pairing.visible = state !== 'pending';
-        this._pairing.label.text = state === 'listening' ? 'Show pairing QR' : 'New pairing QR';
+        this._pairing.visible = ['listening', 'disconnected', 'expired'].includes(state);
+        this._pairing.label.text = this._url ? 'Show pairing QR' : 'Allow pairing for 2 minutes';
         if (['connected', 'disconnected', 'expired'].includes(state))
             this._copy.visible = false;
     }
@@ -318,11 +335,21 @@ export default class SmartphoneRemoteControl extends Extension {
         });
     }
 
+    _openStartupPairing(showQr) {
+        if (this._settings.get_boolean('pairing-on-start'))
+            this._openPairing(showQr);
+    }
+
+    _openPairing(showQr = true) {
+        this._pairingShowQr = showQr;
+        this._server?.openPairing();
+    }
+
     _showPairing() {
         if (this._url)
             this._dialogs.showPairing(this._url);
         else
-            this._start();
+            this._openPairing();
     }
 
     _handleInput(input) {
@@ -381,6 +408,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._address.visible = false;
         this._copy.visible = false;
         this._pairing.visible = false;
+        if (this._closePairing) this._closePairing.visible = false;
         this._showCertificate.visible = false;
         this._fingerprint = null;
         this._approve.visible = false;
@@ -422,6 +450,7 @@ export default class SmartphoneRemoteControl extends Extension {
         this._address = null;
         this._copy = null;
         this._pairing = null;
+        this._closePairing = null;
         this._showCertificate = null;
         this._autoStopStatus = null;
         this._autoStopExtend = null;

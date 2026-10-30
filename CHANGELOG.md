@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 — 2026-10-30
+
+- Keep new browser pairing closed by default on every service start, including automatic startup; allow opting into a two-minute startup window in Security settings. Add a local Allow pairing for 2 minutes action with QR/link and explicit Close pairing.
+- Close the invitation window on approval, rejection or expiry; reject unknown clients silently while closed and preserve authorized browser reconnection. Opening pairing no longer restarts the service.
+- Cover closed startup over HTTP/TLS, local helper pairing commands, invitation rotation/expiry and pending-client cleanup.
+
 ## 0.9.0 — 2026-10-29
 
 - Group Network, Automatic start and Automatic stop under Service; keep certificates and browser authorization in Security. Adapt the initial settings window to the monitor size and scaling, with a taller layout on larger screens.

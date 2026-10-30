@@ -29,7 +29,7 @@ const peer = new DBusPeer(connection, 'service', command => {
                 ? Gio.TlsCertificate.new_from_files(options.certificatePath, options.privateKeyPath) : null;
             server = new RemoteServer(directory, state => peer.send({type: 'state', state,
                 peer: server?.peer ?? null, browserName: server?.browserName ?? null}),
-            input => peer.send({type: 'input', input}), {...options, certificate, trusted});
+            input => peer.send({type: 'input', input}), {...options, certificate, trusted, onPairingClosed: () => peer.send({type: 'pairing', url: null})});
             unwatch = trusted.watch(() => server.checkTrust());
             const url = server.start();
             const fingerprint = certificate
@@ -38,6 +38,11 @@ const peer = new DBusPeer(connection, 'service', command => {
         } catch (error) {
             peer.send({type: 'error', message: `Could not start the network service: ${error.message}`.slice(0, 512)});
         }
+    } else if (command.type === 'open-pairing') {
+        const url = server?.openPairing();
+        if (url) peer.send({type: 'pairing', url});
+    } else if (command.type === 'close-pairing') {
+        server?.closePairing();
     } else if (command.type === 'approve' && typeof command.remember === 'boolean') {
         server?.approve(command.remember);
     } else if (command.type === 'disconnect') {

@@ -1,6 +1,6 @@
 # Security model
 
-This extension grants pointer, keyboard and default audio-output control of an unlocked GNOME desktop. Use a trusted local network. A remembered browser can reconnect while the service is running; lock, disable and Stop terminate control. Login/lock-screen access and automatic startup are unsupported.
+This extension grants pointer, keyboard and default audio-output control of an unlocked GNOME desktop. Use a trusted local network. A remembered browser can reconnect while the service is running; lock, disable and Stop terminate control. Login/lock-screen access is unsupported; optional automatic startup preserves the same authorization boundaries.
 
 ## Server identity and credentials
 
@@ -12,6 +12,7 @@ Before startup, after stopping the previous helper, unreferenced generated certi
 
 ## Pairing and trust
 
+- Service startup leaves pairing closed by default. A local desktop action opens a two-minute invitation window; the local Security setting can also open that window on subsequent service starts (including automatic starts, without a QR popup). No HTTP/WebSocket action can open it. Acceptance, rejection, explicit closure or expiry closes pairing. Unknown clients are rejected without desktop approval notifications while closed; valid temporary and remembered credentials can still reconnect. Revocation plus closed pairing prevents re-enrollment without renewed local approval, not network connection attempts.
 - Invitations use 32 OS-random bytes, expire after two minutes and are consumed by approval. The secret remains in the URL fragment/tab session storage until approval so pending Lens links can open in Chrome. It travels in the first WSS message, never the handshake query. A mode-0600 PC runtime file holding the link is removed on approval, expiry or stop.
 - New browsers require desktop approval within 30 seconds of connecting. Valid temporary or remembered credentials allow recovery without fresh approval.
 - Recovery cookies are host-only `__Host-` cookies with Secure, HttpOnly, SameSite=Strict and Path=/. Secrets are not exposed to JavaScript. Temporary authorization expires after 30 minutes of inactivity and is revoked on Disconnect, service restart/stop, lock or disable. Periodic cookie refresh does not extend that server-side deadline; input and foreground resume do.

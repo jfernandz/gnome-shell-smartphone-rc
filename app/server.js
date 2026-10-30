@@ -42,6 +42,7 @@ export class RemoteServer {
         this._pairingExpiry = 0;
         this._authenticationMillis = options.authenticationMillis ?? 5000;
         this._trusted = options.trusted ?? null;
+        this._onPairingClosed = options.onPairingClosed;
         this._authorization = new SessionAuthorization(this._trusted, options.sessionSeconds ?? 1800,
             () => this._newSecret(), () => {
                 this.disconnect();
@@ -64,8 +65,7 @@ export class RemoteServer {
 
     start() {
         this._terminalAction = false;
-        this._token = this._newSecret();
-        this._deadline = GLib.get_monotonic_time() + PAIRING_LIFETIME_SECONDS * 1000000;
+        this._token = null;
         this._server = new Soup.Server();
         try {
             this._guard = new NetworkGuard(this._server, this._certificate, this._guardOptions);
@@ -89,15 +89,35 @@ export class RemoteServer {
         });
         this._server.add_websocket_handler('/control', this._origin, null, (_server, message, _path, connection) =>
             this._acceptConnection(message, connection));
+        this._onState('listening');
+        return `${this._origin}/`;
+    }
+
+    openPairing() {
+        if (!this._server || this._client || this._terminalAction)
+            return null;
+        this.closePairing();
+        this._token = this._newSecret();
+        this._deadline = GLib.get_monotonic_time() + PAIRING_LIFETIME_SECONDS * 1000000;
         this._pairingExpiry = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, PAIRING_LIFETIME_SECONDS, () => {
             this._pairingExpiry = 0;
-            this._token = null;
-            this.disconnect();
-            this._onState('expired');
+            this.closePairing();
             return GLib.SOURCE_REMOVE;
         });
-        this._onState('listening');
         return `${this._origin}/#${this._token}`;
+    }
+
+    closePairing() {
+        this._consumePairing();
+        for (const [connection, pending] of this._unauthenticated) {
+            GLib.Source.remove(pending.timer);
+            connection.disconnect(pending.message);
+            connection.disconnect(pending.closed);
+            connection.close(1008, 'Pairing closed');
+        }
+        this._unauthenticated.clear();
+        if (this._client && !this._approved)
+            this.disconnect();
     }
 
     _earlyRequest(message, path) {
@@ -344,6 +364,7 @@ export class RemoteServer {
     }
 
     _consumePairing() {
+        const wasOpen = Boolean(this._token);
         for (const key of ['_expiry', '_pairingExpiry']) {
             if (this[key]) {
                 GLib.Source.remove(this[key]);
@@ -351,6 +372,7 @@ export class RemoteServer {
             }
         }
         this._token = null;
+        if (wasOpen) this._onPairingClosed?.();
     }
 
     setSensitivity(range) {
@@ -460,11 +482,7 @@ export class RemoteServer {
         this._client.disconnect(this._closedId);
         this._client = null;
         this._approved = false;
-        this._token = null;
-        if (this._pairingExpiry) {
-            GLib.Source.remove(this._pairingExpiry);
-            this._pairingExpiry = 0;
-        }
+        this._consumePairing();
         this._peer = null;
         this._authorization.cancelExchange();
         if (resumable) {
@@ -476,6 +494,7 @@ export class RemoteServer {
     }
 
     disconnect() {
+        this._consumePairing();
         this._authorization.clear();
         if (!this._client)
             return;

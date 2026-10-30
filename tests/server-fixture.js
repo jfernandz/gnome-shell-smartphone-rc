@@ -38,7 +38,8 @@ GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 12, () => {
     options.trusted?.forgetAll();
     return GLib.SOURCE_CONTINUE;
 });
-print(JSON.stringify({url: server.start()}));
+server.start();
+print(JSON.stringify({url: GLib.getenv('SMARTPHONE_RC_TEST_CLOSED') ? `${server._origin}/` : server.openPairing()}));
 const loop = new GLib.MainLoop(null, false);
 GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 15, () => {
     server.stop();
@@ -48,7 +49,15 @@ GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 15, () => {
 });
 GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 10, () => {
     server.stop();
-    print(JSON.stringify({url: server.start()}));
+    server.start();
+    print(JSON.stringify({url: server.openPairing()}));
     return GLib.SOURCE_CONTINUE;
 });
+
+
+GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, 28, () => {
+    print(JSON.stringify({pairingUrl: server.openPairing()}));
+    return GLib.SOURCE_CONTINUE;
+});
+
 loop.run();

@@ -1,9 +1,7 @@
 # Publication readiness
 
-Latest version: **v0.9.0**, adding optional startup after login/unlock and
-consolidated Service settings with a monitor-sized preferences window.
-All 128 automated tests and isolated native lifecycle/preferences checks pass.
-Fresh physical login acceptance and the v0.9.0 hosted run remain pending.
+Latest version: **v0.10.0**, adding configurable two-minute windows for new browser pairing, closed by default.
+Physical-device acceptance and hosted release validation remain pending.
 Earlier evidence is in [TESTING.md](TESTING.md) and the [v0.6.3 report](docs/publication-review-v0.6.3.md).
 Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
 
@@ -11,10 +9,10 @@ Tests, a tag or a GitHub release do not establish extensions.gnome.org approval.
 
 ```sh
 bash scripts/prepare-env.sh --install --publication
-node scripts/prepare-publication.mjs v0.9.0
+node scripts/prepare-publication.mjs v0.10.0
 ```
 
-The default output is dist/publication-v0.9.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
+The default output is dist/publication-v0.10.0/: installable ZIP, selected portrait/landscape captures, icon, release notes, listing draft, checksums and REVIEW.md. Existing directories are preserved; use a new destination to repeat. See [script details](scripts/README.md#prepare-a-publication-from-a-tag).
 
 On GitHub, **Actions → Release preparation → run → Summary → Artifacts** provides the bundle for 30 days. Tag runs attach only the installable ZIP and publication ZIP to a **draft** under Releases. Captures, icon, release notes and SHA256SUMS stay inside the publication ZIP. Its description contains the version's detailed changelog and comparison link. Manual runs regenerate artifacts without modifying releases. No workflow publishes drafts or submits to EGO.
 
